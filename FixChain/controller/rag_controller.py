@@ -1,33 +1,40 @@
 import os
 import asyncio
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 import google.generativeai as genai
 from dotenv import load_dotenv
 import numpy as np
-from service.mongodb_service import MongoDBManager, get_mongo_manager
+from service.mongodb_service import MongoDBManager
 import uvicorn
 
 # Load environment variables
 load_dotenv()
 
-# Configure Gemini
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-if not gemini_api_key:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+# Resources initialized on startup
+embedding_model = None
+llm_model = None
+mongo_manager: Optional[MongoDBManager] = None
 
-genai.configure(api_key=gemini_api_key)
-
-# Initialize Gemini Flash 2.0 model
-embedding_model = genai.GenerativeModel('gemini-2.0-flash-exp')
-llm_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+def init_resources():
+    global embedding_model, llm_model, mongo_manager
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if embedding_model is None or llm_model is None:
+        if not gemini_api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment variables")
+        genai.configure(api_key=gemini_api_key)
+        embedding_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        llm_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    if mongo_manager is None:
+        mongo_manager = MongoDBManager()
 
 # APIRouter
 app = APIRouter()
 
-# MongoDB manager
-mongo_manager = MongoDBManager()
+@app.on_event("startup")
+async def startup_event():
+    init_resources()
 
 # Pydantic models
 class DocumentInput(BaseModel):

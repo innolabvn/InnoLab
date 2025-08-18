@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+from utils.logger import logger
 
 # Load environment variables
 load_dotenv()
@@ -107,16 +108,16 @@ def main():
     """
     Main function to start the integrated application
     """
-    print("🚀 Starting FixChain2 Integrated API...")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("🔍 OpenAPI Schema: http://localhost:8000/openapi.json")
-    print("")
-    print("📋 Available API Groups:")
-    print("  🐛 Bug Management: /api/v1/bugs/*")
-    print("  🔍 RAG System: /api/v1/rag/*")
-    print("  🚀 RAG Bug Management: /api/v1/rag-bugs/*")
-    print("")
-    print("🌐 Starting server on http://localhost:8000")
+    logger.info("🚀 Starting FixChain2 Integrated API...")
+    logger.info("📚 API Documentation: http://localhost:8000/docs")
+    logger.info("🔍 OpenAPI Schema: http://localhost:8000/openapi.json")
+    logger.info("")
+    logger.info("📋 Available API Groups:")
+    logger.info("  🐛 Bug Management: /api/v1/bugs/*")
+    logger.info("  🔍 RAG System: /api/v1/rag/*")
+    logger.info("  🚀 RAG Bug Management: /api/v1/rag-bugs/*")
+    logger.info("")
+    logger.info("🌐 Starting server on http://localhost:8000")
     
     # Use app string for proper reload support
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

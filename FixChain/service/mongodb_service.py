@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
 from dotenv import load_dotenv
+from utils.logger import logger
 
 # Load environment variables
 load_dotenv()
@@ -28,7 +29,7 @@ class MongoDBManager:
             if os.getenv("DOCKER_ENV") == "true":
                 default_url = "mongodb://admin:password123@mongodb:27017/"
             
-            mongo_url = os.getenv("MONGODB_URL", default_url)
+            mongo_url = os.getenv("MONGODB_URI", default_url)
             db_name = os.getenv("MONGODB_DATABASE", "rag_db")
             
             self.client = MongoClient(mongo_url)
@@ -40,10 +41,10 @@ class MongoDBManager:
             
             # Test connection
             self.client.admin.command('ping')
-            print("✅ Connected to MongoDB successfully")
+            logger.info("✅ Connected to MongoDB successfully")
             
         except Exception as e:
-            print(f"❌ Error connecting to MongoDB: {e}")
+            logger.error(f"❌ Error connecting to MongoDB: {e}")
             raise e
     
     def add_document(self, content: str, metadata: Dict = None, embedding: List[float] = None) -> str:
@@ -105,7 +106,7 @@ class MongoDBManager:
                 })
             
             return documents
-            
+
         except Exception as e:
             raise Exception(f"Error searching documents: {str(e)}")
     
@@ -144,7 +145,7 @@ class MongoDBManager:
                     })
             
             return documents
-            
+
         except Exception as e:
             raise Exception(f"Error searching by embedding: {str(e)}")
     
@@ -183,9 +184,9 @@ class MongoDBManager:
             emb_result = self.embeddings_collection.delete_one({"doc_id": doc_id})
             
             return doc_result.deleted_count > 0
-            
+
         except Exception as e:
-            print(f"Error deleting document: {e}")
+            logger.error(f"Error deleting document: {e}")
             return False
     
     def get_collection(self, collection_name: str) -> Collection:
@@ -231,7 +232,7 @@ class MongoDBManager:
             result = collection.insert_one(document)
             
             return doc_id
-            
+
         except Exception as e:
             raise Exception(f"Error adding RAG document to {collection_name}: {str(e)}")
     
@@ -239,7 +240,7 @@ class MongoDBManager:
         """Close MongoDB connection"""
         if self.client:
             self.client.close()
-            print("✅ MongoDB connection closed")
+            logger.info("✅ MongoDB connection closed")
 
 # Global MongoDB manager instance
 mongo_manager = None

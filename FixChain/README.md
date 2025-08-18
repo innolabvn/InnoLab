@@ -18,9 +18,6 @@ FixChain2/
 │   ├── example_requests.py  # Example API requests
 │   ├── sample_payloads.json # Sample JSON payloads
 │   └── sample_bugs.csv     # Sample bug data for import
-├── test/               # Test files
-│   ├── test_bug_import.py  # Bug import API tests
-│   └── test_csv_import.py  # CSV import functionality tests
 ├── main.py             # Main entry point
 └── requirements.txt    # Python dependencies
 ```
@@ -53,6 +50,7 @@ FixChain2/
    ```
    GEMINI_API_KEY=your_gemini_api_key
    MONGODB_URI=mongodb://mongodb:27017/rag_db
+   SONARQ_PATH=./SonarQ
    ```
 
 2. Start with Docker Compose:
@@ -75,6 +73,7 @@ FixChain2/
    ```
    GEMINI_API_KEY=your_gemini_api_key
    MONGODB_URI=your_mongodb_connection_string
+   SONARQ_PATH=./SonarQ  # Path to SonarQube scripts
    ```
 
 3. Start services individually:
@@ -96,16 +95,7 @@ FixChain2/
 
 ## Testing
 
-```bash
-# Test bug import functionality
-python test/test_bug_import.py
-
-# Test CSV import
-python test/test_csv_import.py
-
-# Test RAG bug management
-python test/test_rag_bug.py
-```
+No automated tests are included at the moment.
 
 ## Sample Data
 

@@ -18,6 +18,7 @@ class ExecutionService:
         self.dify_local_api_key = os.getenv('DIFY_LOCAL_API_KEY')
         self.sonar_host = os.getenv('SONAR_HOST', 'http://localhost:9000')
         self.sonar_token = os.getenv('SONAR_TOKEN')
+        self.sonarq_path = os.getenv('SONARQ_PATH', os.path.join(os.getcwd(), 'SonarQ'))
         
         # Initialize services
         self.mongodb_service = MongoDBService()
@@ -70,7 +71,7 @@ class ExecutionService:
             # Step 1: Run SonarQube scan
             logger.info("Step 1: Running SonarQube scan...")
             scan_cmd = [
-                'd:\\ILA\\SonarQ\\run_scan.bat',
+                os.path.join(self.sonarq_path, 'run_scan.bat'),
                 self.source_code_path
             ]
             
@@ -85,7 +86,7 @@ class ExecutionService:
                 text=True,
                 encoding='utf-8',
                 env=env,
-                cwd='d:\\ILA\\SonarQ',
+                cwd=self.sonarq_path,
                 shell=True
             )
             
@@ -103,8 +104,8 @@ class ExecutionService:
             # Step 3: Export issues
             logger.info("Step 2: Exporting issues...")
             export_cmd = [
-                'python', 
-                'd:\\ILA\\SonarQ\\export_issues.py', 
+                'python',
+                os.path.join(self.sonarq_path, 'export_issues.py'),
                 self.project_key,
                 self.sonar_host
             ]
