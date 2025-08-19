@@ -7,7 +7,6 @@ This bypasses MongoDB dependency for testing
 import os
 import sys
 import json
-import subprocess
 import time
 from datetime import datetime
 from typing import List, Dict, Optional
@@ -17,6 +16,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from service.execution import ExecutionService
+from service.cli_service import CLIService
 from lib.dify_lib import DifyMode, run_workflow_with_dify
 from utils.logger import logger
 
@@ -96,7 +96,7 @@ class ExecutionServiceNoMongo:
                 # Start sonar-scanner container if not running
                 logger.info("Ensuring sonar-scanner container is running...")
                 start_cmd = "docker start sonar_scanner 2>nul || docker-compose --profile tools up -d sonar-scanner"
-                subprocess.run(start_cmd, shell=True, check=False)
+                CLIService.run_command(start_cmd, shell=True)
                 time.sleep(2)  # Wait for container to be ready
                 
                 # Create sonar-project.properties
@@ -122,32 +122,10 @@ class ExecutionServiceNoMongo:
                 logger.info(f"Running containerized scan: {' '.join(scan_cmd)}")
                 
                 # Start the process
-                process = subprocess.Popen(
-                    scan_cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    encoding='utf-8'
-                )
-                
-                # Read output in real-time
-                output_lines = []
-                while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        output_lines.append(output)
-                        logger.info(f"SonarQube: {output.strip()}")
-                
-                # Wait for process to complete
-                return_code = process.poll()
-                
-                if return_code != 0:
-                    logger.error(f"SonarQube scan failed with return code: {return_code}")
-                    logger.error(f"Full output: {''.join(output_lines)}")
+                success, output_lines = CLIService.run_command_stream(scan_cmd)
+                if not success:
+                    logger.error(f"SonarQube scan failed. Output: {''.join(output_lines)}")
                     return []
-                
                 logger.info("SonarQube scan completed successfully")
                 
                 # Step 2: Wait a bit for SonarQube to process results
@@ -164,16 +142,8 @@ class ExecutionServiceNoMongo:
                     output_file
                 ]
                 
-                export_result = subprocess.run(
-                    export_cmd, 
-                    capture_output=True, 
-                    text=True, 
-                    encoding='utf-8',
-                    cwd=sonar_dir
-                )
-            
-                if export_result.returncode != 0:
-                    logger.error(f"Issues export failed: {export_result.stderr}")
+                if not CLIService.run_command(export_cmd, cwd=sonar_dir):
+                    logger.error("Issues export failed")
                     return []
                 
                 # Read JSON output from file
@@ -257,8 +227,9 @@ class ExecutionServiceNoMongo:
         # Also check second to last line in case there's an empty line before ```
         if len(lines) >= 2 and lines[-1].strip() == '' and lines[-2].strip() == '```':
             lines = lines[:-2]
-        
+
         return '\n'.join(lines)
+
     
     def fix_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
         """Fix bugs using Dify API"""
@@ -333,12 +304,17 @@ class ExecutionServiceNoMongo:
             # Increment execution count and save to new file
             self.execution_count += 1
             new_file_name = f"code_{self.execution_count}.py"
-            
+
             # Write fixed code to new file
             if self.write_source_code(new_file_name, fixed_code):
                 # Update current source file to the newly created file
                 self.current_source_file = new_file_name
-                
+
+                # Attempt to run cline CLI for additional automatic fixes
+                full_path = os.path.join(self.source_code_path, new_file_name)
+                if not CLIService.run_cline_autofix(full_path):
+                    logger.warning("cline CLI autofix failed or is not installed")
+
                 logger.info(f"DIFY: Successfully fixed bugs and saved to {new_file_name}")
                 return {
                     "success": True,

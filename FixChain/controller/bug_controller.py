@@ -21,12 +21,17 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Configure Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-llm_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Global resources initialized at startup
+mongo_manager: Optional[MongoDBManager] = None
+llm_model = None
 
-# Initialize MongoDB
-mongo_manager = MongoDBManager()
+def init_resources():
+    global mongo_manager, llm_model
+    if llm_model is None:
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        llm_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    if mongo_manager is None:
+        mongo_manager = MongoDBManager()
 
 # Bug Types Enum
 class BugType(str, Enum):
@@ -276,6 +281,10 @@ Trả lời bằng tiếng Việt, ngắn gọn và súc tích.
 from fastapi import APIRouter
 
 app = APIRouter()
+
+@app.on_event("startup")
+async def startup_event():
+    init_resources()
 
 @app.get("/health")
 async def health_check():
