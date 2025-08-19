@@ -59,8 +59,8 @@ sonar-scanner \
 ## 5. Export Issues
 
 ```bash
-# Cài đặt dependencies
-pip install requests
+# Cài đặt dependencies (requests, python-dotenv, aider-chat)
+pip install -r requirements.txt
 
 # Export issues (script sẽ tự động load token từ .env)
 python export_issues.py my-service
