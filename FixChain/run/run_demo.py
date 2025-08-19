@@ -13,15 +13,12 @@ from typing import List, Dict, Optional
 from dotenv import load_dotenv
 
 # Add the project root to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from service.execution import ExecutionService
 from service.cli_service import CLIService
 from lib.dify_lib import DifyMode, run_workflow_with_dify
 from utils.logger import logger
 
-# RAG functionality is always available in this demo
-# It uses the execution service's insert_dataset_to_rag method
 RAG_AVAILABLE = True
 
 # Load environment variables
@@ -30,7 +27,7 @@ load_dotenv()
 class ExecutionServiceNoMongo:
     """ExecutionService without MongoDB dependency"""
     
-    def __init__(self):
+    def __init__(self, scan_directory=None):
         # Load environment variables
         self.dify_cloud_api_key = os.getenv('DIFY_CLOUD_API_KEY')
         self.dify_local_api_key = os.getenv('DIFY_LOCAL_API_KEY')
@@ -41,6 +38,8 @@ class ExecutionServiceNoMongo:
         self.max_iterations = int(os.getenv('MAX_ITERATIONS', '5'))
         self.project_key = os.getenv('PROJECT_KEY')
         self.source_code_path = os.getenv('SOURCE_CODE_PATH')
+        # Priority: parameter > environment variable > default
+        self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'source_bug')
         
         # Execution tracking
         self.execution_count = 0
@@ -51,6 +50,7 @@ class ExecutionServiceNoMongo:
         logger.info(f"  Max iterations: {self.max_iterations}")
         logger.info(f"  Project key: {self.project_key}")
         logger.info(f"  Source code path: {self.source_code_path}")
+        logger.info(f"  Scan directory: {self.scan_directory}")
         logger.info(f"  RAG available: {RAG_AVAILABLE}")
     
     def insert_rag_default(self) -> bool:
@@ -100,7 +100,17 @@ class ExecutionServiceNoMongo:
                 time.sleep(2)  # Wait for container to be ready
                 
                 # Create sonar-project.properties
-                project_dir = os.path.join(sonar_dir, "source_bug")
+                # Handle both relative and absolute paths for scan_directory
+                if os.path.isabs(self.scan_directory):
+                    project_dir = self.scan_directory
+                else:
+                    # For relative paths, resolve from sonar_dir
+                    project_dir = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
+                
+                logger.info(f"Project directory: {project_dir}")
+                
+                # Ensure the directory exists
+                os.makedirs(project_dir, exist_ok=True)
                 props_file = os.path.join(project_dir, "sonar-project.properties")
                 
                 with open(props_file, 'w', encoding='utf-8') as f:
@@ -111,9 +121,19 @@ class ExecutionServiceNoMongo:
                 
                 logger.info(f"Created sonar-project.properties for project: {self.project_key}")
                 
+                # Copy project files to sonar scanner container
+                # First, copy the project directory to the container
+                copy_cmd = f"docker cp \"{project_dir}\" sonar_scanner:/usr/src/"
+                logger.info(f"Copying project files: {copy_cmd}")
+                CLIService.run_command(copy_cmd, shell=True)
+                
+                # Get the directory name for the working directory in container
+                project_name = os.path.basename(project_dir)
+                container_work_dir = f"/usr/src/{project_name}"
+                
                 # Run scan using docker exec
                 scan_cmd = [
-                    "docker", "exec", "-w", "/usr/src",
+                    "docker", "exec", "-w", container_work_dir,
                     "-e", f"SONAR_HOST_URL=http://sonarqube:9000",
                     "-e", f"SONAR_TOKEN={self.sonar_token}",
                     "sonar_scanner", "sonar-scanner"
@@ -152,12 +172,8 @@ class ExecutionServiceNoMongo:
                         bugs_data = json.load(f)
                     all_bugs = bugs_data.get('issues', [])
                     
-                    # Filter bugs to only include those from 'code_số lần chay.py'
-                    target_file = self.current_source_file
-                    bugs = [bug for bug in all_bugs if bug.get('file_path') == target_file]
-                    
-                    logger.info(f"Found {len(all_bugs)} total bugs, {len(bugs)} bugs in {target_file}")
-                    return bugs
+                    logger.info(f"Found {len(all_bugs)} total bugs, {len(all_bugs)} bugs")
+                    return all_bugs
                 else:
                     logger.error(f"Output file not found: {output_file}")
                     return []
@@ -231,7 +247,7 @@ class ExecutionServiceNoMongo:
         return '\n'.join(lines)
 
     
-    def fix_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
+    def analysis_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
         """Fix bugs using Dify API"""
         try:
             # Choose API key based on mode
@@ -241,17 +257,10 @@ class ExecutionServiceNoMongo:
                 logger.error(f"No API key found for mode: {mode}")
                 return {"success": False, "error": "Missing API key"}
             
-            # Read source code from current source file
-            source_code = self.read_source_code()
-            if not source_code:
-                logger.error("Failed to read source code from code.py")
-                return {"success": False, "error": "Failed to read source code"}
-            
             # Prepare input for Dify
             inputs = {
                 # use string to avoid json format error
                 "is_use_rag": str(use_rag),
-                "src": source_code,
                 "report": json.dumps(bugs, ensure_ascii=False),
             }
             
@@ -275,7 +284,7 @@ class ExecutionServiceNoMongo:
             
             # Extract fixed code from response
             outputs = response.get('data', {}).get('outputs', {})
-            fixed_code = outputs.get('fixed_code', '')
+            list_bugs = outputs.get('list_bugs', '')
             bugs_to_fix = outputs.get('bugs_to_fix', '')
 
             
@@ -283,65 +292,28 @@ class ExecutionServiceNoMongo:
             if bugs_to_fix == 0:
                 return {
                     "success": True,
-                    "fixed_count": 0,
-                    "failed_count": 0,
-                    "bugs_remain": 0,
                     "bugs_to_fix": bugs_to_fix,
+                    "list_bugs": list_bugs,
                     "message": "No bugs to fix"
+
                 }
             
-            if not fixed_code or fixed_code.strip() == source_code.strip():
-                logger.warning("DIFY: No changes detected in fixed code")
-                return {
-                    "success": True,
-                    "fixed_count": 0,
-                    "failed_count": len(bugs),
-                    "bugs_remain": len(bugs),
-                    "bugs_to_fix": bugs_to_fix,
-                    "message": "No changes made"
-                }
             
             # Increment execution count and save to new file
             self.execution_count += 1
-            new_file_name = f"code_{self.execution_count}.py"
+            return {
+                "success": True,
+                "list_bugs": list_bugs,
+                "bugs_to_fix": bugs_to_fix,
+                "message": "No bugs to fix"
+            }
 
-            # Write fixed code to new file
-            if self.write_source_code(new_file_name, fixed_code):
-                # Update current source file to the newly created file
-                self.current_source_file = new_file_name
-
-                # Attempt to run cline CLI for additional automatic fixes
-                full_path = os.path.join(self.source_code_path, new_file_name)
-                if not CLIService.run_cline_autofix(full_path):
-                    logger.warning("cline CLI autofix failed or is not installed")
-
-                logger.info(f"DIFY: Successfully fixed bugs and saved to {new_file_name}")
-                return {
-                    "success": True,
-                    "fixed_count": len(bugs),
-                    "failed_count": 0,
-                    "bugs_remain": len(bugs) - len(bugs_to_fix),
-                    "bugs_to_fix": bugs_to_fix,
-                    "message": f"Fixed code saved to {new_file_name}"
-                }
-            else:
-                logger.error(f"DIFY: Failed to write fixed code to {new_file_name}")
-                return {
-                    "success": False,
-                    "fixed_count": 0,
-                    "failed_count": len(bugs),
-                    "bugs_remain": len(bugs) - len(bugs_to_fix),
-                    "bugs_to_fix": bugs_to_fix,
-                    "error": "DIFY: Failed to write fixed code"
-                }
                 
         except Exception as e:
             logger.error(f"DIFY:Error in fix_bugs_with_dify: {str(e)}")
             return {
+                "list_bugs": list_bugs,
                 "success": False,
-                "fixed_count": 0,
-                "failed_count": len(bugs),
-                "bugs_remain": len(bugs),
                 "bugs_to_fix": bugs_to_fix,
                 "error": str(e)
             }
@@ -405,21 +377,23 @@ class ExecutionServiceNoMongo:
                 break
             
             # Fix bugs with Dify
-            fix_result = self.fix_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
+            fix_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
             iteration_result["fix_result"] = fix_result
-            
-            # Update total bugs fixed
-            if fix_result.get("success"):
-                total_bugs_fixed += fix_result.get("fixed_count", 0)
+            bugs_to_fix = fix_result.get("bugs_to_fix")
+            list_bugs = fix_result.get("list_bugs")
+            logger.info(f"bugs_to_fix: {bugs_to_fix}")
+            logger.info(f"list_bugs: {list_bugs}")
+
+
             
             iterations.append(iteration_result)
 
-            if fix_result.get("bugs_remain") == 0:
-                logger.info(f"Iteration {iteration} completed: {fix_result.get('fixed_count', 0)} bugs fixed")
+            if bugs_to_fix == 0:
+                logger.info(f"Iteration {iteration} completed: {bugs_to_fix} bugs to fix")
                 break
             
             # Log iteration result
-            logger.info(f"Iteration {iteration} completed: {fix_result.get('fixed_count', 0)} bugs fixed")
+            logger.info(f"Iteration {iteration} completed: {fix_result.get('bugs_to_fix', 0)} bugs to fix")
         
         end_time = datetime.now()
         
@@ -456,6 +430,8 @@ def main():
                        help='Run with RAG support (insert default RAG data and use RAG for bug fixing)')
     parser.add_argument('--mode', choices=['cloud', 'local'], default='cloud',
                        help='Dify mode to use (default: cloud)')
+    parser.add_argument('--destination', type=str, 
+                       help='Destination directory to scan (overrides SCAN_DIRECTORY env var)')
     
     args = parser.parse_args()
     
@@ -478,8 +454,8 @@ def main():
         use_rag = False
     
     try:
-        # Initialize service
-        service = ExecutionServiceNoMongo()
+        # Initialize service with destination if provided
+        service = ExecutionServiceNoMongo(scan_directory=args.destination)
         
         # Determine Dify mode
         dify_mode = DifyMode.CLOUD if args.mode == 'cloud' else DifyMode.LOCAL
