@@ -246,9 +246,8 @@ class ExecutionServiceNoMongo:
 
         return '\n'.join(lines)
 
-    
     def analysis_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
-        """Fix bugs using Dify API"""
+        """Analysis bugs using Dify API"""
         try:
             # Choose API key based on mode
             api_key = self.dify_cloud_api_key if mode == DifyMode.CLOUD else self.dify_local_api_key
@@ -295,7 +294,6 @@ class ExecutionServiceNoMongo:
                     "bugs_to_fix": bugs_to_fix,
                     "list_bugs": list_bugs,
                     "message": "No bugs to fix"
-
                 }
             
             
@@ -315,6 +313,142 @@ class ExecutionServiceNoMongo:
                 "list_bugs": list_bugs,
                 "success": False,
                 "bugs_to_fix": bugs_to_fix,
+                "error": str(e)
+            }
+    
+    def fix_bugs_llm(self, list_real_bugs: List[Dict], use_rag: bool = False) -> Dict:
+        """
+        Fix bugs using LLM by calling batch_fix.py script from SonarQ folder
+        This method integrates with the existing batch_fix.py to fix code issues
+        
+        Phương thức này sử dụng script batch_fix.py từ thư mục SonarQ để fix bugs:
+        1. Xác định thư mục source code cần fix (từ self.scan_directory)
+        2. Tạo file list_real_bugs.json từ dữ liệu list_real_bugs
+        3. Chuyển đến thư mục SonarQ 
+        4. Chạy command: python batch_fix.py --fix source_bug --auto --issues-file list_real_bugs.json
+        5. batch_fix.py sẽ:
+           - Quét tất cả file code trong thư mục (.py, .js, .ts, .jsx, .tsx, .java, .cpp, .c)
+           - Sử dụng Google Gemini AI để phân tích và fix từng file
+           - Sử dụng dữ liệu từ list_real_bugs.json để fix các lỗi cụ thể
+           - Tạo backup cho mỗi file trước khi fix
+           - Validate syntax và safety của code sau khi fix
+           - Ghi đè file gốc với code đã được fix
+        6. Đếm số file đã fix thành công từ output
+        7. Trả về kết quả với số lượng file đã fix
+        """
+        try:
+            logger.info(f"Starting fix_bugs_llm for {len(list_real_bugs)} bugs")
+            
+            # Bước 1: Xác định thư mục source code cần fix
+            # Ưu tiên: parameter > environment variable > default
+            if os.path.isabs(self.scan_directory):
+                source_dir = self.scan_directory
+            else:
+                # Đối với đường dẫn tương đối, resolve từ thư mục SonarQ
+                sonar_dir = "d:\\InnoLab\\SonarQ"
+                source_dir = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
+            
+            logger.info(f"Fixing bugs in directory: {source_dir}")
+            
+            # Bước 2: Kiểm tra thư mục có tồn tại không
+            if not os.path.exists(source_dir):
+                logger.error(f"Source directory does not exist: {source_dir}")
+                return {
+                    "success": False,
+                    "fixed_count": 0,
+                    "error": f"Source directory does not exist: {source_dir}"
+                }
+            
+            # Bước 3: Chuyển đến thư mục SonarQ để chạy batch_fix.py
+            original_dir = os.getcwd()
+            sonar_dir = "d:\\InnoLab\\SonarQ"
+            
+            try:
+                os.chdir(sonar_dir)
+                
+                # Bước 4: Tạo file list_real_bugs.json từ dữ liệu list_real_bugs
+                issues_file_path = os.path.join(sonar_dir, "list_real_bugs.json")
+                try:
+                    with open(issues_file_path, 'w', encoding='utf-8') as f:
+                        json.dump(list_real_bugs, f, indent=2, ensure_ascii=False)
+                    logger.info(f"Created issues file: {issues_file_path} with {len(list_real_bugs)} bugs")
+                except Exception as e:
+                    logger.error(f"Failed to create issues file: {str(e)}")
+                    return {
+                        "success": False,
+                        "fixed_count": 0,
+                        "error": f"Failed to create issues file: {str(e)}"
+                    }
+                
+                # Bước 5: Chuẩn bị và chạy command batch_fix.py với các tham số mới
+                # Sử dụng --fix để enable fixing mode
+                # Sử dụng --auto để skip confirmation prompts
+                # Sử dụng --issues-file để load specific issues từ JSON file
+                # Không sử dụng --output để ghi đè trực tiếp vào file gốc thay vì tạo thư mục duplicate
+                fix_cmd = [
+                    'python', 
+                    'batch_fix.py',
+                    'source_bug',
+                    '--fix',
+                    '--auto',
+                    '--issues-file',
+                    'list_real_bugs.json'
+                ]
+                
+                logger.info(f"Running command: {' '.join(fix_cmd)}")
+                
+                # Bước 6: Thực thi command batch fix
+                success, output_lines = CLIService.run_command_stream(fix_cmd)
+                
+                if success:
+                    # Bước 7: Parse output để đếm số file đã fix thành công
+                    output_text = ''.join(output_lines)
+                    fixed_count = 0
+                    
+                    # Đếm số lần fix thành công từ output
+                    # Tìm pattern "✅ Success" trong output
+                    for line in output_lines:
+                        if "✅ Success" in line:
+                            fixed_count += 1
+                    
+                    logger.info(f"Batch fix completed successfully. Fixed {fixed_count} files")
+                    
+                    # Bước 8: Trả về kết quả thành công
+                    return {
+                        "success": True,
+                        "fixed_count": fixed_count,
+                        "output": output_text,
+                        "message": f"Successfully fixed {fixed_count} files using LLM with {len(list_real_bugs)} specific issues"
+                    }
+                else:
+                    # Xử lý trường hợp command thất bại
+                    error_output = ''.join(output_lines)
+                    logger.error(f"Batch fix failed: {error_output}")
+                    
+                    return {
+                        "success": False,
+                        "fixed_count": 0,
+                        "error": f"Batch fix failed: {error_output}"
+                    }
+                    
+            finally:
+                # Bước 9: Khôi phục thư mục gốc
+                os.chdir(original_dir)
+                
+                # Bước 10: Cleanup - xóa file issues tạm thời (optional)
+                try:
+                    if os.path.exists(issues_file_path):
+                        os.remove(issues_file_path)
+                        logger.info(f"Cleaned up temporary issues file: {issues_file_path}")
+                except Exception as e:
+                    logger.warning(f"Could not cleanup issues file: {str(e)}")
+                
+        except Exception as e:
+            # Bước 11: Xử lý exception và trả về lỗi
+            logger.error(f"Error in fix_bugs_llm: {str(e)}")
+            return {
+                "success": False,
+                "fixed_count": 0,
                 "error": str(e)
             }
     
@@ -376,13 +510,37 @@ class ExecutionServiceNoMongo:
                 iterations.append(iteration_result)
                 break
             
-            # Fix bugs with Dify
-            fix_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
+            # Analysis bugs with Dify
+            analysis_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
+            bugs_to_fix = analysis_result.get("bugs_to_fix")
+            list_bugs = analysis_result.get("list_bugs")
+            list_real_bugs = analysis_result.get("list_real_bugs")
+
+
+            if(bugs_to_fix == 0):
+                iteration_result["analysis_result"] = analysis_result
+                break
+
+            # Fix bugs with LLM using batch_fix.py
+            fix_result = self.fix_bugs_llm(list_real_bugs, use_rag=use_rag)
+            
+            # Store fix result in iteration
             iteration_result["fix_result"] = fix_result
-            bugs_to_fix = fix_result.get("bugs_to_fix")
-            list_bugs = fix_result.get("list_bugs")
-            logger.info(f"bugs_to_fix: {bugs_to_fix}")
-            logger.info(f"list_bugs: {list_bugs}")
+            
+            # Update counters based on fix result
+            if fix_result.get("success", False):
+                fixed_count = fix_result.get("fixed_count", 0)
+                total_bugs_fixed += fixed_count
+                
+                # If we fixed some bugs, reduce bugs_to_fix
+                if fixed_count > 0:
+                    bugs_to_fix = max(0, bugs_to_fix - fixed_count)
+                    logger.info(f"Fixed {fixed_count} bugs, remaining bugs to fix: {bugs_to_fix}")
+                else:
+                    logger.info("No bugs were fixed in this iteration")
+            else:
+                logger.error(f"Fix failed: {fix_result.get('error', 'Unknown error')}")
+                # Continue to next iteration even if fix failed
 
 
             

@@ -1,0 +1,12 @@
+2025-08-20 14:55:08,009 - innolab - INFO - ExecutionServiceNoMongo initialized with:
+2025-08-20 14:55:08,009 - innolab - INFO -   Max iterations: 5
+2025-08-20 14:55:08,009 - innolab - INFO -   Project key: my-service
+2025-08-20 14:55:08,009 - innolab - INFO -   Source code path: d:\InnoLab\SonarQ\source_bug
+2025-08-20 14:55:08,009 - innolab - INFO -   Scan directory: SonarQ/source_bug
+2025-08-20 14:55:08,009 - innolab - INFO -   RAG available: True
+2025-08-20 14:55:08,010 - innolab - INFO - Starting execution without RAG (mode: DifyMode.LOCAL)
+2025-08-20 14:55:08,010 - innolab - INFO - 
+=== ITERATION 1/5 ===
+2025-08-20 14:55:08,010 - innolab - INFO - Starting SonarQube scan for project: my-service
+2025-08-20 14:55:08,012 - innolab - INFO - Step 1: Running SonarQube scan...
+2025-08-20 14:55:08,012 - innolab - INFO - Ensuring sonar-scanner container is running...

@@ -10,7 +10,7 @@ from pathlib import Path
 def import_rag_bug_detector():
     """Import all RAG bug detector documents via API"""
     # Load sample data
-    sample_file = Path(__file__).parent / "mocks" / "sample_rag_bug_detector.json"
+    sample_file = Path(__file__).parent.parent / "mocks" / "sample_rag_bug_detector.json"
     
     with open(sample_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
