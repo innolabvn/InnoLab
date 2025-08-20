@@ -1,0 +1,23 @@
+2025-08-19 15:28:12,868 - innolab - INFO - ExecutionServiceNoMongo initialized with:
+2025-08-19 15:28:12,868 - innolab - INFO -   Max iterations: 5
+2025-08-19 15:28:12,868 - innolab - INFO -   Project key: my-service
+2025-08-19 15:28:12,869 - innolab - INFO -   Source code path: d:\InnoLab\SonarQ\source_bug
+2025-08-19 15:28:12,869 - innolab - INFO -   Scan directory: SonarQ/source_bug/fixed
+2025-08-19 15:28:12,869 - innolab - INFO -   RAG available: True
+2025-08-19 15:28:12,869 - innolab - INFO - Starting execution without RAG (mode: DifyMode.LOCAL)
+2025-08-19 15:28:12,869 - innolab - INFO - 
+=== ITERATION 1/5 ===
+2025-08-19 15:28:12,869 - innolab - INFO - Starting SonarQube scan for project: my-service
+2025-08-19 15:28:12,870 - innolab - INFO - Step 1: Running SonarQube scan...
+2025-08-19 15:28:12,870 - innolab - INFO - Ensuring sonar-scanner container is running...
+2025-08-19 15:28:12,953 - innolab - INFO - sonar_scanner
+2025-08-19 15:28:14,955 - innolab - ERROR - Error in SonarQube scan process: [Errno 2] No such file or directory: 'd:\\InnoLab\\SonarQ\\SonarQ/source_bug/fixed\\sonar-project.properties'
+2025-08-19 15:28:14,956 - innolab - INFO - No bugs found - execution completed successfully
+2025-08-19 15:28:14,956 - innolab - INFO - === EXECUTION RESULT ===
+2025-08-19 15:28:14,957 - innolab - INFO - Mode: LOCAL
+2025-08-19 15:28:14,958 - innolab - INFO - Project: my-service
+2025-08-19 15:28:14,958 - innolab - INFO - Total bugs fixed: 0
+2025-08-19 15:28:14,959 - innolab - INFO - Total iterations: 1
+2025-08-19 15:28:14,959 - innolab - INFO - Start time: 2025-08-19T15:28:12.869702
+2025-08-19 15:28:14,960 - innolab - INFO - End time: 2025-08-19T15:28:14.956643
+2025-08-19 15:28:14,960 - innolab - INFO - Iteration 1: 0 bugs found, 0 fixed

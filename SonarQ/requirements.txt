@@ -1,5 +1,6 @@
 requests
 python-dotenv
+jinja2
 # aider-chat removed due to Python 3.13 compatibility issues
 # Alternative AI coding tools that work with Python 3.13:
 openai

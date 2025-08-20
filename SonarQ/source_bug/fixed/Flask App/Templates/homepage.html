@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Subscription details form">
+  <title>Subscription Details</title>
+  <link rel="stylesheet" href="/static/style.css" type="text/css">
+</head>
+<body>
+  <main>
+    <form action="/login" method="POST">  <!-- Changed to POST for security -->
+      <div class="login-screen">
+        <h1>Subscription Details</h1>
+        <div class="login-form">
+          <div class="control-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" class="login-field" placeholder="Username" required>
+          </div>
+          <div class="control-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" class="login-field" placeholder="Email" required>
+          </div>
+          <div class="control-group">
+            <label for="card_no">Card Number:</label>
+            <input type="text" id="card_no" name="card_no" class="login-field" placeholder="Card Number" required>
+          </div>
+          <div class="control-group">
+            <label for="card_secret">Card Secret:</label>
+            <input type="password" id="card_secret" name="card_secret" class="login-field" placeholder="Card Secret" required>
+          </div>
+          <div class="control-group">
+            <button type="submit" class="btn btn-primary btn-large btn-block">Subscribe</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

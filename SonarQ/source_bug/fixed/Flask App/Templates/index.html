@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Đăng nhập vào hệ thống">
+  <meta name="keywords" content="đăng nhập, login, tài khoản">
+  <title>Đăng nhập</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <form action="/login" method="post" novalidate>
+      <div class="login-screen">
+        <h1 class="app-title">Đăng nhập</h1>
+        <div class="login-form">
+          <div class="control-group">
+            <label for="username" class="login-field-icon fui-user">Tên người dùng</label>
+            <input type="text" id="username" name="username" class="login-field" placeholder="Tên người dùng" required>
+          </div>
+          <div class="control-group">
+            <label for="password" class="login-field-icon fui-lock">Mật khẩu</label>
+            <input type="password" id="password" name="password" class="login-field" placeholder="Mật khẩu" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-large btn-block">Đăng nhập</button>
+        </div>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

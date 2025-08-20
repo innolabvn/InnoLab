@@ -1,0 +1,12 @@
+2025-08-19 07:38:35,865 - innolab - INFO - 🚀 Starting FixChain2 Integrated API...
+2025-08-19 07:38:35,866 - innolab - INFO - 📚 API Documentation: http://localhost:8000/docs
+2025-08-19 07:38:35,867 - innolab - INFO - 🔍 OpenAPI Schema: http://localhost:8000/openapi.json
+2025-08-19 07:38:35,867 - innolab - INFO - 
+2025-08-19 07:38:35,868 - innolab - INFO - 📋 Available API Groups:
+2025-08-19 07:38:35,869 - innolab - INFO -   🐛 Bug Management: /api/v1/bugs/*
+2025-08-19 07:38:35,869 - innolab - INFO -   🔍 RAG System: /api/v1/rag/*
+2025-08-19 07:38:35,870 - innolab - INFO -   🚀 RAG Bug Management: /api/v1/rag-bugs/*
+2025-08-19 07:38:35,871 - innolab - INFO - 
+2025-08-19 07:38:35,872 - innolab - INFO - 🌐 Starting server on http://localhost:8000
+2025-08-19 07:38:35,978 - innolab - INFO - ✅ Connected to MongoDB successfully
+2025-08-19 07:38:35,990 - innolab - INFO - ✅ Connected to MongoDB successfully
