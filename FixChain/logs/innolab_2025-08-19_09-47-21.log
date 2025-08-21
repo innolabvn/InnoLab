@@ -1,2 +1,0 @@
-2025-08-19 09:47:21,735 - innolab - WARNING - Cline autofix requested for test.py, but Cline is a VS Code extension, not a CLI tool
-2025-08-19 09:47:21,735 - innolab - INFO - To use Cline, install the VS Code extension from: https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev

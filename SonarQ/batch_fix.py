@@ -154,21 +154,21 @@ class CodeValidator:
 class SecureFixProcessor:
     """Enhanced fix processor with security and validation"""
     
-    def __init__(self, api_key: str, source_dir: str, backup_dir: str = None, output_dir: str = None):
+    def __init__(self, api_key: str, source_dir: str, backup_dir: str = None):
         self.model = self._setup_gemini(api_key)
         self.source_dir = os.path.abspath(source_dir)  # Store absolute path of source directory
         self.validator = CodeValidator()
-        self.output_dir = os.path.abspath(output_dir) if output_dir else None
         self.ignore_patterns = []
         
-        # Create unique backup directory with timestamp
-        if backup_dir:
-            self.backup_dir = os.path.abspath(backup_dir)
-        else:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.backup_dir = os.path.abspath(f"./backups/backup_{timestamp}")
+        # Create unique backup directory with timestamp - DISABLED
+        # if backup_dir:
+        #     self.backup_dir = os.path.abspath(backup_dir)
+        # else:
+        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        #     self.backup_dir = os.path.abspath(f"./backups/backup_{timestamp}")
         
-        self._create_backup_dir()
+        # self._create_backup_dir()
+        self.backup_dir = None
         self._setup_logging()
     
     def _setup_gemini(self, api_key: str):
@@ -269,8 +269,7 @@ class SecureFixProcessor:
             # Skip if file is in backup or output directory to prevent loops
             if self.backup_dir and abs_file_path.startswith(self.backup_dir):
                 return True
-            if self.output_dir and abs_file_path.startswith(self.output_dir):
-                return True
+
             
             # Get relative path from base directory
             rel_path = os.path.relpath(abs_file_path, abs_base_dir)
@@ -399,8 +398,9 @@ class SecureFixProcessor:
             with open(file_path, 'r', encoding='utf-8') as f:
                 original_code = f.read()
             
-            # Create backup
-            backup_path = self._create_backup(file_path)
+            # Create backup - DISABLED
+            # backup_path = self._create_backup(file_path)
+            backup_path = None
             
             # Attempt fix with retries
             fixed_code = None
@@ -720,67 +720,13 @@ Return only the fixed code without markdown formatting.
         return text.strip()
     
     def _save_fixed_file(self, original_path: str, fixed_content: str) -> str:
-        """Save fixed file to appropriate location"""
-        if self.output_dir:
-            # Calculate relative path from source directory
-            rel_path = os.path.relpath(original_path, self.source_dir)
-            output_path = os.path.join(self.output_dir, rel_path)
-            
-            # Create output directory structure
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            
-            # Write fixed content
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(fixed_content)
-            
-            return output_path
-        else:
-            # Overwrite original file
-            with open(original_path, 'w', encoding='utf-8') as f:
-                f.write(fixed_content)
-            return original_path
+        """Save fixed file directly to original location"""
+        # Always overwrite original file
+        with open(original_path, 'w', encoding='utf-8') as f:
+            f.write(fixed_content)
+        return original_path
     
-    def copy_non_fixed_files(self, processed_files: set):
-        """Copy all non-fixed files to output directory maintaining structure"""
-        if not self.output_dir:
-            return
-        
-        print(f"\nCopying non-fixed files to {self.output_dir}...")
-        copied_count = 0
-        skipped_count = 0
-        
-        for root, dirs, files in os.walk(self.source_dir):
-            # Filter out ignored directories
-            dirs[:] = [d for d in dirs if not self.should_ignore_file(os.path.join(root, d), self.source_dir)]
-            
-            for file in files:
-                file_path = os.path.join(root, file)
-                
-                # Skip if file should be ignored
-                if self.should_ignore_file(file_path, self.source_dir):
-                    skipped_count += 1
-                    continue
-                
-                # Skip if file was already processed (fixed)
-                if file_path in processed_files:
-                    continue
-                
-                try:
-                    # Calculate relative path and output path
-                    relative_path = os.path.relpath(file_path, self.source_dir)
-                    output_path = os.path.join(self.output_dir, relative_path)
-                    
-                    # Create output directory structure
-                    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                    
-                    # Copy file
-                    shutil.copy2(file_path, output_path)
-                    copied_count += 1
-                    
-                except Exception as e:
-                    print(f"Warning: Could not copy {file_path}: {e}")
-        
-        print(f"Copied {copied_count} non-fixed files, skipped {skipped_count} ignored files")
+
 
 def main():
     parser = argparse.ArgumentParser(description='Enhanced Secure Batch Fix Script - AI-powered code fixing with validation & safety checks')
@@ -788,8 +734,8 @@ def main():
     parser.add_argument('--fix', action='store_true', help='Enable fixing mode (default: scan only)')
     parser.add_argument('--scan-only', action='store_true', help='Scan only mode, no fixing')
     parser.add_argument('--prompt', type=str, help='Custom prompt for AI fixing')
-    parser.add_argument('--output', type=str, help='Output directory for fixed files')
-    parser.add_argument('--copy-all', action='store_true', help='Copy all files to output directory (including non-fixed files)')
+
+
     parser.add_argument('--auto', action='store_true', help='Auto mode: skip confirmation prompts')
     parser.add_argument('--issues-file', type=str, help='JSON file containing issues from SonarQube or other tools')
     
@@ -814,9 +760,9 @@ def main():
         print("  python batch_fix.py source_bug --scan-only                    # Scan only")
         print("  python batch_fix.py source_bug --fix                          # Scan and fix")
         print("  python batch_fix.py source_bug --fix --auto                   # Fix without confirmation")
-        print("  python batch_fix.py source_bug --fix --output fixed_code      # Fix and save to specific directory")
+
         print("  python batch_fix.py source_bug --fix --prompt \"Fix security issues\" # Fix with custom prompt")
-        print("  python batch_fix.py source_bug --fix --copy-all --auto        # Fix and copy all files automatically")
+
         print("  python batch_fix.py /path/to/code --fix --auto                # Fix specific directory automatically")
         print("  python batch_fix.py source_bug --fix --issues-file issues.json # Fix using SonarQube issues")
         print("\nLogging:")
@@ -833,9 +779,9 @@ def main():
             print("  python batch_fix.py source_bug --scan-only")
             print("  python batch_fix.py source_bug --fix")
             print("  python batch_fix.py source_bug --fix --auto")
-            print("  python batch_fix.py source_bug --fix --output fixed_code")
+
             print("  python batch_fix.py source_bug --fix --prompt \"Fix security issues\"")
-            print("  python batch_fix.py source_bug --fix --copy-all --auto")
+
             print("  python batch_fix.py source_bug --fix --issues-file issues.json")
             print("\nLogging:")
             print("  Template usage and AI responses are logged to ./logs/template_usage_TIMESTAMP.log")
@@ -847,21 +793,7 @@ def main():
     mode_text = "FIXING" if fix_mode else "SCANNING"
     print(f"\n{mode_text} Mode Enabled")
     
-    # Setup output directory for fixed files
-    output_dir = args.output
-    if fix_mode and args.copy_all and not output_dir:
-        # Default output directory for copy-all mode
-        output_dir = os.path.join(directory, 'fixed')
-    
-    if fix_mode and output_dir:
-        print(f"Output directory: {output_dir}")
-        # Ensure output directory is different from source
-        abs_source = os.path.abspath(directory)
-        abs_output = os.path.abspath(output_dir)
-        if abs_source == abs_output:
-            print("Error: Output directory cannot be the same as source directory")
-            return
-    elif fix_mode:
+    if fix_mode:
         print("Fixing files in-place (overwriting originals)")
     
     # Custom prompt
@@ -874,7 +806,7 @@ def main():
     if args.issues_file:
         if os.path.exists(args.issues_file):
             print(f"Loading issues from: {args.issues_file}")
-            temp_processor = SecureFixProcessor(api_key, directory, backup_dir="temp", output_dir="temp")
+            temp_processor = SecureFixProcessor(api_key, directory, backup_dir="temp")
             issues_by_file = temp_processor.load_issues_from_file(args.issues_file)
         else:
             print(f"Issues file not found: {args.issues_file}")
@@ -884,7 +816,7 @@ def main():
     code_files = []
     
     # Create temporary processor to load ignore patterns
-    temp_processor = SecureFixProcessor(api_key, directory, backup_dir="temp", output_dir="temp")
+    temp_processor = SecureFixProcessor(api_key, directory, backup_dir="temp")
     temp_processor.load_ignore_patterns(os.getcwd())
     
     for root, dirs, files in os.walk(directory):
@@ -933,7 +865,7 @@ def main():
         print("Starting file scanning...")
     
     # Process files
-    processor = SecureFixProcessor(api_key, directory, output_dir=output_dir if fix_mode else None)
+    processor = SecureFixProcessor(api_key, directory)
     processor.load_ignore_patterns(directory)
     results = []
     processed_files = set()  # Track processed files for copy-all feature
@@ -974,9 +906,7 @@ def main():
         else:
             print(f"  Failed: {'; '.join(result.issues_found)}")
     
-    # Copy non-fixed files if --copy-all is enabled and in fix mode
-    if fix_mode and args.copy_all and processor.output_dir:
-        processor.copy_non_fixed_files(processed_files)
+
     
     # Summary
     success_count = sum(1 for r in results if r.success)
@@ -987,9 +917,9 @@ def main():
         print("Fixing Complete!")
         print(f"Fixed: {success_count} files")
         print(f"Failed: {error_count} files")
-        print(f"Backups saved in: {processor.backup_dir}")
-        if processor.output_dir:
-            print(f"Fixed files saved in: {processor.output_dir}")
+        # print(f"Backups saved in: {processor.backup_dir}")  # Backup disabled
+        print("Backup feature disabled - files modified in place")
+
     else:
         print("Scanning Complete!")
         print(f"Scanned: {success_count} files")

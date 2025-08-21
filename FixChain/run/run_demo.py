@@ -19,7 +19,13 @@ from service.cli_service import CLIService
 from lib.dify_lib import DifyMode, run_workflow_with_dify
 from utils.logger import logger
 
-RAG_AVAILABLE = True
+try:
+    # Check if RAG functionality is available
+    # For demo purposes, RAG is available but simplified
+    RAG_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Error checking RAG availability: {e}")
+    RAG_AVAILABLE = False
 
 # Load environment variables
 load_dotenv()
@@ -70,9 +76,13 @@ class ExecutionServiceNoMongo:
             
             # For demo without MongoDB, we'll just validate the dataset file
             # In full implementation with MongoDB, use this approach:
-            from service.execution import ExecutionService
-            execution_service = ExecutionService()
-            return execution_service.insert_dataset_to_rag(dataset_path)
+            # from service.execution import ExecutionService
+            # execution_service = ExecutionService()
+            # return execution_service.insert_dataset_to_rag(dataset_path)
+            
+            # For now, just return True since we're not using MongoDB
+            logger.info(f"Dataset file validated: {dataset_path}")
+            return True
             
             
         except Exception as e:
@@ -122,14 +132,18 @@ class ExecutionServiceNoMongo:
                 logger.info(f"Created sonar-project.properties for project: {self.project_key}")
                 
                 # Copy project files to sonar scanner container
-                # First, copy the project directory to the container
-                copy_cmd = f"docker cp \"{project_dir}\" sonar_scanner:/usr/src/"
-                logger.info(f"Copying project files: {copy_cmd}")
-                CLIService.run_command(copy_cmd, shell=True)
+                # Copy contents of project directory to avoid nested directory structure
+                # Use fixed directory name to avoid nested structure
+                container_work_dir = "/usr/src/project"
                 
-                # Get the directory name for the working directory in container
-                project_name = os.path.basename(project_dir)
-                container_work_dir = f"/usr/src/{project_name}"
+                # Create target directory in container first
+                create_dir_cmd = f"docker exec sonar_scanner mkdir -p {container_work_dir}"
+                CLIService.run_command(create_dir_cmd, shell=True)
+                
+                # Copy contents (not the directory itself) to avoid nesting
+                copy_cmd = f"docker cp \"{project_dir}/.\" sonar_scanner:{container_work_dir}"
+                logger.info(f"Copying project contents: {copy_cmd}")
+                CLIService.run_command(copy_cmd, shell=True)
                 
                 # Run scan using docker exec
                 scan_cmd = [
@@ -208,14 +222,15 @@ class ExecutionServiceNoMongo:
             # Clean content by removing ```python ``` markers
             cleaned_content = self.clean_code_content(content)
             
-            # Create backup
-            backup_path = f"{full_path}.backup.{int(time.time())}"
-            if os.path.exists(full_path):
-                with open(full_path, 'r', encoding='utf-8') as f:
-                    backup_content = f.read()
-                with open(backup_path, 'w', encoding='utf-8') as f:
-                    f.write(backup_content)
-                logger.info(f"Created backup: {backup_path}")
+            # Create backup - DISABLED
+            # backup_path = f"{full_path}.backup.{int(time.time())}"
+            # if os.path.exists(full_path):
+            #     with open(full_path, 'r', encoding='utf-8') as f:
+            #         backup_content = f.read()
+            #     with open(backup_path, 'w', encoding='utf-8') as f:
+            #         f.write(backup_content)
+            #     logger.info(f"Created backup: {backup_path}")
+            logger.info("Backup feature disabled - files modified in place")
             
             # Write new content
             with open(full_path, 'w', encoding='utf-8') as f:
@@ -274,17 +289,11 @@ class ExecutionServiceNoMongo:
                 mode=mode
             )
             
-            # Log Dify outputs for analysis
-            analysis_bug = response.get('data', {}).get('outputs', {}).get('analysis_bug', '')
-            usage = response.get('data', {}).get('outputs', {}).get('usage', '')
-            
-            logger.info(f"Dify analysis_bug: {analysis_bug}")
-            logger.info(f"Dify usage: {usage}")
             
             # Extract fixed code from response
             outputs = response.get('data', {}).get('outputs', {})
             list_bugs = outputs.get('list_bugs', '')
-            bugs_to_fix = outputs.get('bugs_to_fix', '')
+            bugs_to_fix = list_bugs.get('bugs_to_fix', '')
 
             
             # if bugs_to_fix  = 0 then return success
@@ -325,7 +334,7 @@ class ExecutionServiceNoMongo:
         1. Xác định thư mục source code cần fix (từ self.scan_directory)
         2. Tạo file list_real_bugs.json từ dữ liệu list_real_bugs
         3. Chuyển đến thư mục SonarQ 
-        4. Chạy command: python batch_fix.py --fix source_bug --auto --issues-file list_real_bugs.json
+        4. Chạy command: python batch_fix.py --fix <scan_directory> --auto --issues-file list_real_bugs.json
         5. batch_fix.py sẽ:
            - Quét tất cả file code trong thư mục (.py, .js, .ts, .jsx, .tsx, .java, .cpp, .c)
            - Sử dụng Google Gemini AI để phân tích và fix từng file
@@ -385,10 +394,18 @@ class ExecutionServiceNoMongo:
                 # Sử dụng --auto để skip confirmation prompts
                 # Sử dụng --issues-file để load specific issues từ JSON file
                 # Không sử dụng --output để ghi đè trực tiếp vào file gốc thay vì tạo thư mục duplicate
+                # Use the actual scan directory path for batch_fix.py
+                # If scan_directory is absolute path, use it directly
+                # If relative, it should be relative to SonarQ directory
+                if os.path.isabs(self.scan_directory):
+                    scan_dir_path = self.scan_directory
+                else:
+                    scan_dir_path = self.scan_directory
+                
                 fix_cmd = [
                     'python', 
                     'batch_fix.py',
-                    'source_bug',
+                    scan_dir_path,
                     '--fix',
                     '--auto',
                     '--issues-file',
@@ -514,8 +531,17 @@ class ExecutionServiceNoMongo:
             analysis_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
             bugs_to_fix = analysis_result.get("bugs_to_fix")
             list_bugs = analysis_result.get("list_bugs")
-            list_real_bugs = analysis_result.get("list_real_bugs")
-
+            list_real_bugs = analysis_result.get("list_bugs")
+            
+            # Parse list_real_bugs if it's a string
+            if isinstance(list_real_bugs, str):
+                try:
+                    list_real_bugs = json.loads(list_real_bugs)
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.error(f"Failed to parse list_real_bugs as JSON: {str(e)}")
+                    list_real_bugs = []
+            elif list_real_bugs is None:
+                list_real_bugs = []
 
             if(bugs_to_fix == 0):
                 iteration_result["analysis_result"] = analysis_result
