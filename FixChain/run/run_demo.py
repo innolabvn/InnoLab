@@ -529,10 +529,9 @@ class ExecutionServiceNoMongo:
             
             # Analysis bugs with Dify
             analysis_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
-            bugs_to_fix = analysis_result.get("bugs_to_fix")
             list_bugs = analysis_result.get("list_bugs")
             list_real_bugs = analysis_result.get("list_bugs")
-            
+
             # Parse list_real_bugs if it's a string
             if isinstance(list_real_bugs, str):
                 try:
@@ -543,41 +542,42 @@ class ExecutionServiceNoMongo:
             elif list_real_bugs is None:
                 list_real_bugs = []
 
-            if(bugs_to_fix == 0):
-                iteration_result["analysis_result"] = analysis_result
+            # Save analysis result for reporting
+            iteration_result["analysis_result"] = analysis_result
+
+            # If Dify reports nothing to fix, stop the loop
+            if analysis_result.get("bugs_to_fix", 0) == 0:
+                logger.info("No bugs to fix according to Dify")
+                iterations.append(iteration_result)
                 break
 
             # Fix bugs with LLM using batch_fix.py
             fix_result = self.fix_bugs_llm(list_real_bugs, use_rag=use_rag)
-            
+
             # Store fix result in iteration
             iteration_result["fix_result"] = fix_result
-            
+
             # Update counters based on fix result
             if fix_result.get("success", False):
                 fixed_count = fix_result.get("fixed_count", 0)
                 total_bugs_fixed += fixed_count
-                
-                # If we fixed some bugs, reduce bugs_to_fix
-                if fixed_count > 0:
-                    bugs_to_fix = max(0, bugs_to_fix - fixed_count)
-                    logger.info(f"Fixed {fixed_count} bugs, remaining bugs to fix: {bugs_to_fix}")
-                else:
-                    logger.info("No bugs were fixed in this iteration")
             else:
                 logger.error(f"Fix failed: {fix_result.get('error', 'Unknown error')}")
-                # Continue to next iteration even if fix failed
 
+            # Re-scan to verify fixes
+            rescan_bugs = self.scan_sonarq_bugs()
+            iteration_result["rescan_bugs_found"] = len(rescan_bugs)
+            logger.info(f"Rescan found {len(rescan_bugs)} bugs")
 
-            
             iterations.append(iteration_result)
 
-            if bugs_to_fix == 0:
-                logger.info(f"Iteration {iteration} completed: {bugs_to_fix} bugs to fix")
+            # Stop if no bugs remain after rescan
+            if len(rescan_bugs) == 0:
+                logger.info(f"Iteration {iteration} completed: all bugs resolved after rescan")
                 break
-            
+
             # Log iteration result
-            logger.info(f"Iteration {iteration} completed: {fix_result.get('bugs_to_fix', 0)} bugs to fix")
+            logger.info(f"Iteration {iteration} completed: {len(rescan_bugs)} bugs remain after rescan")
         
         end_time = datetime.now()
         
@@ -670,8 +670,9 @@ def main():
             bugs_ignored = iteration.get('bugs_type_code_smell', 0)
             print(f"        + Type Code-smell: {bugs_ignored}")
    
-            bugs_to_fix = iteration.get('fix_result', {}).get('bugs_to_fix', 0)
+            bugs_to_fix = iteration.get('analysis_result', {}).get('bugs_to_fix', 0)
             print(f"    🔧 Bugs to fix: {bugs_to_fix}")
+            print(f"    🔄 Bugs after rescan: {iteration.get('rescan_bugs_found', 0)}")
             print(f"    🚫 Bugs Ignored: {bugs_ignored}")
        
 
