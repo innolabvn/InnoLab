@@ -11,8 +11,9 @@ import os
 from dotenv import load_dotenv
 from utils.logger import logger
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from root directory
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(root_env_path)
 
 # Import routers instead of apps
 from controller import bug_controller, rag_controller, rag_bug_controller

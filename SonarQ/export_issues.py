@@ -4,8 +4,9 @@ import re
 import json
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from root directory
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(root_env_path)
 
 SONAR_HOST = os.getenv("SONAR_HOST", "http://localhost:9000").rstrip("/")
 SONAR_TOKEN = os.getenv("SONAR_TOKEN")

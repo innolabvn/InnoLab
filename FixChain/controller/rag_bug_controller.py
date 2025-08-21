@@ -17,8 +17,9 @@ from service.mongodb_service import MongoDBManager, get_mongo_manager
 import uvicorn
 from bson import ObjectId
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from root directory
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+load_dotenv(root_env_path)
 
 # Configure Gemini
 gemini_api_key = os.getenv("GEMINI_API_KEY")

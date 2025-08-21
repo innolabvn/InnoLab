@@ -35,6 +35,11 @@ def export_to_file(project_key, output_file=None):
         try:
             data = json.loads(json_output)
             
+            # Remove existing file if it exists
+            if os.path.exists(output_file):
+                os.remove(output_file)
+                print(f"Removed existing file: {output_file}")
+            
             # Write to file with proper UTF-8 encoding
             with open(output_file, 'w', encoding='utf-8') as file:
                 json.dump(data, file, indent=4, ensure_ascii=False)

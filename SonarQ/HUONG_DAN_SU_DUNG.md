@@ -33,7 +33,16 @@ python batch_fix.py --fix source_directory --prompt "Chuyển đổi code Python
 - Sử dụng prompt tùy chỉnh thay vì template mặc định
 - Hữu ích cho các yêu cầu đặc biệt
 
-### 4. Copy Toàn Bộ Project (Mới)
+### 4. Tích Hợp RAG System (Mới)
+```bash
+python batch_fix.py --fix source_directory --enable-rag
+```
+- Tự động lưu thông tin bugs đã fix vào RAG system
+- Bao gồm context của bug, cách fix, và mã nguồn đã sửa
+- Hỗ trợ tracking token usage và metrics
+- API endpoint: http://192.168.5.11:8000/api/v1/rag/reasoning/add
+
+### 5. Copy Toàn Bộ Project
 ```bash
 python batch_fix.py --fix source_directory --output output_directory --copy-all
 ```
@@ -49,6 +58,18 @@ python batch_fix.py --fix source_directory --output output_directory --copy-all
 python batch_fix.py --fix source_directory --auto
 ```
 - Tự động xác nhận tất cả thao tác
+
+### Kết Hợp Các Tùy Chọn
+```bash
+# Fix với RAG integration và auto mode
+python batch_fix.py --fix source_directory --auto --enable-rag
+
+# Fix với issues file và RAG integration
+python batch_fix.py --fix source_directory --issues-file issues.json --enable-rag
+
+# Fix với custom prompt và RAG integration
+python batch_fix.py --fix source_directory --prompt "Fix security vulnerabilities" --enable-rag
+```
 - Không cần tương tác người dùng
 - Phù hợp cho automation
 

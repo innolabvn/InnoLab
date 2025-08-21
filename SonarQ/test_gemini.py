@@ -10,8 +10,9 @@ import google.generativeai as genai
 def test_gemini_api():
     """Test Gemini API connection and basic functionality"""
     
-    # Load environment variables
-    load_dotenv()
+    # Load environment variables from root directory
+    root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    load_dotenv(root_env_path)
     
     # Get API key from environment
     api_key = os.getenv('GEMINI_API_KEY')

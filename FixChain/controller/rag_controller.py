@@ -9,8 +9,9 @@ import numpy as np
 from service.mongodb_service import MongoDBManager
 import uvicorn
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from root directory
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+load_dotenv(root_env_path)
 
 # Resources initialized on startup
 embedding_model = None

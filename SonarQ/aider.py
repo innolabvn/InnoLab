@@ -14,7 +14,9 @@ import glob
 
 def setup_gemini():
     """Setup Gemini API"""
-    load_dotenv()
+    # Load environment variables from root directory
+    root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    load_dotenv(root_env_path)
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
         print("❌ Lỗi: GEMINI_API_KEY không tìm thấy trong file .env")

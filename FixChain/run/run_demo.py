@@ -27,8 +27,9 @@ except Exception as e:
     logger.warning(f"Error checking RAG availability: {e}")
     RAG_AVAILABLE = False
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from root directory
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+load_dotenv(root_env_path)
 
 class ExecutionServiceNoMongo:
     """ExecutionService without MongoDB dependency"""
@@ -119,8 +120,7 @@ class ExecutionServiceNoMongo:
                 
                 logger.info(f"Project directory: {project_dir}")
                 
-                # Ensure the directory exists
-                os.makedirs(project_dir, exist_ok=True)
+
                 props_file = os.path.join(project_dir, "sonar-project.properties")
                 
                 with open(props_file, 'w', encoding='utf-8') as f:
@@ -134,16 +134,7 @@ class ExecutionServiceNoMongo:
                 # Copy project files to sonar scanner container
                 # Copy contents of project directory to avoid nested directory structure
                 # Use fixed directory name to avoid nested structure
-                container_work_dir = "/usr/src/project"
-                
-                # Create target directory in container first
-                create_dir_cmd = f"docker exec sonar_scanner mkdir -p {container_work_dir}"
-                CLIService.run_command(create_dir_cmd, shell=True)
-                
-                # Copy contents (not the directory itself) to avoid nesting
-                copy_cmd = f"docker cp \"{project_dir}/.\" sonar_scanner:{container_work_dir}"
-                logger.info(f"Copying project contents: {copy_cmd}")
-                CLIService.run_command(copy_cmd, shell=True)
+                container_work_dir = "/usr/src"
                 
                 # Run scan using docker exec
                 scan_cmd = [
@@ -186,8 +177,13 @@ class ExecutionServiceNoMongo:
                         bugs_data = json.load(f)
                     all_bugs = bugs_data.get('issues', [])
                     
-                    logger.info(f"Found {len(all_bugs)} total bugs, {len(all_bugs)} bugs")
-                    return all_bugs
+                    # Filter only OPEN bugs (exclude CLOSED/RESOLVED bugs)
+                    open_bugs = [bug for bug in all_bugs if bug.get('status', '').upper() == 'OPEN']
+                    closed_bugs = [bug for bug in all_bugs if bug.get('status', '').upper() != 'OPEN']
+                    
+                    logger.info(f"Found {len(all_bugs)} total bugs: {len(open_bugs)} open, {len(closed_bugs)} closed/resolved")
+                    logger.info(f"Returning {len(open_bugs)} open bugs for processing")
+                    return open_bugs
                 else:
                     logger.error(f"Output file not found: {output_file}")
                     return []
@@ -222,14 +218,6 @@ class ExecutionServiceNoMongo:
             # Clean content by removing ```python ``` markers
             cleaned_content = self.clean_code_content(content)
             
-            # Create backup - DISABLED
-            # backup_path = f"{full_path}.backup.{int(time.time())}"
-            # if os.path.exists(full_path):
-            #     with open(full_path, 'r', encoding='utf-8') as f:
-            #         backup_content = f.read()
-            #     with open(backup_path, 'w', encoding='utf-8') as f:
-            #         f.write(backup_content)
-            #     logger.info(f"Created backup: {backup_path}")
             logger.info("Backup feature disabled - files modified in place")
             
             # Write new content
@@ -278,7 +266,7 @@ class ExecutionServiceNoMongo:
                 "report": json.dumps(bugs, ensure_ascii=False),
             }
             
-            logger.info(f"Fixing {len(bugs)} bugs using Dify")
+            logger.info(f"Need to fix {len(bugs)} bugs using Dify")
             
             # Call Dify workflow once with all bugs
             response = run_workflow_with_dify(
@@ -293,7 +281,7 @@ class ExecutionServiceNoMongo:
             # Extract fixed code from response
             outputs = response.get('data', {}).get('outputs', {})
             list_bugs = outputs.get('list_bugs', '')
-            bugs_to_fix = list_bugs.get('bugs_to_fix', '')
+            bugs_to_fix = int(list_bugs.get('bugs_to_fix', '0'))
 
             
             # if bugs_to_fix  = 0 then return success
@@ -307,12 +295,12 @@ class ExecutionServiceNoMongo:
             
             
             # Increment execution count and save to new file
-            self.execution_count += 1
             return {
                 "success": True,
                 "list_bugs": list_bugs,
                 "bugs_to_fix": bugs_to_fix,
-                "message": "No bugs to fix"
+                "message": f"Need to fix {bugs_to_fix} bugs",
+
             }
 
                 
@@ -378,6 +366,11 @@ class ExecutionServiceNoMongo:
                 # Bước 4: Tạo file list_real_bugs.json từ dữ liệu list_real_bugs
                 issues_file_path = os.path.join(sonar_dir, "list_real_bugs.json")
                 try:
+                    # Remove existing file if it exists
+                    if os.path.exists(issues_file_path):
+                        os.remove(issues_file_path)
+                        logger.info(f"Removed existing issues file: {issues_file_path}")
+                    
                     with open(issues_file_path, 'w', encoding='utf-8') as f:
                         json.dump(list_real_bugs, f, indent=2, ensure_ascii=False)
                     logger.info(f"Created issues file: {issues_file_path} with {len(list_real_bugs)} bugs")
@@ -412,30 +405,75 @@ class ExecutionServiceNoMongo:
                     'list_real_bugs.json'
                 ]
                 
+                # Thêm tùy chọn --enable-rag nếu use_rag=True
+                if use_rag:
+                    fix_cmd.append('--enable-rag')
+                    logger.info("RAG integration enabled for bug fixing")
+                
                 logger.info(f"Running command: {' '.join(fix_cmd)}")
                 
                 # Bước 6: Thực thi command batch fix
                 success, output_lines = CLIService.run_command_stream(fix_cmd)
                 
                 if success:
-                    # Bước 7: Parse output để đếm số file đã fix thành công
+                    # Bước 7: Parse output để lấy thông tin chi tiết từ batch_fix.py
                     output_text = ''.join(output_lines)
                     fixed_count = 0
+                    total_input_tokens = 0
+                    total_output_tokens = 0
+                    total_tokens = 0
+                    average_similarity = 0.0
+                    threshold_met_count = 0
                     
-                    # Đếm số lần fix thành công từ output
-                    # Tìm pattern "✅ Success" trong output
+                    # Parse thông tin từ output mới của batch_fix.py
                     for line in output_lines:
-                        if "✅ Success" in line:
-                            fixed_count += 1
+                        line = line.strip()
+                        if "FIXED_FILES:" in line:
+                            try:
+                                fixed_count = int(line.split(":")[1].strip())
+                            except (ValueError, IndexError):
+                                pass
+                        elif "TOTAL_INPUT_TOKENS:" in line:
+                            try:
+                                total_input_tokens = int(line.split(":")[1].strip())
+                            except (ValueError, IndexError):
+                                pass
+                        elif "TOTAL_OUTPUT_TOKENS:" in line:
+                            try:
+                                total_output_tokens = int(line.split(":")[1].strip())
+                            except (ValueError, IndexError):
+                                pass
+                        elif "TOTAL_TOKENS:" in line:
+                            try:
+                                total_tokens = int(line.split(":")[1].strip())
+                            except (ValueError, IndexError):
+                                pass
+                        elif "AVERAGE_SIMILARITY:" in line:
+                            try:
+                                average_similarity = float(line.split(":")[1].strip())
+                            except (ValueError, IndexError):
+                                pass
+                        elif "THRESHOLD_MET_COUNT:" in line:
+                            try:
+                                threshold_met_count = int(line.split(":")[1].strip())
+                            except (ValueError, IndexError):
+                                pass
                     
                     logger.info(f"Batch fix completed successfully. Fixed {fixed_count} files")
+                    logger.info(f"Token usage - Input: {total_input_tokens}, Output: {total_output_tokens}, Total: {total_tokens}")
+                    logger.info(f"Average similarity: {average_similarity:.3f}, Threshold met: {threshold_met_count}")
                     
-                    # Bước 8: Trả về kết quả thành công
+                    # Bước 8: Trả về kết quả thành công với thông tin token
                     return {
                         "success": True,
                         "fixed_count": fixed_count,
+                        "total_input_tokens": total_input_tokens,
+                        "total_output_tokens": total_output_tokens,
+                        "total_tokens": total_tokens,
+                        "average_similarity": average_similarity,
+                        "threshold_met_count": threshold_met_count,
                         "output": output_text,
-                        "message": f"Successfully fixed {fixed_count} files using LLM with {len(list_real_bugs)} specific issues"
+                        "message": f"Successfully fixed {fixed_count} files using LLM with {len(list_real_bugs)} specific issues. Used {total_tokens} tokens total."
                     }
                 else:
                     # Xử lý trường hợp command thất bại
@@ -502,6 +540,10 @@ class ExecutionServiceNoMongo:
             bugs_type_bug = bug_counts['BUG']
             bugs_type_code_smell = bug_counts['CODE_SMELL']
             bugs_found = len(bugs)
+
+            logger.info(f"Iteration {iteration}: Found {bugs_found} open bugs ({bugs_type_bug} BUG, {bugs_type_code_smell} CODE_SMELL) in SonarQube")
+
+            
             
             # Create iteration result
             iteration_result = {
@@ -527,9 +569,23 @@ class ExecutionServiceNoMongo:
                 iterations.append(iteration_result)
                 break
             
+            # Check if only CODE_SMELL bugs remain (no actual BUG type)
+            if bugs_type_bug == 0 and bugs_type_code_smell > 0:
+                logger.info(f"Only {bugs_type_code_smell} code smell issues remain, no actual bugs to fix")
+                iteration_result["fix_result"] = {
+                    "success": True,
+                    "fixed_count": 0,
+                    "failed_count": 0,
+                    "bugs_remain": bugs_type_code_smell,
+                    "bugs_type_bug": 0,
+                    "bugs_type_code_smell": bugs_type_code_smell,
+                    "message": f"Only code smell issues remain ({bugs_type_code_smell}), no bugs to fix"
+                }
+                iterations.append(iteration_result)
+                break
+            
             # Analysis bugs with Dify
             analysis_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
-            list_bugs = analysis_result.get("list_bugs")
             list_real_bugs = analysis_result.get("list_bugs")
 
             # Parse list_real_bugs if it's a string
@@ -545,9 +601,33 @@ class ExecutionServiceNoMongo:
             # Save analysis result for reporting
             iteration_result["analysis_result"] = analysis_result
 
+            # If no real bugs to fix after analysis, stop the loop
+            if not list_real_bugs or len(list_real_bugs) == 0:
+                logger.info("No real bugs to fix after analysis")
+                iteration_result["fix_result"] = {
+                    "success": True,
+                    "fixed_count": 0,
+                    "failed_count": 0,
+                    "bugs_remain": bugs_found,
+                    "bugs_type_bug": bugs_type_bug,
+                    "bugs_type_code_smell": bugs_type_code_smell,
+                    "message": "No real bugs identified for fixing after analysis"
+                }
+                iterations.append(iteration_result)
+                break
+            
             # If Dify reports nothing to fix, stop the loop
             if analysis_result.get("bugs_to_fix", 0) == 0:
                 logger.info("No bugs to fix according to Dify")
+                iteration_result["fix_result"] = {
+                    "success": True,
+                    "fixed_count": 0,
+                    "failed_count": 0,
+                    "bugs_remain": bugs_found,
+                    "bugs_type_bug": bugs_type_bug,
+                    "bugs_type_code_smell": bugs_type_code_smell,
+                    "message": "Dify analysis reports no bugs to fix"
+                }
                 iterations.append(iteration_result)
                 break
 
@@ -566,8 +646,17 @@ class ExecutionServiceNoMongo:
 
             # Re-scan to verify fixes
             rescan_bugs = self.scan_sonarq_bugs()
+            rescan_bug_counts = {
+                'BUG': len([bug for bug in rescan_bugs if bug.get('type') == 'BUG']),
+                'CODE_SMELL': len([bug for bug in rescan_bugs if bug.get('type') == 'CODE_SMELL'])
+            }
             iteration_result["rescan_bugs_found"] = len(rescan_bugs)
-            logger.info(f"Rescan found {len(rescan_bugs)} bugs")
+            iteration_result["rescan_bugs_type_bug"] = rescan_bug_counts['BUG']
+            iteration_result["rescan_bugs_type_code_smell"] = rescan_bug_counts['CODE_SMELL']
+            
+            bugs_reduced = bugs_found - len(rescan_bugs)
+            logger.info(f"Rescan found {len(rescan_bugs)} open bugs ({rescan_bug_counts['BUG']} BUG, {rescan_bug_counts['CODE_SMELL']} CODE_SMELL)")
+            logger.info(f"Bugs reduced: {bugs_reduced} (from {bugs_found} to {len(rescan_bugs)})")
 
             iterations.append(iteration_result)
 
@@ -672,12 +761,24 @@ def main():
    
             bugs_to_fix = iteration.get('analysis_result', {}).get('bugs_to_fix', 0)
             print(f"    🔧 Bugs to fix: {bugs_to_fix}")
-            print(f"    🔄 Bugs after rescan: {iteration.get('rescan_bugs_found', 0)}")
+            rescan_found = iteration.get('rescan_bugs_found', 0)
+            rescan_bug_type = iteration.get('rescan_bugs_type_bug', 0)
+            rescan_code_smell = iteration.get('rescan_bugs_type_code_smell', 0)
+            print(f"    🔄 Bugs after rescan: {rescan_found} ({rescan_bug_type} BUG, {rescan_code_smell} CODE_SMELL)")
             print(f"    🚫 Bugs Ignored: {bugs_ignored}")
        
 
             # print(f"    Bugs remain: {iteration.get('fix_result', {}).get('bugs_remain', 0)}")
             fix_result = iteration.get('fix_result', {})
+            
+            # Hiển thị thông tin token usage nếu có
+            if fix_result.get('total_tokens', 0) > 0:
+                print(f"    💰 Token Usage:")
+                print(f"        + Input tokens: {fix_result.get('total_input_tokens', 0):,}")
+                print(f"        + Output tokens: {fix_result.get('total_output_tokens', 0):,}")
+                print(f"        + Total tokens: {fix_result.get('total_tokens', 0):,}")
+                print(f"        + Average similarity: {fix_result.get('average_similarity', 0):.3f}")
+                print(f"        + Threshold met: {fix_result.get('threshold_met_count', 0)}")
             
             # print(f"    Bugs fixed: {fix_result.get('fixed_count', 0)}")
             # print(f"    Bugs failed: {fix_result.get('failed_count', 0)}")

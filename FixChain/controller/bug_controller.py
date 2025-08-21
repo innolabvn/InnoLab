@@ -18,8 +18,9 @@ import google.generativeai as genai
 from service.mongodb_service import MongoDBManager
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from root directory
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+load_dotenv(root_env_path)
 
 # Global resources initialized at startup
 mongo_manager: Optional[MongoDBManager] = None

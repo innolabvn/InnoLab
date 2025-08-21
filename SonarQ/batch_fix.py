@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import tempfile
 import fnmatch
+import requests
 
 @dataclass
 class FixResult:
@@ -36,6 +37,11 @@ class FixResult:
     validation_errors: List[str]
     backup_path: Optional[str] = None
     processing_time: float = 0.0
+    similarity_ratio: float = 0.0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    meets_threshold: bool = True
 
 class CodeValidator:
     """Validate code quality and syntax"""
@@ -152,9 +158,10 @@ class CodeValidator:
         return SequenceMatcher(None, str1, str2).ratio()
 
 class SecureFixProcessor:
-    """Enhanced fix processor with security and validation"""
+    """Enhanced secure processor with comprehensive validation"""
     
-    def __init__(self, api_key: str, source_dir: str, backup_dir: str = None):
+    def __init__(self, api_key: str, source_dir: str, backup_dir: str = None, similarity_threshold: float = 0.85):
+        self.similarity_threshold = similarity_threshold  # Ngưỡng chấp nhận độ tương thích
         self.model = self._setup_gemini(api_key)
         self.source_dir = os.path.abspath(source_dir)  # Store absolute path of source directory
         self.validator = CodeValidator()
@@ -389,7 +396,7 @@ class SecureFixProcessor:
     
     def fix_file_with_validation(self, file_path: str, template_type: str = 'fix', 
                                  custom_prompt: str = None, max_retries: int = 2, 
-                                 issues_data: List[Dict] = None) -> FixResult:
+                                 issues_data: List[Dict] = None, enable_rag: bool = False) -> FixResult:
         """Fix file with comprehensive validation"""
         start_time = datetime.now()
         
@@ -416,6 +423,9 @@ class SecureFixProcessor:
                     
                     # Load and render prompt template
                     template, template_vars = self._load_prompt_template(template_type, custom_prompt)
+                    if template is None:
+                        raise Exception("Template not found. Please add template files to prompt directory.")
+                    
                     prompt = template.render(
                         original_code=original_code, 
                         **template_vars,
@@ -429,6 +439,16 @@ class SecureFixProcessor:
                     # Generate fix
                     response = self.model.generate_content(prompt)
                     candidate_fixed = self._clean_response(response.text)
+                    
+                    # Extract token usage from response
+                    input_tokens = 0
+                    output_tokens = 0
+                    total_tokens = 0
+                    
+                    if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                        input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
+                        output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+                        total_tokens = getattr(response.usage_metadata, 'total_token_count', 0)
                     
                     # Log AI response
                     self._log_ai_response(file_path, response.text, candidate_fixed)
@@ -481,17 +501,39 @@ class SecureFixProcessor:
             # Calculate metrics
             processing_time = (datetime.now() - start_time).total_seconds()
             quality_metrics = self.validator.check_code_quality(original_code, fixed_code)
+            similarity_ratio = quality_metrics['similarity_ratio']
+            meets_threshold = similarity_ratio >= self.similarity_threshold
             
-            return FixResult(
+            # Create FixResult object
+            fix_result = FixResult(
                 success=True,
                 file_path=output_path,
                 original_size=len(original_code),
                 fixed_size=len(fixed_code),
-                issues_found=[f"Size change: {quality_metrics['size_change']} bytes", f"Similarity: {quality_metrics['similarity_ratio']:.1%}"],
+                issues_found=[f"Size change: {quality_metrics['size_change']} bytes", f"Similarity: {similarity_ratio:.1%}"],
                 validation_errors=validation_errors,
                 backup_path=backup_path,
-                processing_time=processing_time
+                processing_time=processing_time,
+                similarity_ratio=similarity_ratio,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                meets_threshold=meets_threshold
             )
+            
+            # Add bug fix information to RAG system if fix was successful and RAG is enabled
+            if enable_rag:
+                try:
+                    self.add_bug_to_rag(
+                        fix_result=fix_result,
+                        issues_data=issues_data,
+                        raw_response=response.text if 'response' in locals() else "",
+                        fixed_code=fixed_code
+                    )
+                except Exception as rag_error:
+                    print(f"  ⚠️ Warning: Failed to add to RAG system: {str(rag_error)}")
+            
+            return fix_result
             
         except Exception as e:
             processing_time = (datetime.now() - start_time).total_seconds()
@@ -502,7 +544,12 @@ class SecureFixProcessor:
                 fixed_size=0,
                 issues_found=[str(e)],
                 validation_errors=validation_errors,
-                processing_time=processing_time
+                processing_time=processing_time,
+                similarity_ratio=0.0,
+                input_tokens=0,
+                output_tokens=0,
+                total_tokens=0,
+                meets_threshold=False
             )
     
     def _get_validation_rules(self, file_path: str) -> str:
@@ -557,78 +604,16 @@ Chỉ trả về code đã sửa, không cần markdown formatting hay giải th
                         template = env.get_template(template_file)
                         return template, {}
                     else:
-                        # Fallback to default fix template
-                        template_content = """
-Fix the following code by:
-1. Correcting syntax errors
-2. Improving code quality and readability  
-3. Following best practices
-4. Maintaining original functionality
-
-Validation Rules:
-{{ validation_rules }}
-
-Original Code:
-{{ original_code }}
-
-Return only the fixed code without markdown formatting.
-"""
+                        # Return None để người dùng bổ sung template
+                        return None, {}
             else:
-                # Prompt directory doesn't exist, use fallback
-                if custom_prompt:
-                    template_content = f"""
-{custom_prompt}
-
-Code cần sửa:
-{{{{ original_code }}}}
-
-Chỉ trả về code đã sửa, không cần markdown formatting hay giải thích.
-"""
-                else:
-                    template_content = """
-Fix the following code by:
-1. Correcting syntax errors
-2. Improving code quality and readability  
-3. Following best practices
-4. Maintaining original functionality
-
-Validation Rules:
-{{ validation_rules }}
-
-Original Code:
-{{ original_code }}
-
-Return only the fixed code without markdown formatting.
-"""
+                # Return None để người dùng bổ sung template khi prompt directory không tồn tại
+                return None, {}
         
         except Exception as e:
             print(f"Warning: Could not load template from prompt directory: {e}")
-            # Fallback to simple template
-            if custom_prompt:
-                template_content = f"""
-{custom_prompt}
-
-Code cần sửa:
-{{{{ original_code }}}}
-
-Chỉ trả về code đã sửa, không cần markdown formatting hay giải thích.
-"""
-            else:
-                template_content = """
-Fix the following code by:
-1. Correcting syntax errors
-2. Improving code quality and readability  
-3. Following best practices
-4. Maintaining original functionality
-
-Validation Rules:
-{{ validation_rules }}
-
-Original Code:
-{{ original_code }}
-
-Return only the fixed code without markdown formatting.
-"""
+            # Break để người dùng bổ sung template khi có lỗi
+            return None, {}
         
         # Simple template implementation as fallback
         class SimpleTemplate:
@@ -664,12 +649,99 @@ Return only the fixed code without markdown formatting.
                 'file_path': file_path,
                 'raw_response_length': len(raw_response),
                 'cleaned_response_length': len(cleaned_response),
-                'response_preview': cleaned_response[:200] + '...' if len(cleaned_response) > 200 else cleaned_response
+                'response_preview': cleaned_response[:200] + '...' if len(cleaned_response) > 200 else cleaned_response,
+                'full_cleaned_response': cleaned_response  # Add full response for debugging
             }
             
             self.template_logger.info(f"AI_RESPONSE: {json.dumps(log_data, ensure_ascii=False)}")
         except Exception as e:
             print(f"Warning: Could not log AI response: {e}")
+    
+    def add_bug_to_rag(self, fix_result: FixResult, issues_data: List[Dict] = None, 
+                       raw_response: str = "", fixed_code: str = "") -> bool:
+        """Add fixed bug information to RAG system via API"""
+        try:
+            # Prepare bug context from issues_data
+            bug_context = []
+            fix_summary = []
+            
+            if issues_data:
+                for issue in issues_data:
+                    if issue.get('component', '').endswith(os.path.basename(fix_result.file_path)):
+                        bug_context.append(f"Line {issue.get('line', 'N/A')}: {issue.get('message', 'No message')}")
+                        fix_summary.append({
+                            "title": issue.get('message', 'Bug fix'),
+                            "why": f"Issue type: {issue.get('type', 'Unknown')}, Severity: {issue.get('severity', 'Unknown')}",
+                            "change": "Applied AI-generated fix to resolve the issue"
+                        })
+            
+            # Determine code language from file extension
+            file_ext = Path(fix_result.file_path).suffix.lower()
+            language_map = {
+                '.py': 'python',
+                '.js': 'javascript', 
+                '.jsx': 'javascript',
+                '.ts': 'typescript',
+                '.tsx': 'typescript',
+                '.java': 'java',
+                '.cpp': 'cpp',
+                '.c': 'c',
+                '.html': 'html',
+                '.css': 'css'
+            }
+            code_language = language_map.get(file_ext, 'text')
+            
+            # Build JSON payload according to the specified format
+            payload = {
+                "content": f"Bug: Fixed {len(fix_summary)} issues in {os.path.basename(fix_result.file_path)}",
+                "metadata": {
+                    "bug_title": f"Fixed issues in {os.path.basename(fix_result.file_path)}",
+                    "bug_context": bug_context if bug_context else ["No specific bug context available"],
+                    "fix_summary": fix_summary if fix_summary else [{
+                        "title": "General code improvement",
+                        "why": "Applied AI-generated fixes",
+                        "change": "Code quality and bug fixes"
+                    }],
+                    "fixed_source_present": bool(fixed_code),
+                    "code_language": code_language,
+                    "code": fixed_code if fixed_code else "",
+                    "file_path": fix_result.file_path,
+                    "original_size": fix_result.original_size,
+                    "fixed_size": fix_result.fixed_size,
+                    "similarity_ratio": fix_result.similarity_ratio,
+                    "input_tokens": fix_result.input_tokens,
+                    "output_tokens": fix_result.output_tokens,
+                    "total_tokens": fix_result.total_tokens,
+                    "processing_time": fix_result.processing_time,
+                    "meets_threshold": fix_result.meets_threshold,
+                    "validation_errors": fix_result.validation_errors,
+                    "issues_found": fix_result.issues_found,
+                    "raw_ai_response": raw_response[:1000] if raw_response else ""  # Limit to 1000 chars
+                }
+            }
+            
+            # Send POST request to RAG API
+            api_url = "http://192.168.5.11:8000/api/v1/rag/reasoning/add"
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+            
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+            
+            if response.status_code == 200 or response.status_code == 201:
+                print(f"  ✅ Successfully added bug fix to RAG: {os.path.basename(fix_result.file_path)}")
+                return True
+            else:
+                print(f"  ❌ Failed to add to RAG (HTTP {response.status_code}): {response.text[:200]}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            print(f"  ❌ RAG API request failed: {str(e)}")
+            return False
+        except Exception as e:
+            print(f"  ❌ Error adding to RAG: {str(e)}")
+            return False
     
     def load_issues_from_file(self, issues_file_path: str) -> Dict[str, List[Dict]]:
         """Load issues from JSON file and organize by file path"""
@@ -701,7 +773,35 @@ Return only the fixed code without markdown formatting.
         """Clean LLM response to extract code"""
         text = response_text.strip()
         
-        # Remove common markdown code blocks
+        # First try to extract from "## 3. Fixed Source Code" section
+        if "## 3. Fixed Source Code" in text:
+            lines = text.split('\n')
+            start_idx = None
+            
+            for i, line in enumerate(lines):
+                if "## 3. Fixed Source Code" in line:
+                    start_idx = i + 1
+                    break
+            
+            if start_idx is not None:
+                # Extract everything after the section header
+                code_lines = lines[start_idx:]
+                # Remove any leading empty lines
+                while code_lines and not code_lines[0].strip():
+                    code_lines.pop(0)
+                
+                # Remove markdown code blocks if present
+                if code_lines and code_lines[0].startswith('```'):
+                    code_lines.pop(0)  # Remove opening ```
+                    # Remove closing ``` if present
+                    while code_lines and code_lines[-1].strip() == '```':
+                        code_lines.pop()
+                
+                # Join and return the code
+                if code_lines:
+                    return '\n'.join(code_lines).strip()
+        
+        # Fallback: Remove common markdown code blocks
         if text.startswith('```'):
             lines = text.split('\n')
             # Find first and last code block markers
@@ -738,6 +838,7 @@ def main():
 
     parser.add_argument('--auto', action='store_true', help='Auto mode: skip confirmation prompts')
     parser.add_argument('--issues-file', type=str, help='JSON file containing issues from SonarQube or other tools')
+    parser.add_argument('--enable-rag', action='store_true', help='Enable RAG integration to store fixed bugs information')
     
     args = parser.parse_args()
     
@@ -745,8 +846,9 @@ def main():
     print("Advanced AI-powered code fixing with validation & safety checks")
     print("=" * 70)
     
-    # Setup
-    load_dotenv()
+    # Setup - Load environment variables from root directory
+    root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    load_dotenv(root_env_path)
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
         print("Error: GEMINI_API_KEY not found in .env file")
@@ -765,6 +867,7 @@ def main():
 
         print("  python batch_fix.py /path/to/code --fix --auto                # Fix specific directory automatically")
         print("  python batch_fix.py source_bug --fix --issues-file issues.json # Fix using SonarQube issues")
+        print("  python batch_fix.py source_bug --fix --enable-rag             # Fix and store results in RAG system")
         print("\nLogging:")
         print("  Template usage and AI responses are automatically logged to ./logs/template_usage_TIMESTAMP.log")
         print("  Log entries include template type, custom prompts, response quality metrics, and file paths")
@@ -800,6 +903,10 @@ def main():
     custom_prompt = args.prompt
     if custom_prompt:
         print(f"Using custom prompt: {custom_prompt[:50]}{'...' if len(custom_prompt) > 50 else ''}")
+    
+    # RAG integration
+    if args.enable_rag:
+        print("RAG Integration: Enabled - Fixed bugs will be stored in RAG system")
     
     # Load issues file if provided
     issues_by_file = {}
@@ -884,7 +991,8 @@ def main():
                 file_path, 
                 template_type='fix', 
                 custom_prompt=custom_prompt,
-                issues_data=file_issues
+                issues_data=file_issues,
+                enable_rag=args.enable_rag
             )
         else:
             result = processor.scan_file_only(file_path)
@@ -912,33 +1020,47 @@ def main():
     success_count = sum(1 for r in results if r.success)
     error_count = len(results) - success_count
     
+    # Calculate metrics
+    total_input_tokens = sum(r.input_tokens for r in results if r.success)
+    total_output_tokens = sum(r.output_tokens for r in results if r.success)
+    total_tokens = sum(r.total_tokens for r in results if r.success)
+    avg_similarity = sum(r.similarity_ratio for r in results if r.success) / max(success_count, 1)
+    threshold_met_count = sum(1 for r in results if r.success and r.meets_threshold)
+    
     print("\n" + "=" * 70)
     if fix_mode:
-        print("Fixing Complete!")
-        print(f"Fixed: {success_count} files")
-        print(f"Failed: {error_count} files")
-        # print(f"Backups saved in: {processor.backup_dir}")  # Backup disabled
-        print("Backup feature disabled - files modified in place")
-
+        print("BATCH_FIX_RESULT: SUCCESS")
+        print(f"FIXED_FILES: {success_count}")
+        print(f"FAILED_FILES: {error_count}")
+        print(f"TOTAL_INPUT_TOKENS: {total_input_tokens}")
+        print(f"TOTAL_OUTPUT_TOKENS: {total_output_tokens}")
+        print(f"TOTAL_TOKENS: {total_tokens}")
+        print(f"AVERAGE_SIMILARITY: {avg_similarity:.3f}")
+        print(f"THRESHOLD_MET_COUNT: {threshold_met_count}")
+        print(f"SIMILARITY_THRESHOLD: {processor.similarity_threshold}")
+        
+        # Detailed results for parsing
+        print("\nDETAILED_RESULTS:")
+        for r in results:
+            status = "SUCCESS" if r.success else "FAILED"
+            rel_path = os.path.relpath(r.file_path, directory)
+            print(f"FILE: {rel_path} | STATUS: {status} | SIMILARITY: {r.similarity_ratio:.3f} | INPUT_TOKENS: {r.input_tokens} | OUTPUT_TOKENS: {r.output_tokens} | TOTAL_TOKENS: {r.total_tokens} | THRESHOLD_MET: {r.meets_threshold}")
     else:
-        print("Scanning Complete!")
-        print(f"Scanned: {success_count} files")
-        print(f"Failed: {error_count} files")
+        print("BATCH_SCAN_RESULT: SUCCESS")
+        print(f"SCANNED_FILES: {success_count}")
+        print(f"FAILED_FILES: {error_count}")
         
         # Count files with issues
         files_with_issues = sum(1 for r in results if r.success and r.issues_found != ["No issues found"])
         clean_files = success_count - files_with_issues
-        print(f"Files with issues: {files_with_issues}")
-        print(f"Clean files: {clean_files}")
+        print(f"FILES_WITH_ISSUES: {files_with_issues}")
+        print(f"CLEAN_FILES: {clean_files}")
     
     if results:
         avg_time = sum(r.processing_time for r in results) / len(results)
-        print(f"Average processing time: {avg_time:.1f}s per file")
+        print(f"AVERAGE_PROCESSING_TIME: {avg_time:.1f}")
     
-    if fix_mode:
-        print("\nRecommendation: Review changes and run tests before deploying!")
-    else:
-        print("\nTip: Use --fix flag to automatically fix detected issues!")
+    print("\nEND_BATCH_RESULT")
 
 if __name__ == "__main__":
     main()
