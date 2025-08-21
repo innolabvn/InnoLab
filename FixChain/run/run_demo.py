@@ -100,7 +100,8 @@ class ExecutionServiceNoMongo:
             
             # Change to SonarQ directory
             original_dir = os.getcwd()
-            sonar_dir = "d:\\InnoLab\\SonarQ"
+            innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
+            sonar_dir = os.path.join(innolab_root, 'SonarQ')
             os.chdir(sonar_dir)
             
             try:
@@ -162,7 +163,7 @@ class ExecutionServiceNoMongo:
                 output_file = os.path.join(sonar_dir, f"issues_{self.project_key}.json")
                 export_cmd = [
                     'python', 
-                    'd:\\InnoLab\\SonarQ\\export_to_file.py', 
+                    os.path.join(sonar_dir, 'export_to_file.py'), 
                     self.project_key,
                     output_file
                 ]
@@ -342,7 +343,8 @@ class ExecutionServiceNoMongo:
                 source_dir = self.scan_directory
             else:
                 # Đối với đường dẫn tương đối, resolve từ thư mục SonarQ
-                sonar_dir = "d:\\InnoLab\\SonarQ"
+                innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
+                sonar_dir = os.path.join(innolab_root, 'SonarQ')
                 source_dir = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
             
             logger.info(f"Fixing bugs in directory: {source_dir}")
@@ -358,7 +360,8 @@ class ExecutionServiceNoMongo:
             
             # Bước 3: Chuyển đến thư mục SonarQ để chạy batch_fix.py
             original_dir = os.getcwd()
-            sonar_dir = "d:\\InnoLab\\SonarQ"
+            innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
+            sonar_dir = os.path.join(innolab_root, 'SonarQ')
             
             try:
                 os.chdir(sonar_dir)
