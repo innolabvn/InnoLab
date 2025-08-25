@@ -6,17 +6,9 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
-# this is the function for the admin backdoor access:
-@app.route("/sl", methods=["GET","POST"])
-def adm_log_sec():
-
-    # Remove the admin backdoor route entirely for security reasons
-    return "Unauthorized Access", 403
-
+# Remove the admin backdoor route entirely for security reasons
 # implement login process to the app
-
-
 
 # the main function this is going to execute like any other main function
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False) # Fix: Disable debug mode in production for security and performance reasons. Debug mode should only be enabled during development.

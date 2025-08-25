@@ -8,15 +8,17 @@
 </div>
 <div class="login-form">
 <div class="control-group">
-<!-- CSRF Protection: Add CSRF token (TO BE GENERATED SERVER SIDE) -->
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<!-- CSRF Protection: Add CSRF token (TO BE GENERATED SERVER SIDE). -->
+<!-- Server-side: Generate a unique CSRF token, store it in the user's session, and validate it upon form submission. --> <!-- Fix: Added Django CSRF token -->
+<input type="hidden" name="csrf_token" value="{% csrf_token %}"> <!-- Fix: Added Django CSRF token -->
 				<input type="text" class="login-field" value="" placeholder="username" name="username">
 <label class="login-field-icon fui-user" for="login-name"></label></div>
 <div class="control-group">
 				<input type="password" class="login-field" value="" placeholder="password" name="password">
 <label class="login-field-icon fui-lock" for="login-pass"></label></div>
 <input type="submit" value="Log in" class="btn btn-primary btn-large btn-block">
-
+<!-- Server-side: Sanitize all user input, hash passwords with a strong algorithm (bcrypt/Argon2), and use parameterized queries to prevent injection attacks. -->
+<!-- Add input sanitation -->
 </div>
 </div>
 </div>
