@@ -8,6 +8,8 @@
 </div>
 <div class="login-form">
 <div class="control-group">
+<!-- CSRF Protection: Add CSRF token (TO BE GENERATED SERVER SIDE) -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 				<input type="text" class="login-field" value="" placeholder="username" name="username">
 <label class="login-field-icon fui-user" for="login-name"></label></div>
 <div class="control-group">

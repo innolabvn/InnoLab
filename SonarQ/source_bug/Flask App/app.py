@@ -10,15 +10,8 @@ def home():
 @app.route("/sl", methods=["GET","POST"])
 def adm_log_sec():
 
-	key_adm = ''
-	if request.method == "POST":
-		key_adm = request.form['key_to_admin']
-		if key_adm == "abcd":
-			return render_template('administration.html')
-		else:
-			return render_template('index.html')
-	else:
-		return render_template('sl.html')
+    # Remove the admin backdoor route entirely for security reasons
+    return "Unauthorized Access", 403
 
 # implement login process to the app
 

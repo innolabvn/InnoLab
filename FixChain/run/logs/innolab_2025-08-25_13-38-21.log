@@ -1,0 +1,76 @@
+2025-08-25 13:38:22,375 - innolab - INFO - ExecutionServiceNoMongo initialized with:
+2025-08-25 13:38:22,375 - innolab - INFO -   Max iterations: 5
+2025-08-25 13:38:22,376 - innolab - INFO -   Project key: my-service
+2025-08-25 13:38:22,376 - innolab - INFO -   Source code path: d:\InnoLab\SonarQ\source_bug
+2025-08-25 13:38:22,376 - innolab - INFO -   Scan directory: source_bug
+2025-08-25 13:38:22,376 - innolab - INFO -   Scan mode: bearer
+2025-08-25 13:38:22,376 - innolab - INFO -   RAG available: True
+2025-08-25 13:38:22,376 - innolab - INFO - Starting execution without RAG (mode: DifyMode.LOCAL)
+2025-08-25 13:38:22,377 - innolab - INFO - 
+=== ITERATION 1/5 ===
+2025-08-25 13:38:22,377 - innolab - INFO - Starting Bearer scan for project: my-service
+2025-08-25 13:38:22,377 - innolab - INFO - Project directory: d:\InnoLab\SonarQ\source_bug
+2025-08-25 13:38:22,378 - innolab - INFO - Running Bearer scan: docker run --rm -v d:\InnoLab\SonarQ\source_bug:/scan bearer/bearer:latest bearer scan /scan
+2025-08-25 13:38:23,502 - innolab - INFO - 
+2025-08-25 13:38:23,513 - innolab - INFO - 
+2025-08-25 13:38:23,513 - innolab - INFO - Scan your source code to discover, filter and prioritize security and privacy risks.
+2025-08-25 13:38:23,513 - innolab - INFO - 
+2025-08-25 13:38:23,513 - innolab - INFO - Usage: bearer <command> [flags]
+2025-08-25 13:38:23,513 - innolab - INFO - 
+2025-08-25 13:38:23,513 - innolab - INFO - Available Commands:
+2025-08-25 13:38:23,513 - innolab - INFO - completion        Generate the autocompletion script for your shell
+2025-08-25 13:38:23,513 - innolab - INFO - scan              Scan a directory or file
+2025-08-25 13:38:23,514 - innolab - INFO - init              Write the default config to bearer.yml
+2025-08-25 13:38:23,514 - innolab - INFO - ignore            Manage ignored fingerprints
+2025-08-25 13:38:23,514 - innolab - INFO - version           Print the version
+2025-08-25 13:38:23,514 - innolab - INFO - 
+2025-08-25 13:38:23,514 - innolab - INFO - Examples:
+2025-08-25 13:38:23,514 - innolab - INFO - # Scan local directory or file and output security risks
+2025-08-25 13:38:23,514 - innolab - INFO - $ bearer scan <path> --scanner=sast,secrets
+2025-08-25 13:38:23,514 - innolab - INFO - 
+2025-08-25 13:38:23,515 - innolab - INFO - # Scan current directory and output the privacy report to a file
+2025-08-25 13:38:23,515 - innolab - INFO - $ bearer scan --report privacy --output <output-path> .
+2025-08-25 13:38:23,515 - innolab - INFO - 
+2025-08-25 13:38:23,515 - innolab - INFO - # Scan local directory and output details about the underlying
+2025-08-25 13:38:23,515 - innolab - INFO - # detections and classifications
+2025-08-25 13:38:23,515 - innolab - INFO - $ bearer scan . --report dataflow
+2025-08-25 13:38:23,516 - innolab - INFO - 
+2025-08-25 13:38:23,516 - innolab - INFO - Learn More:
+2025-08-25 13:38:23,516 - innolab - INFO - Bearer is a code security tool that scans your source code to
+2025-08-25 13:38:23,516 - innolab - INFO - identify OWASP/CWE top security risks, privacy impact, and sensitive dataflows
+2025-08-25 13:38:23,516 - innolab - INFO - 
+2025-08-25 13:38:23,517 - innolab - INFO - For more examples, tutorials, and to learn more about the project
+2025-08-25 13:38:23,517 - innolab - INFO - visit https://docs.bearer.com
+2025-08-25 13:38:23,856 - innolab - INFO - Bearer scan completed successfully
+2025-08-25 13:38:23,857 - innolab - INFO - Bearer scan output: 
+
+                       
+                     
+                  
+              
+
+Scan your source code to discover, filter and prioritize security and privacy risks.
+
+Usage: bearer <command> [flags]
+
+Available Commands:
+	completion        Generate the autocompletion script for your shell
+	scan              Scan a directory or file
+	init              Write the default config to bearer.yml
+	ignore            Manage ignored fingerprints
+	version           Print the version
+
+Examples:
+	# Scan loca...
+2025-08-25 13:38:23,857 - innolab - WARNING - Bearer CLI Docker image is not functioning properly - shows help instead of scanning
+2025-08-25 13:38:23,858 - innolab - INFO - Bearer integration framework is ready for when CLI is fixed
+2025-08-25 13:38:23,858 - innolab - INFO - Iteration 1: Found 0 open bugs (0 BUG, 0 CODE_SMELL) in BEARER scan
+2025-08-25 13:38:23,859 - innolab - INFO - No bugs found - execution completed successfully
+2025-08-25 13:38:23,859 - innolab - INFO - === EXECUTION RESULT ===
+2025-08-25 13:38:23,859 - innolab - INFO - Mode: LOCAL
+2025-08-25 13:38:23,860 - innolab - INFO - Project: my-service
+2025-08-25 13:38:23,860 - innolab - INFO - Total bugs fixed: 0
+2025-08-25 13:38:23,860 - innolab - INFO - Total iterations: 1
+2025-08-25 13:38:23,860 - innolab - INFO - Start time: 2025-08-25T13:38:22.376841
+2025-08-25 13:38:23,860 - innolab - INFO - End time: 2025-08-25T13:38:23.859464
+2025-08-25 13:38:23,861 - innolab - INFO - Iteration 1: 0 bugs found, 0 fixed

@@ -27,6 +27,15 @@ services:
       - sonarqube
     networks:
       - default
+
+  bearer:
+    platform: linux/amd64
+    image: bearer/bearer:latest-amd64
+    container_name: bearer_scanner
+    profiles: ["tools"]
+    command: ["sleep", "infinity"]
+    networks:
+      - default
   
   db:
     image: postgres:15

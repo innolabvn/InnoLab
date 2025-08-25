@@ -78,7 +78,19 @@ class CLIService:
             assert process.stdout is not None
             for line in process.stdout:
                 output_lines.append(line)
-                logger.info(line.strip())
+                try:
+                    # Clean ANSI escape sequences and handle Unicode characters
+                    clean_line = line.strip()
+                    # Remove ANSI escape sequences
+                    import re
+                    clean_line = re.sub(r'\x1b\[[0-9;]*m', '', clean_line)
+                    # Ensure safe logging by encoding to ASCII with error handling
+                    safe_line = clean_line.encode('ascii', errors='ignore').decode('ascii')
+                    if safe_line.strip():  # Only log non-empty lines
+                        logger.info(safe_line)
+                except Exception as e:
+                    # Fallback for any encoding issues
+                    logger.info("[OUTPUT] <line with encoding issues>")
             return_code = process.wait()
             if return_code != 0:
                 logger.error(f"Command failed with return code {return_code}")

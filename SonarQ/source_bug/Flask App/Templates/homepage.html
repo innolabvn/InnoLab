@@ -1,6 +1,7 @@
 <link rel="stylesheet" href="/static/style.css" type="text/css">
 
-      <form action="/login" method="GET">
+      <!-- Changed method from GET to POST to prevent sensitive data from being exposed in the URL -->
+      <form action="/login" method="POST">
     <div class="login">
       <div class="login-screen">
       <div class="app-title">
@@ -15,16 +16,17 @@
         </div>
 
         <div class="control-group">
-              <input type="text" class="login-field" value="" placeholder="email" name="email">
+              <input type="email" class="login-field" value="" placeholder="email" name="email" required>
               <label class="login-field-icon fui-user" for="login-name"></label>
         </div>
 
         <div class="control-group">
-              <input type="text" class="login-field" value="" placeholder="card_no" name="card_no">
-              <label class="login-field-icon fui-lock" for="login-pass"></label>
+              <input type="text" class="login-field" value="" placeholder="card_no" name="card_no" required>
+              <label class="login-field-icon fui-lock"></label>
         </div>
         <div class="control-group">
-              <input type="text" class="login-field" value="" placeholder="card_secret" name="card_secret">
+              <!-- Changed input type to password to mask the card_secret -->
+              <input type="password" class="login-field" value="" placeholder="card_secret" name="card_secret">
               <label class="login-field-icon fui-lock" for="login-pass"></label>
         </div>
 
@@ -35,3 +37,10 @@
       </div>
       </div>
     </form>
+
+<script>
+  // Enforce HTTPS redirect
+  if (window.location.protocol !== "https:") {
+    window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+  }
+</script>

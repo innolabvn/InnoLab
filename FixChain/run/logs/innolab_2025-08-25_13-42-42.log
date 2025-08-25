@@ -1,0 +1,81 @@
+2025-08-25 13:42:42,746 - innolab - INFO - ExecutionServiceNoMongo initialized with:
+2025-08-25 13:42:42,746 - innolab - INFO -   Max iterations: 5
+2025-08-25 13:42:42,746 - innolab - INFO -   Project key: my-service
+2025-08-25 13:42:42,746 - innolab - INFO -   Source code path: d:\InnoLab\SonarQ\source_bug
+2025-08-25 13:42:42,746 - innolab - INFO -   Scan directory: source_bug
+2025-08-25 13:42:42,746 - innolab - INFO -   Scan mode: sonar
+2025-08-25 13:42:42,746 - innolab - INFO -   RAG available: True
+2025-08-25 13:42:42,747 - innolab - INFO - Starting execution without RAG (mode: DifyMode.CLOUD)
+2025-08-25 13:42:42,747 - innolab - INFO - 
+=== ITERATION 1/5 ===
+2025-08-25 13:42:42,747 - innolab - INFO - Starting SonarQube scan for project: my-service
+2025-08-25 13:42:42,747 - innolab - INFO - Step 1: Running SonarQube scan...
+2025-08-25 13:42:42,748 - innolab - INFO - Ensuring sonar-scanner container is running...
+2025-08-25 13:42:42,817 - innolab - INFO - sonar_scanner
+2025-08-25 13:42:44,818 - innolab - INFO - Project directory: d:\InnoLab\SonarQ\source_bug
+2025-08-25 13:42:44,819 - innolab - INFO - Created sonar-project.properties for project: my-service
+2025-08-25 13:42:44,820 - innolab - INFO - Running containerized scan: docker exec -w /usr/src -e SONAR_HOST_URL=http://sonarqube:9000 -e SONAR_TOKEN=sqa_a175e30d38b432938451bc9a77fbe00b941d4d82 sonar_scanner sonar-scanner
+2025-08-25 13:42:45,035 - innolab - INFO - INFO: Scanner configuration file: /opt/sonar-scanner/conf/sonar-scanner.properties
+2025-08-25 13:42:45,038 - innolab - INFO - INFO: Project root configuration file: /usr/src/sonar-project.properties
+2025-08-25 13:42:45,083 - innolab - INFO - INFO: SonarScanner 5.0.1.3006
+2025-08-25 13:42:45,083 - innolab - INFO - INFO: Java 17.0.10 Alpine (64-bit)
+2025-08-25 13:42:45,083 - innolab - INFO - INFO: Linux 5.15.167.4-microsoft-standard-WSL2 amd64
+2025-08-25 13:42:45,283 - innolab - INFO - INFO: User cache: /opt/sonar-scanner/.sonar/cache
+2025-08-25 13:42:45,358 - innolab - INFO - INFO: Analyzing on SonarQube server 9.9.8.100196
+2025-08-25 13:42:45,359 - innolab - INFO - INFO: Default locale: "en_US", source code encoding: "UTF-8" (analysis is platform dependent)
+2025-08-25 13:42:45,868 - innolab - INFO - INFO: Load global settings
+2025-08-25 13:42:45,961 - innolab - INFO - INFO: Load global settings (done) | time=94ms
+2025-08-25 13:42:45,962 - innolab - INFO - INFO: Server id: 243B8A4D-AZjK7rzghlLdJt_RRKZv
+2025-08-25 13:42:45,965 - innolab - INFO - INFO: User cache: /opt/sonar-scanner/.sonar/cache
+2025-08-25 13:42:45,967 - innolab - INFO - INFO: Load/download plugins
+2025-08-25 13:42:45,967 - innolab - INFO - INFO: Load plugins index
+2025-08-25 13:42:46,017 - innolab - INFO - INFO: Load plugins index (done) | time=50ms
+2025-08-25 13:42:46,147 - innolab - INFO - INFO: Load/download plugins (done) | time=180ms
+2025-08-25 13:42:46,730 - innolab - INFO - INFO: Process project properties
+2025-08-25 13:42:46,735 - innolab - INFO - INFO: Process project properties (done) | time=6ms
+2025-08-25 13:42:46,737 - innolab - INFO - INFO: Execute project builders
+2025-08-25 13:42:46,738 - innolab - INFO - INFO: Execute project builders (done) | time=1ms
+2025-08-25 13:42:46,766 - innolab - INFO - INFO: Project key: my-service
+2025-08-25 13:42:46,766 - innolab - INFO - INFO: Base dir: /usr/src
+2025-08-25 13:42:46,766 - innolab - INFO - INFO: Working dir: /usr/src/.scannerwork
+2025-08-25 13:42:46,778 - innolab - INFO - INFO: Load project settings for component key: 'my-service'
+2025-08-25 13:42:46,800 - innolab - INFO - INFO: Load project settings for component key: 'my-service' (done) | time=22ms
+2025-08-25 13:42:46,931 - innolab - INFO - WARN: SCM provider autodetection failed. Please use "sonar.scm.provider" to define SCM of your project, or disable the SCM Sensor in the project settings.
+2025-08-25 13:42:46,937 - innolab - INFO - INFO: Load quality profiles
+2025-08-25 13:42:47,003 - innolab - INFO - INFO: Load quality profiles (done) | time=66ms
+2025-08-25 13:42:47,008 - innolab - INFO - INFO: Load active rules
+2025-08-25 13:42:48,397 - innolab - INFO - INFO: Load active rules (done) | time=1387ms
+2025-08-25 13:42:48,400 - innolab - INFO - INFO: Load analysis cache
+2025-08-25 13:42:48,418 - innolab - INFO - INFO: Load analysis cache (772 bytes) | time=18ms
+2025-08-25 13:42:48,483 - innolab - INFO - INFO: Load project repositories
+2025-08-25 13:42:48,515 - innolab - INFO - INFO: Load project repositories (done) | time=33ms
+2025-08-25 13:42:48,541 - innolab - INFO - INFO: Indexing files...
+2025-08-25 13:42:48,542 - innolab - INFO - INFO: Project configuration:
+2025-08-25 13:42:48,543 - innolab - INFO - INFO:   Excluded sources: **/node_modules/**, **/dist/**, **/build/**, **/.git/**
+2025-08-25 13:42:48,924 - innolab - INFO - INFO: 11 files indexed
+2025-08-25 13:42:48,924 - innolab - INFO - INFO: 0 files ignored because of inclusion/exclusion patterns
+2025-08-25 13:42:48,925 - innolab - INFO - INFO: Quality profile for css: Sonar way
+2025-08-25 13:42:48,925 - innolab - INFO - INFO: Quality profile for py: Sonar way
+2025-08-25 13:42:48,926 - innolab - INFO - INFO: Quality profile for web: Sonar way
+2025-08-25 13:42:48,926 - innolab - INFO - INFO: ------------- Run sensors on module my-service
+2025-08-25 13:42:49,089 - innolab - INFO - INFO: Load metrics repository
+2025-08-25 13:42:49,105 - innolab - INFO - INFO: Load metrics repository (done) | time=16ms
+2025-08-25 13:42:50,443 - innolab - INFO - INFO: Sensor Python Sensor [python]
+2025-08-25 13:42:50,446 - innolab - INFO - WARN: Your code is analyzed as compatible with python 2 and 3 by default. This will prevent the detection of issues specific to python 2 or python 3. You can get a more precise analysis by setting a python version in your configuration via the parameter "sonar.python.version"
+2025-08-25 13:42:50,463 - innolab - INFO - INFO: Starting global symbols computation
+2025-08-25 13:42:50,470 - innolab - INFO - INFO: 1 source file to be analyzed
+2025-08-25 13:42:50,807 - innolab - INFO - INFO: 1/1 source file has been analyzed
+2025-08-25 13:42:50,855 - innolab - INFO - INFO: Starting rules execution
+2025-08-25 13:42:50,856 - innolab - INFO - INFO: 1 source file to be analyzed
+2025-08-25 13:42:51,244 - innolab - INFO - INFO: 1/1 source file has been analyzed
+2025-08-25 13:42:51,245 - innolab - INFO - INFO: The Python analyzer was able to leverage cached data from previous analyses for 0 out of 1 files. These files were not parsed.
+2025-08-25 13:42:51,245 - innolab - INFO - INFO: Sensor Python Sensor [python] (done) | time=802ms
+2025-08-25 13:42:51,245 - innolab - INFO - INFO: Sensor Cobertura Sensor for Python coverage [python]
+2025-08-25 13:42:51,352 - innolab - INFO - INFO: Sensor Cobertura Sensor for Python coverage [python] (done) | time=107ms
+2025-08-25 13:42:51,352 - innolab - INFO - INFO: Sensor PythonXUnitSensor [python]
+2025-08-25 13:42:51,522 - innolab - INFO - INFO: Sensor PythonXUnitSensor [python] (done) | time=170ms
+2025-08-25 13:42:51,522 - innolab - INFO - INFO: Sensor JaCoCo XML Report Importer [jacoco]
+2025-08-25 13:42:51,523 - innolab - INFO - INFO: 'sonar.coverage.jacoco.xmlReportPaths' is not defined. Using default locations: target/site/jacoco/jacoco.xml,target/site/jacoco-it/jacoco.xml,build/reports/jacoco/test/jacocoTestReport.xml
+2025-08-25 13:42:51,525 - innolab - INFO - INFO: No report imported, no coverage information will be imported by JaCoCo XML Report Importer
+2025-08-25 13:42:51,525 - innolab - INFO - INFO: Sensor JaCoCo XML Report Importer [jacoco] (done) | time=3ms
+2025-08-25 13:42:51,525 - innolab - INFO - INFO: Sensor CSS Rules [javascript]
