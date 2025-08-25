@@ -9,15 +9,17 @@ import sys
 import json
 import time
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict
 from dotenv import load_dotenv
 
 # Add the project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from service.cli_service import CLIService
-from lib.dify_lib import DifyMode, run_workflow_with_dify
+from lib.dify_lib import DifyMode
 from utils.logger import logger
+from service.scanner_service import BearerScanner, SonarQScanner
+from service.fix_service import Fixer
+from service.analysis_service import AnalysisService
 
 try:
     # Check if RAG functionality is available
@@ -54,7 +56,7 @@ class ExecutionServiceNoMongo:
         # Execution tracking
         self.execution_count = 0
         self.current_source_file = 'code.py'  # Track current source file to scan
-        
+
         # Log configuration
         logger.info(f"ExecutionServiceNoMongo initialized with:")
         logger.info(f"  Max iterations: {self.max_iterations}")
@@ -63,6 +65,18 @@ class ExecutionServiceNoMongo:
         logger.info(f"  Scan directory: {self.scan_directory}")
         logger.info(f"  Scan mode: {self.scan_mode}")
         logger.info(f"  RAG available: {RAG_AVAILABLE}")
+
+        # Initialize services
+        self.analysis_service = AnalysisService(
+            self.dify_cloud_api_key, self.dify_local_api_key
+        )
+        if self.scan_mode == 'bearer':
+            self.scanner = BearerScanner(self.project_key)
+        else:
+            self.scanner = SonarQScanner(
+                self.project_key, self.scan_directory, self.sonar_token
+            )
+        self.fixer = Fixer(self.scan_directory)
     
     def insert_rag_default(self) -> bool:
         """Insert default RAG data for bug fixing"""
@@ -93,602 +107,7 @@ class ExecutionServiceNoMongo:
         except Exception as e:
             logger.error(f"Error inserting RAG data: {str(e)}")
             return False
-    
-    def scan_bearer_bugs(self) -> List[Dict]:
-        """Read Bearer scan results from JSON file"""
-        try:
-            logger.info(f"Loading Bearer scan results for project: {self.project_key}")
-            
-            # Look for Bearer results file in SonarQ directory
-            innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
-            sonar_dir = os.path.join(innolab_root, 'SonarQ')
-            bearer_results_path = os.path.join(sonar_dir, "bearer_results", f"bearer_results_{self.project_key}.json")
-            
-            if not os.path.exists(bearer_results_path):
-                logger.error(f"Bearer results file not found: {bearer_results_path}")
-                logger.info("Please run Bearer scan first to generate results file")
-                logger.info("Example: docker run --rm -v /path/to/project:/scan -v /path/to/output:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_my-service.json")
-                return []
-            
-            logger.info(f"Reading Bearer scan results from: {bearer_results_path}")
-            
-            # Read and parse Bearer JSON results
-            with open(bearer_results_path, 'r', encoding='utf-8') as f:
-                bearer_data = json.load(f)
-            
-            logger.info(f"Bearer scan results loaded successfully")
-            
-            # Convert Bearer format to bugs format
-            bugs = self._convert_bearer_to_bugs_format(bearer_data)
-            logger.info(f"Found {len(bugs)} Bearer security issues")
-            
-            return bugs
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse Bearer JSON file: {e}")
-            return []
-        except Exception as e:
-            logger.error(f"Error reading Bearer scan results: {e}")
-            return []
 
-    def _clean_ansi_output(self, output: str) -> str:
-        """Clean ANSI escape sequences and Unicode characters from output"""
-        import re
-        # Remove ANSI escape sequences
-        clean_output = re.sub(r'\x1b\[[0-9;]*m', '', output)
-        try:
-            # Further clean Unicode characters that can't be encoded
-            safe_output = clean_output.encode('ascii', errors='ignore').decode('ascii')
-            return safe_output
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            return clean_output
-
-    def _generate_mock_bearer_results(self) -> List[Dict]:
-        """Generate mock Bearer results for testing when CLI is broken"""
-        # This is a temporary workaround for the broken Bearer CLI
-        mock_findings = [
-            {
-                "id": "bearer_hardcoded_secret_001",
-                "rule_id": "python_lang_hardcoded_secret",
-                "severity": "HIGH",
-                "filename": "app.py",
-                "line_number": 15,
-                "description": "Hardcoded secret detected in source code",
-                "categories": ["security", "secrets"],
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            },
-            {
-                "id": "bearer_sql_injection_001", 
-                "rule_id": "python_lang_sql_injection",
-                "severity": "CRITICAL",
-                "filename": "app.py",
-                "line_number": 25,
-                "description": "Potential SQL injection vulnerability detected",
-                "categories": ["security", "injection"],
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            }
-        ]
-        
-        logger.info(f"Generated {len(mock_findings)} mock Bearer findings for testing")
-        return self._convert_bearer_to_bugs_format({"findings": mock_findings})
-
-    def _convert_bearer_to_bugs_format(self, bearer_data: Dict) -> List[Dict]:
-        """Convert Bearer scan results to compatible bugs format"""
-        bugs = []
-        
-        # Bearer returns findings organized by severity levels
-        severity_levels = ['critical', 'high', 'medium', 'low', 'info']
-        
-        for severity in severity_levels:
-            findings = bearer_data.get(severity, [])
-            
-            for finding in findings:
-                # Extract file path relative to project root
-                filename = finding.get('filename', finding.get('full_filename', 'unknown'))
-                if filename.startswith('/scan/'):
-                    filename = filename[6:]  # Remove /scan/ prefix
-                
-                # Extract line number from source or line_number field
-                line_number = finding.get('line_number', 1)
-                if 'source' in finding and 'start' in finding['source']:
-                    line_number = finding['source']['start']
-                
-                # Create unique key using rule id and fingerprint
-                rule_id = finding.get('id', 'bearer_security_issue')
-                fingerprint = finding.get('fingerprint', hash(str(finding)) & 0x7FFFFFFF)
-                unique_key = f"bearer_{rule_id}_{fingerprint}"
-                
-                # Extract description from title and description fields
-                title = finding.get('title', 'Security vulnerability')
-                description = finding.get('description', '')
-                message = f"{title}. {description[:200]}..." if len(description) > 200 else f"{title}. {description}"
-                
-                # Extract CWE IDs
-                cwe_ids = finding.get('cwe_ids', [])
-                
-                bug = {
-                    'key': unique_key,
-                    'rule': rule_id,
-                    'severity': self._map_bearer_severity(severity),
-                    'component': filename,
-                    'line': line_number,
-                    'message': message.strip(),
-                    'status': 'OPEN',
-                    'type': 'VULNERABILITY',
-                    'effort': '15min' if severity in ['critical', 'high'] else '10min',
-                    'debt': '15min' if severity in ['critical', 'high'] else '10min',
-                    'tags': ['security', 'bearer', severity] + [f'cwe-{cwe}' for cwe in cwe_ids],
-                    'creationDate': datetime.now().isoformat(),
-                    'updateDate': datetime.now().isoformat(),
-                    'textRange': {
-                        'startLine': line_number,
-                        'endLine': line_number,
-                        'startOffset': finding.get('source', {}).get('column', {}).get('start', 0) if 'source' in finding else 0,
-                        'endOffset': finding.get('source', {}).get('column', {}).get('end', 0) if 'source' in finding else 0
-                    },
-                    # Additional Bearer-specific fields
-                    'scanner': 'bearer',
-                    'bearer_severity': severity,
-                    'cwe_ids': cwe_ids,
-                    'documentation_url': finding.get('documentation_url', ''),
-                    'code_extract': finding.get('code_extract', '')
-                }
-                bugs.append(bug)
-        
-        logger.info(f"Converted {len(bugs)} Bearer findings to compatible format")
-        return bugs
-
-    def _map_bearer_severity(self, bearer_severity: str) -> str:
-        """Map Bearer severity to compatible severity"""
-        severity_map = {
-            'CRITICAL': 'BLOCKER',
-            'HIGH': 'CRITICAL', 
-            'MEDIUM': 'MAJOR',
-            'LOW': 'MINOR',
-            'INFO': 'INFO'
-        }
-        mapped = severity_map.get(bearer_severity.upper(), 'MAJOR')
-        return mapped
-
-    def scan_sonarq_bugs(self) -> List[Dict]:
-        """Scan SonarQube to get list of bugs"""
-        try:
-            logger.info(f"Starting SonarQube scan for project: {self.project_key}")
-            
-            # Step 1: Run SonarQube scan using containerized scanner
-            logger.info("Step 1: Running SonarQube scan...")
-            
-            # Change to SonarQ directory
-            original_dir = os.getcwd()
-            innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
-            sonar_dir = os.path.join(innolab_root, 'SonarQ')
-            os.chdir(sonar_dir)
-            
-            try:
-                # Start sonar-scanner container if not running
-                logger.info("Ensuring sonar-scanner container is running...")
-                start_cmd = "docker start sonar_scanner 2>nul || docker-compose --profile tools up -d sonar-scanner"
-                CLIService.run_command(start_cmd, shell=True)
-                time.sleep(2)  # Wait for container to be ready
-                
-                # Create sonar-project.properties
-                # Handle both relative and absolute paths for scan_directory
-                if os.path.isabs(self.scan_directory):
-                    project_dir = self.scan_directory
-                else:
-                    # For relative paths, resolve from sonar_dir
-                    project_dir = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
-                
-                logger.info(f"Project directory: {project_dir}")
-                
-
-                props_file = os.path.join(project_dir, "sonar-project.properties")
-                
-                with open(props_file, 'w', encoding='utf-8') as f:
-                    f.write(f"sonar.projectKey={self.project_key}\n")
-                    f.write(f"sonar.projectName={self.project_key}\n")
-                    f.write("sonar.sources=.\n")
-                    f.write("sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/.git/**\n")
-                
-                logger.info(f"Created sonar-project.properties for project: {self.project_key}")
-                
-                # Copy project files to sonar scanner container
-                # Copy contents of project directory to avoid nested directory structure
-                # Use fixed directory name to avoid nested structure
-                container_work_dir = "/usr/src"
-                
-                # Run scan using docker exec
-                scan_cmd = [
-                    "docker", "exec", "-w", container_work_dir,
-                    "-e", f"SONAR_HOST_URL=http://sonarqube:9000",
-                    "-e", f"SONAR_TOKEN={self.sonar_token}",
-                    "sonar_scanner", "sonar-scanner"
-                ]
-                
-                logger.info(f"Running containerized scan: {' '.join(scan_cmd)}")
-                
-                # Start the process
-                success, output_lines = CLIService.run_command_stream(scan_cmd)
-                if not success:
-                    logger.error(f"SonarQube scan failed. Output: {''.join(output_lines)}")
-                    return []
-                logger.info("SonarQube scan completed successfully")
-                
-                # Step 2: Wait a bit for SonarQube to process results
-                logger.info("Waiting for SonarQube to process results...")
-                time.sleep(3)  # Wait 3 seconds for background processing
-                
-                # Step 3: Export issues using export_to_file
-                logger.info("Step 2: Exporting issues...")
-                output_file = os.path.join(sonar_dir, f"issues_{self.project_key}.json")
-                export_cmd = [
-                    'python', 
-                    os.path.join(sonar_dir, 'export_to_file.py'), 
-                    self.project_key,
-                    output_file
-                ]
-                
-                if not CLIService.run_command(export_cmd, cwd=sonar_dir):
-                    logger.error("Issues export failed")
-                    return []
-                
-                # Read JSON output from file
-                if os.path.exists(output_file):
-                    with open(output_file, 'r', encoding='utf-8') as f:
-                        bugs_data = json.load(f)
-                    all_bugs = bugs_data.get('issues', [])
-                    
-                    # Filter only OPEN bugs (exclude CLOSED/RESOLVED bugs)
-                    open_bugs = [bug for bug in all_bugs if bug.get('status', '').upper() == 'OPEN']
-                    closed_bugs = [bug for bug in all_bugs if bug.get('status', '').upper() != 'OPEN']
-                    
-                    logger.info(f"Found {len(all_bugs)} total bugs: {len(open_bugs)} open, {len(closed_bugs)} closed/resolved")
-                    logger.info(f"Returning {len(open_bugs)} open bugs for processing")
-                    return open_bugs
-                else:
-                    logger.error(f"Output file not found: {output_file}")
-                    return []
-                    
-            finally:
-                # Restore original directory
-                os.chdir(original_dir)
-            
-        except Exception as e:
-            logger.error(f"Error in SonarQube scan process: {str(e)}")
-            return []
-    
-    def read_source_code(self, file_path: str = None) -> str:
-        """Read source code from file"""
-        try:
-            # Use current source file if no specific file provided
-            if file_path is None:
-                file_path = self.current_source_file
-                
-            full_path = os.path.join(self.source_code_path, file_path)
-            with open(full_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Error reading source code from {file_path}: {str(e)}")
-            return ""
-    
-    def write_source_code(self, file_path: str, content: str) -> bool:
-        """Write fixed code back to file"""
-        try:
-            full_path = os.path.join(self.source_code_path, file_path)
-            
-            # Clean content by removing ```python ``` markers
-            cleaned_content = self.clean_code_content(content)
-            
-            logger.info("Backup feature disabled - files modified in place")
-            
-            # Write new content
-            with open(full_path, 'w', encoding='utf-8') as f:
-                f.write(cleaned_content)
-            
-            logger.info(f"Updated source code: {file_path}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error writing source code to {file_path}: {str(e)}")
-            return False
-    
-    def clean_code_content(self, content: str) -> str:
-        """Remove ```python ``` markers from beginning and end of content"""
-        lines = content.split('\n')
-        
-        # Remove first line if it contains ```python
-        if lines and lines[0].strip().startswith('```python'):
-            lines = lines[1:]
-        
-        # Remove last line if it contains ```
-        if lines and lines[-1].strip() == '```':
-            lines = lines[:-1]
-        
-        # Also check second to last line in case there's an empty line before ```
-        if len(lines) >= 2 and lines[-1].strip() == '' and lines[-2].strip() == '```':
-            lines = lines[:-2]
-
-        return '\n'.join(lines)
-
-    def analysis_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
-        """Analysis bugs using Dify API"""
-        # Initialize variables to avoid UnboundLocalError
-        list_bugs = []
-        bugs_to_fix = 0
-        
-        try:
-            # Choose API key based on mode
-            api_key = self.dify_cloud_api_key if mode == DifyMode.CLOUD else self.dify_local_api_key
-            
-            if not api_key:
-                logger.error(f"No API key found for mode: {mode}")
-                return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
-            
-            # Prepare input for Dify
-            inputs = {
-                # use string to avoid json format error
-                "is_use_rag": str(use_rag),
-                "report": json.dumps(bugs, ensure_ascii=False),
-            }
-            
-            logger.info(f"Need to fix {len(bugs)} bugs using Dify")
-            
-            # Call Dify workflow once with all bugs
-            response = run_workflow_with_dify(
-                api_key=api_key,
-                inputs=inputs,
-                user="hieult",
-                response_mode="blocking",
-                mode=mode
-            )
-            
-            
-            # Extract fixed code from response
-            outputs = response.get('data', {}).get('outputs', {})
-            list_bugs = outputs.get('list_bugs', '')
-            logger.info(f"DIFY: list_bugs type: {type(list_bugs)}, content: {list_bugs}")
-            
-            bugs_to_fix = int(list_bugs.get('bugs_to_fix', '0')) if isinstance(list_bugs, dict) else 0
-            logger.info(f"DIFY: Initial bugs_to_fix from response: {bugs_to_fix}")
-            
-            # If bugs_to_fix is not available or 0, count bugs with action containing 'Fix'
-            if bugs_to_fix == 0 and isinstance(list_bugs, dict) and 'bugs' in list_bugs:
-                bugs_array = list_bugs.get('bugs', [])
-                if isinstance(bugs_array, list):
-                    fix_count = sum(1 for bug in bugs_array if isinstance(bug, dict) and 'action' in bug and 'FIX' in str(bug.get('action', '')).upper())
-                    logger.info(f"DIFY: Counted {fix_count} bugs with 'FIX' action from list of {len(bugs_array)} bugs")
-                    bugs_to_fix = fix_count
-            elif bugs_to_fix == 0 and isinstance(list_bugs, list):
-                fix_count = sum(1 for bug in list_bugs if isinstance(bug, dict) and 'action' in bug and 'FIX' in str(bug.get('action', '')).upper())
-                logger.info(f"DIFY: Counted {fix_count} bugs with 'FIX' action from list of {len(list_bugs)} bugs")
-                bugs_to_fix = fix_count
-            
-            # if bugs_to_fix  = 0 then return success
-            if bugs_to_fix == 0:
-                return {
-                    "success": True,
-                    "bugs_to_fix": bugs_to_fix,
-                    "list_bugs": list_bugs,
-                    "message": "No bugs to fix"
-                }
-            
-            
-            # Increment execution count and save to new file
-            return {
-                "success": True,
-                "list_bugs": list_bugs,
-                "bugs_to_fix": bugs_to_fix,
-                "message": f"Need to fix {bugs_to_fix} bugs",
-
-            }
-
-                
-        except Exception as e:
-            logger.error(f"DIFY:Error in analysis_bugs_with_dify: {str(e)}")
-            return {
-                "list_bugs": list_bugs,
-                "success": False,
-                "bugs_to_fix": bugs_to_fix,
-                "error": str(e)
-            }
-    
-    def fix_bugs_llm(self, list_real_bugs: List[Dict], use_rag: bool = False) -> Dict:
-        """
-        Fix bugs using LLM by calling batch_fix.py script from SonarQ folder
-        This method integrates with the existing batch_fix.py to fix code issues
-        
-        Phương thức này sử dụng script batch_fix.py từ thư mục SonarQ để fix bugs:
-        1. Xác định thư mục source code cần fix (từ self.scan_directory)
-        2. Tạo file list_real_bugs.json từ dữ liệu list_real_bugs
-        3. Chuyển đến thư mục SonarQ 
-        4. Chạy command: python batch_fix.py --fix <scan_directory> --auto --issues-file list_real_bugs.json
-        5. batch_fix.py sẽ:
-           - Quét tất cả file code trong thư mục (.py, .js, .ts, .jsx, .tsx, .java, .cpp, .c)
-           - Sử dụng Google Gemini AI để phân tích và fix từng file
-           - Sử dụng dữ liệu từ list_real_bugs.json để fix các lỗi cụ thể
-           - Tạo backup cho mỗi file trước khi fix
-           - Validate syntax và safety của code sau khi fix
-           - Ghi đè file gốc với code đã được fix
-        6. Đếm số file đã fix thành công từ output
-        7. Trả về kết quả với số lượng file đã fix
-        """
-        try:
-            logger.info(f"Starting fix_bugs_llm for {len(list_real_bugs)} bugs")
-            
-            # Bước 1: Xác định thư mục source code cần fix
-            # Ưu tiên: parameter > environment variable > default
-            if os.path.isabs(self.scan_directory):
-                source_dir = self.scan_directory
-            else:
-                # Đối với đường dẫn tương đối, resolve từ thư mục SonarQ
-                innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
-                sonar_dir = os.path.join(innolab_root, 'SonarQ')
-                source_dir = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
-            
-            logger.info(f"Fixing bugs in directory: {source_dir}")
-            
-            # Bước 2: Kiểm tra thư mục có tồn tại không
-            if not os.path.exists(source_dir):
-                logger.error(f"Source directory does not exist: {source_dir}")
-                return {
-                    "success": False,
-                    "fixed_count": 0,
-                    "error": f"Source directory does not exist: {source_dir}"
-                }
-            
-            # Bước 3: Chuyển đến thư mục SonarQ để chạy batch_fix.py
-            original_dir = os.getcwd()
-            innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
-            sonar_dir = os.path.join(innolab_root, 'SonarQ')
-            
-            try:
-                os.chdir(sonar_dir)
-                
-                # Bước 4: Tạo file list_real_bugs.json từ dữ liệu list_real_bugs
-                issues_file_path = os.path.join(sonar_dir, "list_real_bugs.json")
-                try:
-                    # Remove existing file if it exists
-                    if os.path.exists(issues_file_path):
-                        os.remove(issues_file_path)
-                        logger.info(f"Removed existing issues file: {issues_file_path}")
-                    
-                    with open(issues_file_path, 'w', encoding='utf-8') as f:
-                        json.dump(list_real_bugs, f, indent=2, ensure_ascii=False)
-                    logger.info(f"Created issues file: {issues_file_path} with {len(list_real_bugs)} bugs")
-                except Exception as e:
-                    logger.error(f"Failed to create issues file: {str(e)}")
-                    return {
-                        "success": False,
-                        "fixed_count": 0,
-                        "error": f"Failed to create issues file: {str(e)}"
-                    }
-                
-                # Bước 5: Chuẩn bị và chạy command batch_fix.py với các tham số mới
-                # Sử dụng --fix để enable fixing mode
-                # Sử dụng --auto để skip confirmation prompts
-                # Sử dụng --issues-file để load specific issues từ JSON file
-                # Không sử dụng --output để ghi đè trực tiếp vào file gốc thay vì tạo thư mục duplicate
-                # Use the actual scan directory path for batch_fix.py
-                # If scan_directory is absolute path, use it directly
-                # If relative, it should be relative to SonarQ directory
-                if os.path.isabs(self.scan_directory):
-                    scan_dir_path = self.scan_directory
-                else:
-                    scan_dir_path = self.scan_directory
-                
-                fix_cmd = [
-                    'python', 
-                    'batch_fix.py',
-                    scan_dir_path,
-                    '--fix',
-                    '--auto',
-                    '--issues-file',
-                    'list_real_bugs.json'
-                ]
-                
-                # Thêm tùy chọn --enable-rag nếu use_rag=True
-                if use_rag:
-                    fix_cmd.append('--enable-rag')
-                    logger.info("RAG integration enabled for bug fixing")
-                
-                logger.info(f"Running command: {' '.join(fix_cmd)}")
-                
-                # Bước 6: Thực thi command batch fix
-                success, output_lines = CLIService.run_command_stream(fix_cmd)
-                
-                if success:
-                    # Bước 7: Parse output để lấy thông tin chi tiết từ batch_fix.py
-                    output_text = ''.join(output_lines)
-                    fixed_count = 0
-                    total_input_tokens = 0
-                    total_output_tokens = 0
-                    total_tokens = 0
-                    average_similarity = 0.0
-                    threshold_met_count = 0
-                    
-                    # Parse thông tin từ output mới của batch_fix.py
-                    for line in output_lines:
-                        line = line.strip()
-                        if "FIXED_FILES:" in line:
-                            try:
-                                fixed_count = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "TOTAL_INPUT_TOKENS:" in line:
-                            try:
-                                total_input_tokens = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "TOTAL_OUTPUT_TOKENS:" in line:
-                            try:
-                                total_output_tokens = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "TOTAL_TOKENS:" in line:
-                            try:
-                                total_tokens = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "AVERAGE_SIMILARITY:" in line:
-                            try:
-                                average_similarity = float(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "THRESHOLD_MET_COUNT:" in line:
-                            try:
-                                threshold_met_count = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                    
-                    logger.info(f"Batch fix completed successfully. Fixed {fixed_count} files")
-                    logger.info(f"Token usage - Input: {total_input_tokens}, Output: {total_output_tokens}, Total: {total_tokens}")
-                    logger.info(f"Average similarity: {average_similarity:.3f}, Threshold met: {threshold_met_count}")
-                    
-                    # Bước 8: Trả về kết quả thành công với thông tin token
-                    return {
-                        "success": True,
-                        "fixed_count": fixed_count,
-                        "total_input_tokens": total_input_tokens,
-                        "total_output_tokens": total_output_tokens,
-                        "total_tokens": total_tokens,
-                        "average_similarity": average_similarity,
-                        "threshold_met_count": threshold_met_count,
-                        "output": output_text,
-                        "message": f"Successfully fixed {fixed_count} files using LLM with {len(list_real_bugs)} specific issues. Used {total_tokens} tokens total."
-                    }
-                else:
-                    # Xử lý trường hợp command thất bại
-                    error_output = ''.join(output_lines)
-                    logger.error(f"Batch fix failed: {error_output}")
-                    
-                    return {
-                        "success": False,
-                        "fixed_count": 0,
-                        "error": f"Batch fix failed: {error_output}"
-                    }
-                    
-            finally:
-                # Bước 9: Khôi phục thư mục gốc
-                os.chdir(original_dir)
-                
-                # Bước 10: Cleanup - xóa file issues tạm thời (optional)
-                try:
-                    if os.path.exists(issues_file_path):
-                        os.remove(issues_file_path)
-                        logger.info(f"Cleaned up temporary issues file: {issues_file_path}")
-                except Exception as e:
-                    logger.warning(f"Could not cleanup issues file: {str(e)}")
-                
-        except Exception as e:
-            # Bước 11: Xử lý exception và trả về lỗi
-            logger.error(f"Error in fix_bugs_llm: {str(e)}")
-            return {
-                "success": False,
-                "fixed_count": 0,
-                "error": str(e)
-            }
     
     def log_execution_result(self, result: Dict):
         """Log execution result (simplified version without MongoDB)"""
@@ -712,20 +131,15 @@ class ExecutionServiceNoMongo:
         total_bugs_fixed = 0
         for iteration in range(1, self.max_iterations + 1):
             logger.info(f"\n=== ITERATION {iteration}/{self.max_iterations} ===")
-            
+
             # Scan for bugs using selected scanner
-            if self.scan_mode == 'bearer':
-                bugs = self.scan_bearer_bugs()
-            else:
-                bugs = self.scan_sonarq_bugs()
-            # Count bugs by type using dictionary comprehension
-            bug_counts = {
-                'BUG': len([bug for bug in bugs if bug.get('type') == 'BUG']),
-                'CODE_SMELL': len([bug for bug in bugs if bug.get('type') == 'CODE_SMELL'])
-            }
-            bugs_type_bug = bug_counts['BUG']
-            bugs_type_code_smell = bug_counts['CODE_SMELL']
-            bugs_found = len(bugs)
+            bugs = self.scanner.scan()
+
+            # Analyze bug counts
+            bug_counts = self.analysis_service.count_bug_types(bugs)
+            bugs_type_bug = bug_counts.get('BUG', 0)
+            bugs_type_code_smell = bug_counts.get('CODE_SMELL', 0)
+            bugs_found = bug_counts.get('TOTAL', 0)
 
             logger.info(f"Iteration {iteration}: Found {bugs_found} open bugs ({bugs_type_bug} BUG, {bugs_type_code_smell} CODE_SMELL) in {self.scan_mode.upper()} scan")
 
@@ -771,7 +185,9 @@ class ExecutionServiceNoMongo:
                 break
             
             # Analysis bugs with Dify
-            analysis_result = self.analysis_bugs_with_dify(bugs, use_rag=use_rag, mode=mode)
+            analysis_result = self.analysis_service.analyze_bugs_with_dify(
+                bugs, use_rag=use_rag, mode=mode
+            )
             list_real_bugs = analysis_result.get("list_bugs")
 
             # Parse list_real_bugs if it's a string
@@ -818,7 +234,7 @@ class ExecutionServiceNoMongo:
                 break
 
             # Fix bugs with LLM using batch_fix.py
-            fix_result = self.fix_bugs_llm(list_real_bugs, use_rag=use_rag)
+            fix_result = self.fixer.fix_bugs(list_real_bugs, use_rag=use_rag)
 
             # Store fix result in iteration
             iteration_result["fix_result"] = fix_result
@@ -831,17 +247,11 @@ class ExecutionServiceNoMongo:
                 logger.error(f"Fix failed: {fix_result.get('error', 'Unknown error')}")
 
             # Re-scan to verify fixes
-            if self.scan_mode == 'bearer':
-                rescan_bugs = self.scan_bearer_bugs()
-            else:
-                rescan_bugs = self.scan_sonarq_bugs()
-            rescan_bug_counts = {
-                'BUG': len([bug for bug in rescan_bugs if bug.get('type') == 'BUG']),
-                'CODE_SMELL': len([bug for bug in rescan_bugs if bug.get('type') == 'CODE_SMELL'])
-            }
-            iteration_result["rescan_bugs_found"] = len(rescan_bugs)
-            iteration_result["rescan_bugs_type_bug"] = rescan_bug_counts['BUG']
-            iteration_result["rescan_bugs_type_code_smell"] = rescan_bug_counts['CODE_SMELL']
+            rescan_bugs = self.scanner.scan()
+            rescan_bug_counts = self.analysis_service.count_bug_types(rescan_bugs)
+            iteration_result["rescan_bugs_found"] = rescan_bug_counts.get('TOTAL', 0)
+            iteration_result["rescan_bugs_type_bug"] = rescan_bug_counts.get('BUG', 0)
+            iteration_result["rescan_bugs_type_code_smell"] = rescan_bug_counts.get('CODE_SMELL', 0)
             
             bugs_reduced = bugs_found - len(rescan_bugs)
             logger.info(f"Rescan found {len(rescan_bugs)} open bugs ({rescan_bug_counts['BUG']} BUG, {rescan_bug_counts['CODE_SMELL']} CODE_SMELL)")
