@@ -17,9 +17,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib.dify_lib import DifyMode
 from utils.logger import logger
-from service.scanner_service import BearerScanner, SonarQScanner
-from service.fix_service import Fixer
 from service.analysis_service import AnalysisService
+from modules.scan.registry import create as create_scanner
+from modules.fix.registry import create as create_fixer
 
 try:
     # Check if RAG functionality is available
@@ -35,23 +35,24 @@ load_dotenv(root_env_path)
 
 class ExecutionServiceNoMongo:
     """ExecutionService without MongoDB dependency"""
-    
-    def __init__(self, scan_directory=None, scan_mode='sonar'):
+
+    def __init__(self, scan_directory=None, scan_mode='sonar', engine_name=None):
         # Load environment variables
         self.dify_cloud_api_key = os.getenv('DIFY_CLOUD_API_KEY')
         self.dify_local_api_key = os.getenv('DIFY_LOCAL_API_KEY')
         self.sonar_host = os.getenv('SONAR_HOST', 'http://localhost:9000')
         self.sonar_token = os.getenv('SONAR_TOKEN')
-        
+
         # Configuration from environment variables
         self.max_iterations = int(os.getenv('MAX_ITERATIONS', '5'))
         self.project_key = os.getenv('PROJECT_KEY')
         self.source_code_path = os.getenv('SOURCE_CODE_PATH')
         # Priority: parameter > environment variable > default
         self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'source_bug')
-        
-        # Scanner mode configuration
-        self.scan_mode = scan_mode.lower()  # 'sonar' or 'bearer'
+
+        # Scanner and fixer configuration
+        self.scan_mode = scan_mode.lower()
+        self.engine_name = engine_name or os.getenv('FIX_ENGINE', 'default')
         
         # Execution tracking
         self.execution_count = 0
@@ -70,13 +71,15 @@ class ExecutionServiceNoMongo:
         self.analysis_service = AnalysisService(
             self.dify_cloud_api_key, self.dify_local_api_key
         )
-        if self.scan_mode == 'bearer':
-            self.scanner = BearerScanner(self.project_key)
-        else:
-            self.scanner = SonarQScanner(
-                self.project_key, self.scan_directory, self.sonar_token
-            )
-        self.fixer = Fixer(self.scan_directory)
+        self.scanner = create_scanner(
+            self.scan_mode,
+            project_key=self.project_key,
+            scan_directory=self.scan_directory,
+            sonar_token=self.sonar_token,
+        )
+        self.fixer = create_fixer(
+            self.engine_name, scan_directory=self.scan_directory
+        )
     
     def insert_rag_default(self) -> bool:
         """Insert default RAG data for bug fixing"""
@@ -308,21 +311,24 @@ def main():
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='ExecutionService Demo - Bug fixing with Dify AI')
-    parser.add_argument('--insert_rag', action='store_true', 
+    parser.add_argument('--insert_rag', action='store_true',
                        help='Run with RAG support (insert default RAG data and use RAG for bug fixing)')
     parser.add_argument('--mode', choices=['cloud', 'local'], default='cloud',
                        help='Dify mode to use (default: cloud)')
-    parser.add_argument('--destination', type=str, 
+    parser.add_argument('--destination', type=str,
                        help='Destination directory to scan (overrides SCAN_DIRECTORY env var)')
-    parser.add_argument('--scanner', choices=['sonar', 'bearer'], default='sonar',
-                       help='Scanner to use for bug detection (default: sonar)')
-    
+    parser.add_argument('--scanner', type=str, default=os.getenv('SCANNER', 'sonar'),
+                       help='Scanner module to use for bug detection')
+    parser.add_argument('--fixer', type=str, default=os.getenv('FIX_ENGINE', 'default'),
+                       help='Fixer engine module to use')
+
     args = parser.parse_args()
-    
+
     print("🚀 Running ExecutionService Demo")
     print("This demo runs the bug fixing process without MongoDB dependency")
     print(f"RAG functionality: {'Available' if RAG_AVAILABLE else 'Not Available'}")
-    print(f"Scanner mode: {args.scanner.upper()} ({'🛡️ Security-focused' if args.scanner == 'bearer' else '🔍 Code quality & security'})")
+    print(f"Scanner mode: {args.scanner}")
+    print(f"Fixer engine: {args.fixer}")
     print(f"Scan directory: {args.destination or 'default (source_bug)'}")
     print("-" * 60)
     
@@ -341,8 +347,12 @@ def main():
         use_rag = False
     
     try:
-        # Initialize service with destination and scanner if provided
-        service = ExecutionServiceNoMongo(scan_directory=args.destination, scan_mode=args.scanner)
+        # Initialize service with destination and scanner/fixer if provided
+        service = ExecutionServiceNoMongo(
+            scan_directory=args.destination,
+            scan_mode=args.scanner,
+            engine_name=args.fixer,
+        )
         
         # Determine Dify mode
         dify_mode = DifyMode.CLOUD if args.mode == 'cloud' else DifyMode.LOCAL
@@ -350,9 +360,13 @@ def main():
         # Run execution based on user choice
         scanner_emoji = "🛡️" if args.scanner == 'bearer' else "🔍"
         if use_rag:
-            print(f"\n{scanner_emoji} Running with RAG support (mode: {args.mode}, scanner: {args.scanner.upper()})...")
+            print(
+                f"\n{scanner_emoji} Running with RAG support (mode: {args.mode}, scanner: {args.scanner.upper()})..."
+            )
         else:
-            print(f"\n{scanner_emoji} Running without RAG (mode: {args.mode}, scanner: {args.scanner.upper()})...")
+            print(
+                f"\n{scanner_emoji} Running without RAG (mode: {args.mode}, scanner: {args.scanner.upper()})..."
+            )
         
         result = service.run_execution(use_rag=use_rag, mode=dify_mode)
         
