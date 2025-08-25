@@ -24,7 +24,7 @@ class AnalysisService:
         counts["TOTAL"] = len(bugs)
         return counts
 
-    def analyze_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
+    def analyze_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD, source_code: str = "") -> Dict:
         list_bugs = []
         bugs_to_fix = 0
         try:
@@ -34,6 +34,7 @@ class AnalysisService:
                 return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
             inputs = {
                 "is_use_rag": str(use_rag),
+                "src": source_code,
                 "report": json.dumps(bugs, ensure_ascii=False),
             }
             logger.info(f"Need to fix {len(bugs)} bugs using Dify")

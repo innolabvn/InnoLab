@@ -31,6 +31,14 @@ class BearerScanner(Scanner):
             # Output file path
             output_file = os.path.join(bearer_results_dir, f"bearer_results_{self.project_key}.json")
             
+            # Remove existing output file to ensure fresh results
+            if os.path.exists(output_file):
+                try:
+                    os.remove(output_file)
+                    logger.info(f"Removed existing Bearer results file: {output_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to remove existing Bearer results file: {e}")
+            
             # Determine project directory to scan
             if self.scan_directory:
                 if os.path.isabs(self.scan_directory):
@@ -147,8 +155,27 @@ class BearerScanner(Scanner):
                 bearer_data = json.load(f)
             
             logger.info("Bearer scan results loaded successfully")
+            
+            # Debug: Log raw Bearer data structure
+            logger.debug(f"Bearer data keys: {list(bearer_data.keys())}")
+            if "critical" in bearer_data:
+                logger.debug(f"Critical issues: {len(bearer_data.get('critical', []))}")
+            if "high" in bearer_data:
+                logger.debug(f"High issues: {len(bearer_data.get('high', []))}")
+            if "medium" in bearer_data:
+                logger.debug(f"Medium issues: {len(bearer_data.get('medium', []))}")
+            if "low" in bearer_data:
+                logger.debug(f"Low issues: {len(bearer_data.get('low', []))}")
+            if "findings" in bearer_data:
+                logger.debug(f"Findings array: {len(bearer_data.get('findings', []))}")
+            
             bugs = self._convert_bearer_to_bugs_format(bearer_data)
             logger.info(f"Found {len(bugs)} Bearer security issues")
+            
+            # Debug: Log first few bugs if any
+            if bugs:
+                logger.debug(f"Sample bug: {bugs[0]}")
+            
             return bugs
             
         except json.JSONDecodeError as e:

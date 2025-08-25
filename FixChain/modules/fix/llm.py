@@ -23,10 +23,14 @@ class LLMFixer(Fixer):
                 source_dir = self.scan_directory
             else:
                 innolab_root = os.getenv("INNOLAB_ROOT_PATH", "d:\\InnoLab")
-                sonar_dir = os.path.join(innolab_root, "SonarQ")
-                source_dir = os.path.abspath(
-                    os.path.join(sonar_dir, self.scan_directory)
-                )
+                # Handle case where scan_directory is "SonarQ" - use projects/SonarQ instead
+                if self.scan_directory == "SonarQ":
+                    source_dir = os.path.join(innolab_root, "projects", "SonarQ")
+                else:
+                    sonar_dir = os.path.join(innolab_root, "SonarQ")
+                    source_dir = os.path.abspath(
+                        os.path.join(sonar_dir, self.scan_directory)
+                    )
             logger.info(f"Fixing bugs in directory: {source_dir}")
             if not os.path.exists(source_dir):
                 logger.error(f"Source directory does not exist: {source_dir}")
@@ -82,9 +86,44 @@ class LLMFixer(Fixer):
                 if success:
                     output_text = "".join(output_lines)
                     try:
-                        summary_line = next((ln.strip() for ln in reversed(output_lines) if ln.strip()), "{}")
-                        summary = json.loads(summary_line)
-                    except json.JSONDecodeError:
+                        # Look for the JSON result line that starts with {"success"
+                        summary_line = None
+                        for line in reversed(output_lines):
+                            line = line.strip()
+                            if line.startswith('{"success"'):
+                                summary_line = line
+                                break
+                        
+                        if summary_line:
+                            # Try to find complete JSON by looking for the closing brace
+                            if not summary_line.endswith('}'):
+                                # JSON might be incomplete, try to reconstruct
+                                for i, line in enumerate(reversed(output_lines)):
+                                    if line.strip().startswith('{"success"'):
+                                        # Collect all lines from this point to find complete JSON
+                                        remaining_lines = list(reversed(output_lines))[len(output_lines)-i-1:]
+                                        full_json = ''.join(remaining_lines).strip()
+                                        # Find the first complete JSON object
+                                        brace_count = 0
+                                        json_end = -1
+                                        for j, char in enumerate(full_json):
+                                            if char == '{':
+                                                brace_count += 1
+                                            elif char == '}':
+                                                brace_count -= 1
+                                                if brace_count == 0:
+                                                    json_end = j + 1
+                                                    break
+                                        if json_end > 0:
+                                            summary_line = full_json[:json_end]
+                                        break
+                            
+                            summary = json.loads(summary_line)
+                        else:
+                            summary = {}
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse JSON result: {e}")
+                        logger.warning(f"Attempted to parse: {summary_line}")
                         summary = {}
 
                     fixed_count = summary.get("fixed_count", 0)

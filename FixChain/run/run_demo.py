@@ -143,6 +143,68 @@ class ExecutionServiceNoMongo:
             return False
 
     
+    def read_source_code(self, file_path: str = None) -> str:
+        """Read source code from scan directory"""
+        try:
+            if file_path is None:
+                # Read all Python files in scan directory
+                source_files = []
+                
+                # Determine the correct scan path similar to Bearer scanner logic
+                innolab_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                sonar_dir = os.path.join(innolab_root, "SonarQ")
+                
+                if self.scan_directory and self.scan_directory != "projects/demo_project":
+                    if self.scan_directory == "SonarQ":
+                        # Special case for SonarQ - use projects/SonarQ
+                        scan_path = os.path.join(innolab_root, "projects", "SonarQ")
+                    elif os.path.isabs(self.scan_directory):
+                        scan_path = self.scan_directory
+                    else:
+                        # Try relative to innolab_root first
+                        scan_path = os.path.abspath(os.path.join(innolab_root, self.scan_directory))
+                        if not os.path.exists(scan_path):
+                            # Then try relative to sonar_dir
+                            scan_path = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
+                            if not os.path.exists(scan_path):
+                                # Finally try as direct path under innolab_root
+                                scan_path = os.path.abspath(os.path.join(innolab_root, os.path.basename(self.scan_directory)))
+                else:
+                    # Default to demo_project directory
+                    scan_path = os.path.join(innolab_root, "projects", "demo_project")
+                    if not os.path.exists(scan_path):
+                        # Fallback to source_bug directory if demo_project doesn't exist
+                        scan_path = os.path.join(sonar_dir, "source_bug")
+                
+                if not os.path.exists(scan_path):
+                    logger.error(f"Scan directory not found: {scan_path}")
+                    return ""
+                
+                logger.info(f"Reading source code from directory: {scan_path}")
+                
+                for root, dirs, files in os.walk(scan_path):
+                    for file in files:
+                        if file.endswith(('.py', '.js', '.jsx', '.ts', '.tsx', '.java', '.cpp', '.c', '.h')):
+                            file_full_path = os.path.join(root, file)
+                            try:
+                                with open(file_full_path, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                                    relative_path = os.path.relpath(file_full_path, scan_path)
+                                    source_files.append(f"// File: {relative_path}\n{content}\n\n")
+                            except Exception as e:
+                                logger.warning(f"Could not read file {file_full_path}: {e}")
+                                continue
+                
+                return ''.join(source_files)
+            else:
+                # Read specific file
+                full_path = os.path.join(self.scan_directory, file_path)
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+        except Exception as e:
+            logger.error(f"Error reading source code: {str(e)}")
+            return ""
+
     def log_execution_result(self, result: Dict):
         """Log execution result (simplified version without MongoDB)"""
         logger.info("=== EXECUTION RESULT ===")
@@ -224,9 +286,12 @@ class ExecutionServiceNoMongo:
                 iterations.append(iteration_result)
                 break
             
+            # Read source code for analysis
+            source_code = self.read_source_code()
+            
             # Analysis bugs with Dify
             analysis_result = self.analysis_service.analyze_bugs_with_dify(
-                bugs, use_rag=use_rag, mode=mode
+                bugs, use_rag=use_rag, mode=mode, source_code=source_code
             )
             list_real_bugs = analysis_result.get("list_bugs")
 

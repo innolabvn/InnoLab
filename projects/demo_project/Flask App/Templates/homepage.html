@@ -26,6 +26,11 @@
               <input type="text" class="login-field" value="" placeholder="card_no" name="card_no" required pattern="[0-9]{13,16}" title="Please enter a valid card number (13-16 digits)">
               <label class="login-field-icon fui-lock"></label>
         </div>
+        <!-- Added a honeypot to deter malicious card submissions-->
+        <div style="display:none;">
+              <label for="trap">Honeypot:</label>
+              <input type="text" id="trap" name="trap" value="">
+        </div>
         <!-- Removed card_secret field. Transmitting sensitive information as plain text is a serious security risk -->
         <div class="control-group">
               <input type="submit" value="Subscribe" class="btn btn-primary btn-large btn-block">
