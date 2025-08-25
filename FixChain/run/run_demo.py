@@ -234,7 +234,17 @@ class ExecutionServiceNoMongo:
                 break
 
             # Fix bugs with LLM using batch_fix.py
-            fix_result = self.fixer.fix_bugs(list_real_bugs, use_rag=use_rag)
+            fix_result_raw = self.fixer.fix_bugs(list_real_bugs, use_rag=use_rag)
+
+            # Ensure fix result is parsed from final JSON line if returned as text
+            if isinstance(fix_result_raw, str):
+                try:
+                    fix_result = json.loads(fix_result_raw.splitlines()[-1])
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse fix result JSON")
+                    fix_result = {"success": False, "fixed_count": 0, "error": "Invalid JSON output"}
+            else:
+                fix_result = fix_result_raw
 
             # Store fix result in iteration
             iteration_result["fix_result"] = fix_result

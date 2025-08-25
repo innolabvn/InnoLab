@@ -1019,14 +1019,26 @@ def main():
     # Summary
     success_count = sum(1 for r in results if r.success)
     error_count = len(results) - success_count
-    
+
     # Calculate metrics
     total_input_tokens = sum(r.input_tokens for r in results if r.success)
     total_output_tokens = sum(r.output_tokens for r in results if r.success)
     total_tokens = sum(r.total_tokens for r in results if r.success)
     avg_similarity = sum(r.similarity_ratio for r in results if r.success) / max(success_count, 1)
     threshold_met_count = sum(1 for r in results if r.success and r.meets_threshold)
-    
+
+    summary = {
+        "success": True,
+        "fixed_count": success_count,
+        "failed_count": error_count,
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "total_tokens": total_tokens,
+        "average_similarity": avg_similarity,
+        "threshold_met_count": threshold_met_count,
+        "similarity_threshold": processor.similarity_threshold,
+    }
+
     print("\n" + "=" * 70)
     if fix_mode:
         print("BATCH_FIX_RESULT: SUCCESS")
@@ -1059,8 +1071,10 @@ def main():
     if results:
         avg_time = sum(r.processing_time for r in results) / len(results)
         print(f"AVERAGE_PROCESSING_TIME: {avg_time:.1f}")
-    
+        summary["average_processing_time"] = avg_time
+
     print("\nEND_BATCH_RESULT")
+    print(json.dumps(summary))
 
 if __name__ == "__main__":
     main()
