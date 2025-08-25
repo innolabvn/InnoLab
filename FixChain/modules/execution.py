@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 import requests
 from utils.logger import logger
 from lib.dify_lib import DifyMode, run_workflow_with_dify
-from service.mongodb_service import MongoDBService
+from .mongodb_service import MongoDBService
 
 
 class ExecutionService:

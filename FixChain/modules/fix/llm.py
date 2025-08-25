@@ -4,10 +4,11 @@ import os
 from typing import Dict, List
 
 from utils.logger import logger
-from .cli_service import CLIService
+from ..cli_service import CLIService
+from .base import Fixer
 
 
-class Fixer:
+class LLMFixer(Fixer):
     """Service that applies fixes using batch_fix.py"""
 
     def __init__(self, scan_directory: str):

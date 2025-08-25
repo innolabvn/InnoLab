@@ -8,7 +8,8 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from run.run_demo import ExecutionServiceNoMongo
-from service.scanner_service import SonarQScanner, BearerScanner
+from modules.scan.sonar import SonarQScanner
+from modules.scan.bearer import BearerScanner
 
 
 @pytest.fixture

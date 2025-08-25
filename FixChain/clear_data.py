@@ -17,7 +17,7 @@ from typing import Dict, List
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from service.mongodb_service import get_mongo_manager
+    from modules.mongodb_service import get_mongo_manager
     MONGODB_AVAILABLE = True
 except ImportError:
     print("⚠️  Warning: MongoDB service not available")

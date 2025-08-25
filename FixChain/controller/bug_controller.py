@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 import google.generativeai as genai
-from service.mongodb_service import MongoDBManager
+from modules.mongodb_service import MongoDBManager
 from dotenv import load_dotenv
 
 # Load environment variables from root directory

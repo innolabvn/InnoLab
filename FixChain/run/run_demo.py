@@ -17,9 +17,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib.dify_lib import DifyMode
 from utils.logger import logger
-from service.scanner_service import BearerScanner, SonarQScanner
-from service.fix_service import Fixer
-from service.analysis_service import AnalysisService
+from modules.scan.bearer import BearerScanner
+from modules.scan.sonar import SonarQScanner
+from modules.fix.llm import LLMFixer
+from modules.analysis_service import AnalysisService
 
 try:
     # Check if RAG functionality is available
@@ -81,7 +82,7 @@ class ExecutionServiceNoMongo:
                 self.scanners.append(
                     SonarQScanner(self.project_key, self.scan_directory, self.sonar_token)
                 )
-        self.fixer = Fixer(self.scan_directory)
+        self.fixer = LLMFixer(self.scan_directory)
     
     def insert_rag_default(self) -> bool:
         """Insert default RAG data for bug fixing"""
@@ -100,7 +101,7 @@ class ExecutionServiceNoMongo:
             
             # For demo without MongoDB, we'll just validate the dataset file
             # In full implementation with MongoDB, use this approach:
-            # from service.execution import ExecutionService
+            # from modules.execution import ExecutionService
             # execution_service = ExecutionService()
             # return execution_service.insert_dataset_to_rag(dataset_path)
             
