@@ -17,8 +17,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib.dify_lib import DifyMode
 from utils.logger import logger
-from service.scanner_service import BearerScanner, SonarQScanner
-from service.fix_service import Fixer
+from modules.scan.registry import create as create_scanner
+from modules.fix.registry import create as create_fixer
 from service.analysis_service import AnalysisService
 
 try:
@@ -71,12 +71,12 @@ class ExecutionServiceNoMongo:
             self.dify_cloud_api_key, self.dify_local_api_key
         )
         if self.scan_mode == 'bearer':
-            self.scanner = BearerScanner(self.project_key)
+            self.scanner = create_scanner("bearer", self.project_key)
         else:
-            self.scanner = SonarQScanner(
-                self.project_key, self.scan_directory, self.sonar_token
+            self.scanner = create_scanner(
+                "sonar", self.project_key, self.scan_directory, self.sonar_token
             )
-        self.fixer = Fixer(self.scan_directory)
+        self.fixer = create_fixer("batch", self.scan_directory)
     
     def insert_rag_default(self) -> bool:
         """Insert default RAG data for bug fixing"""

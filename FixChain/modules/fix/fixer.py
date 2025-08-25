@@ -4,10 +4,13 @@ import os
 from typing import Dict, List
 
 from utils.logger import logger
-from .cli_service import CLIService
+from service.cli_service import CLIService
+
+from .base import Fixer
+from .registry import register
 
 
-class Fixer:
+class BatchFixer(Fixer):
     """Service that applies fixes using batch_fix.py"""
 
     def __init__(self, scan_directory: str):
@@ -140,3 +143,6 @@ class Fixer:
                 "fixed_count": 0,
                 "error": str(e),
             }
+
+
+register("batch", BatchFixer)
