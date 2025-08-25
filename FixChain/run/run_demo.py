@@ -35,24 +35,27 @@ load_dotenv(root_env_path)
 
 class ExecutionServiceNoMongo:
     """ExecutionService without MongoDB dependency"""
-    
+
     def __init__(self, scan_directory=None, scan_mode='sonar'):
         # Load environment variables
         self.dify_cloud_api_key = os.getenv('DIFY_CLOUD_API_KEY')
         self.dify_local_api_key = os.getenv('DIFY_LOCAL_API_KEY')
         self.sonar_host = os.getenv('SONAR_HOST', 'http://localhost:9000')
         self.sonar_token = os.getenv('SONAR_TOKEN')
-        
+
         # Configuration from environment variables
         self.max_iterations = int(os.getenv('MAX_ITERATIONS', '5'))
         self.project_key = os.getenv('PROJECT_KEY')
         self.source_code_path = os.getenv('SOURCE_CODE_PATH')
         # Priority: parameter > environment variable > default
         self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'source_bug')
-        
-        # Scanner mode configuration
-        self.scan_mode = scan_mode.lower()  # 'sonar' or 'bearer'
-        
+
+        # Scanner mode configuration - allow single or multiple scanners
+        if isinstance(scan_mode, str):
+            self.scan_modes = [scan_mode.lower()]
+        else:
+            self.scan_modes = [m.lower() for m in scan_mode]
+
         # Execution tracking
         self.execution_count = 0
         self.current_source_file = 'code.py'  # Track current source file to scan
@@ -63,19 +66,21 @@ class ExecutionServiceNoMongo:
         logger.info(f"  Project key: {self.project_key}")
         logger.info(f"  Source code path: {self.source_code_path}")
         logger.info(f"  Scan directory: {self.scan_directory}")
-        logger.info(f"  Scan mode: {self.scan_mode}")
+        logger.info(f"  Scan mode: {self.scan_modes}")
         logger.info(f"  RAG available: {RAG_AVAILABLE}")
 
         # Initialize services
         self.analysis_service = AnalysisService(
             self.dify_cloud_api_key, self.dify_local_api_key
         )
-        if self.scan_mode == 'bearer':
-            self.scanner = BearerScanner(self.project_key)
-        else:
-            self.scanner = SonarQScanner(
-                self.project_key, self.scan_directory, self.sonar_token
-            )
+        self.scanners = []
+        for mode in self.scan_modes:
+            if mode == 'bearer':
+                self.scanners.append(BearerScanner(self.project_key))
+            else:
+                self.scanners.append(
+                    SonarQScanner(self.project_key, self.scan_directory, self.sonar_token)
+                )
         self.fixer = Fixer(self.scan_directory)
     
     def insert_rag_default(self) -> bool:
@@ -132,8 +137,12 @@ class ExecutionServiceNoMongo:
         for iteration in range(1, self.max_iterations + 1):
             logger.info(f"\n=== ITERATION {iteration}/{self.max_iterations} ===")
 
-            # Scan for bugs using selected scanner
-            bugs = self.scanner.scan()
+            # Scan for bugs using all configured scanners
+            bugs = []
+            for mode, scanner in zip(self.scan_modes, self.scanners):
+                scanner_bugs = scanner.scan()
+                logger.info(f"{mode.upper()} scanner found {len(scanner_bugs)} bugs")
+                bugs.extend(scanner_bugs)
 
             # Analyze bug counts
             bug_counts = self.analysis_service.count_bug_types(bugs)
@@ -141,7 +150,9 @@ class ExecutionServiceNoMongo:
             bugs_type_code_smell = bug_counts.get('CODE_SMELL', 0)
             bugs_found = bug_counts.get('TOTAL', 0)
 
-            logger.info(f"Iteration {iteration}: Found {bugs_found} open bugs ({bugs_type_bug} BUG, {bugs_type_code_smell} CODE_SMELL) in {self.scan_mode.upper()} scan")
+            logger.info(
+                f"Iteration {iteration}: Found {bugs_found} open bugs ({bugs_type_bug} BUG, {bugs_type_code_smell} CODE_SMELL) across scanners: {', '.join(self.scan_modes).upper()}"
+            )
 
             
             
@@ -257,7 +268,9 @@ class ExecutionServiceNoMongo:
                 logger.error(f"Fix failed: {fix_result.get('error', 'Unknown error')}")
 
             # Re-scan to verify fixes
-            rescan_bugs = self.scanner.scan()
+            rescan_bugs = []
+            for scanner in self.scanners:
+                rescan_bugs.extend(scanner.scan())
             rescan_bug_counts = self.analysis_service.count_bug_types(rescan_bugs)
             iteration_result["rescan_bugs_found"] = rescan_bug_counts.get('TOTAL', 0)
             iteration_result["rescan_bugs_type_bug"] = rescan_bug_counts.get('BUG', 0)
