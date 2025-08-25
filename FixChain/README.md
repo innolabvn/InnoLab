@@ -101,6 +101,21 @@ No automated tests are included at the moment.
 
 - `mocks/sample_bugs.csv` - Sample bug data for CSV import
 - `mocks/sample_rag_bugs.json` - Sample bug data for RAG import
-- `mocks/sample_rag_bug_detector.json` - Sample bug detector data for RAG import 
+- `mocks/sample_rag_bug_detector.json` - Sample bug detector data for RAG import
 - `mocks/sample_payloads.json` - Sample API request payloads
 - `mocks/example_requests.py` - Example API usage scripts
+
+## Adding New Modules
+
+FixChain supports pluggable scanner and fixer modules through registries.
+
+1. **Create a module** in `modules/scan/` or `modules/fix/` implementing the
+   corresponding base class.
+2. **Register the module** in `modules/scan/registry.py` or
+   `modules/fix/registry.py` using `register("name", Class)`.
+3. **Run the demo** with the module enabled via CLI:
+   ```bash
+   python run/run_demo.py --scanners sonar,bearer --fixers llm
+   ```
+   Replace the names with your registered module identifiers.
+

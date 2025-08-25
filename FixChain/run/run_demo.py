@@ -17,9 +17,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib.dify_lib import DifyMode
 from utils.logger import logger
-from modules.scan.bearer import BearerScanner
-from modules.scan.sonar import SonarQScanner
-from modules.fix.llm import LLMFixer
+from modules.scan import registry as scan_registry
+from modules.fix import registry as fix_registry
 from modules.analysis_service import AnalysisService
 
 try:
@@ -37,7 +36,7 @@ load_dotenv(root_env_path)
 class ExecutionServiceNoMongo:
     """ExecutionService without MongoDB dependency"""
 
-    def __init__(self, scan_directory=None, scan_mode='sonar'):
+    def __init__(self, scan_directory=None, scanners=None, fixers=None):
         # Load environment variables
         self.dify_cloud_api_key = os.getenv('DIFY_CLOUD_API_KEY')
         self.dify_local_api_key = os.getenv('DIFY_LOCAL_API_KEY')
@@ -51,11 +50,21 @@ class ExecutionServiceNoMongo:
         # Priority: parameter > environment variable > default
         self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'source_bug')
 
-        # Scanner mode configuration - allow single or multiple scanners
-        if isinstance(scan_mode, str):
-            self.scan_modes = [scan_mode.lower()]
+        # Scanner configuration - allow comma separated string or list
+        if isinstance(scanners, str):
+            self.scan_modes = [m.strip().lower() for m in scanners.split(',') if m.strip()]
+        elif scanners:
+            self.scan_modes = [m.lower() for m in scanners]
         else:
-            self.scan_modes = [m.lower() for m in scan_mode]
+            self.scan_modes = ['sonar']
+
+        # Fixer configuration - allow comma separated string or list
+        if isinstance(fixers, str):
+            self.fix_modes = [m.strip().lower() for m in fixers.split(',') if m.strip()]
+        elif fixers:
+            self.fix_modes = [m.lower() for m in fixers]
+        else:
+            self.fix_modes = ['llm']
 
         # Execution tracking
         self.execution_count = 0
@@ -68,21 +77,36 @@ class ExecutionServiceNoMongo:
         logger.info(f"  Source code path: {self.source_code_path}")
         logger.info(f"  Scan directory: {self.scan_directory}")
         logger.info(f"  Scan mode: {self.scan_modes}")
+        logger.info(f"  Fix mode: {self.fix_modes}")
         logger.info(f"  RAG available: {RAG_AVAILABLE}")
 
         # Initialize services
         self.analysis_service = AnalysisService(
             self.dify_cloud_api_key, self.dify_local_api_key
         )
-        self.scanners = []
+        self.scanners: List = []
+        # Arguments for built-in scanners
+        scanner_args = {
+            'bearer': {'project_key': self.project_key},
+            'sonar': {
+                'project_key': self.project_key,
+                'scan_directory': self.scan_directory,
+                'sonar_token': self.sonar_token,
+            },
+            'sonarq': {
+                'project_key': self.project_key,
+                'scan_directory': self.scan_directory,
+                'sonar_token': self.sonar_token,
+            },
+        }
         for mode in self.scan_modes:
-            if mode == 'bearer':
-                self.scanners.append(BearerScanner(self.project_key))
-            else:
-                self.scanners.append(
-                    SonarQScanner(self.project_key, self.scan_directory, self.sonar_token)
-                )
-        self.fixer = LLMFixer(self.scan_directory)
+            registry_name = 'sonarq' if mode == 'sonar' else mode
+            args = scanner_args.get(mode) or scanner_args.get(registry_name, {})
+            self.scanners.append(scan_registry.create(registry_name, **args))
+
+        self.fixers: List = []
+        for mode in self.fix_modes:
+            self.fixers.append(fix_registry.create(mode, self.scan_directory))
     
     def insert_rag_default(self) -> bool:
         """Insert default RAG data for bug fixing"""
@@ -245,28 +269,34 @@ class ExecutionServiceNoMongo:
                 iterations.append(iteration_result)
                 break
 
-            # Fix bugs with LLM using batch_fix.py
-            fix_result_raw = self.fixer.fix_bugs(list_real_bugs, use_rag=use_rag)
+            # Fix bugs using configured fixers
+            fix_results = []
+            for fixer in self.fixers:
+                fix_result_raw = fixer.fix_bugs(list_real_bugs, use_rag=use_rag)
 
-            # Ensure fix result is parsed from final JSON line if returned as text
-            if isinstance(fix_result_raw, str):
-                try:
-                    fix_result = json.loads(fix_result_raw.splitlines()[-1])
-                except json.JSONDecodeError:
-                    logger.error("Failed to parse fix result JSON")
-                    fix_result = {"success": False, "fixed_count": 0, "error": "Invalid JSON output"}
-            else:
-                fix_result = fix_result_raw
+                # Ensure fix result is parsed from final JSON line if returned as text
+                if isinstance(fix_result_raw, str):
+                    try:
+                        fix_result = json.loads(fix_result_raw.splitlines()[-1])
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse fix result JSON")
+                        fix_result = {"success": False, "fixed_count": 0, "error": "Invalid JSON output"}
+                else:
+                    fix_result = fix_result_raw
 
-            # Store fix result in iteration
-            iteration_result["fix_result"] = fix_result
+                fix_results.append(fix_result)
 
-            # Update counters based on fix result
-            if fix_result.get("success", False):
-                fixed_count = fix_result.get("fixed_count", 0)
-                total_bugs_fixed += fixed_count
-            else:
-                logger.error(f"Fix failed: {fix_result.get('error', 'Unknown error')}")
+                # Update counters based on fix result
+                if fix_result.get("success", False):
+                    fixed_count = fix_result.get("fixed_count", 0)
+                    total_bugs_fixed += fixed_count
+                else:
+                    logger.error(f"Fix failed: {fix_result.get('error', 'Unknown error')}")
+
+            # Store fix results in iteration (keep last result for compatibility)
+            iteration_result["fix_results"] = fix_results
+            if fix_results:
+                iteration_result["fix_result"] = fix_results[-1]
 
             # Re-scan to verify fixes
             rescan_bugs = []
@@ -326,17 +356,20 @@ def main():
                        help='Run with RAG support (insert default RAG data and use RAG for bug fixing)')
     parser.add_argument('--mode', choices=['cloud', 'local'], default='cloud',
                        help='Dify mode to use (default: cloud)')
-    parser.add_argument('--destination', type=str, 
+    parser.add_argument('--destination', type=str,
                        help='Destination directory to scan (overrides SCAN_DIRECTORY env var)')
-    parser.add_argument('--scanner', choices=['sonar', 'bearer'], default='sonar',
-                       help='Scanner to use for bug detection (default: sonar)')
+    parser.add_argument('--scanners', type=str, default='sonar',
+                       help='Comma-separated scanners to use for bug detection (default: sonar)')
+    parser.add_argument('--fixers', type=str, default='llm',
+                       help='Comma-separated fixers to apply (default: llm)')
     
     args = parser.parse_args()
     
     print("🚀 Running ExecutionService Demo")
     print("This demo runs the bug fixing process without MongoDB dependency")
     print(f"RAG functionality: {'Available' if RAG_AVAILABLE else 'Not Available'}")
-    print(f"Scanner mode: {args.scanner.upper()} ({'🛡️ Security-focused' if args.scanner == 'bearer' else '🔍 Code quality & security'})")
+    print(f"Scanners: {args.scanners}")
+    print(f"Fixers: {args.fixers}")
     print(f"Scan directory: {args.destination or 'default (source_bug)'}")
     print("-" * 60)
     
@@ -355,18 +388,21 @@ def main():
         use_rag = False
     
     try:
-        # Initialize service with destination and scanner if provided
-        service = ExecutionServiceNoMongo(scan_directory=args.destination, scan_mode=args.scanner)
+        # Initialize service with destination and selected modules
+        service = ExecutionServiceNoMongo(
+            scan_directory=args.destination,
+            scanners=args.scanners,
+            fixers=args.fixers,
+        )
         
         # Determine Dify mode
         dify_mode = DifyMode.CLOUD if args.mode == 'cloud' else DifyMode.LOCAL
         
         # Run execution based on user choice
-        scanner_emoji = "🛡️" if args.scanner == 'bearer' else "🔍"
         if use_rag:
-            print(f"\n{scanner_emoji} Running with RAG support (mode: {args.mode}, scanner: {args.scanner.upper()})...")
+            print(f"\nRunning with RAG support (mode: {args.mode}, scanners: {args.scanners})...")
         else:
-            print(f"\n{scanner_emoji} Running without RAG (mode: {args.mode}, scanner: {args.scanner.upper()})...")
+            print(f"\nRunning without RAG (mode: {args.mode}, scanners: {args.scanners})...")
         
         result = service.run_execution(use_rag=use_rag, mode=dify_mode)
         
@@ -398,7 +434,8 @@ def main():
        
 
             # print(f"    Bugs remain: {iteration.get('fix_result', {}).get('bugs_remain', 0)}")
-            fix_result = iteration.get('fix_result', {})
+            fix_results = iteration.get('fix_results', [])
+            fix_result = fix_results[-1] if fix_results else iteration.get('fix_result', {})
             
             # Hiển thị thông tin token usage nếu có
             if fix_result.get('total_tokens', 0) > 0:
