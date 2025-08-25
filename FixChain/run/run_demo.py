@@ -48,7 +48,7 @@ class ExecutionServiceNoMongo:
         self.project_key = os.getenv('PROJECT_KEY')
         self.source_code_path = os.getenv('SOURCE_CODE_PATH')
         # Priority: parameter > environment variable > default
-        self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'source_bug')
+        self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'projects/demo_project')
 
         # Scanner configuration - allow comma separated string or list
         if isinstance(scanners, str):
@@ -352,12 +352,12 @@ def main():
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='ExecutionService Demo - Bug fixing with Dify AI')
-    parser.add_argument('--insert_rag', action='store_true', 
+    parser.add_argument('--insert_rag', action='store_true',
                        help='Run with RAG support (insert default RAG data and use RAG for bug fixing)')
     parser.add_argument('--mode', choices=['cloud', 'local'], default='cloud',
                        help='Dify mode to use (default: cloud)')
-    parser.add_argument('--destination', type=str,
-                       help='Destination directory to scan (overrides SCAN_DIRECTORY env var)')
+    parser.add_argument('--project', type=str, default='projects/demo_project',
+                       help='Path to project directory to scan (default: projects/demo_project)')
     parser.add_argument('--scanners', type=str, default='sonar',
                        help='Comma-separated scanners to use for bug detection (default: sonar)')
     parser.add_argument('--fixers', type=str, default='llm',
@@ -370,7 +370,7 @@ def main():
     print(f"RAG functionality: {'Available' if RAG_AVAILABLE else 'Not Available'}")
     print(f"Scanners: {args.scanners}")
     print(f"Fixers: {args.fixers}")
-    print(f"Scan directory: {args.destination or 'default (source_bug)'}")
+    print(f"Project directory: {args.project}")
     print("-" * 60)
     
     # Determine execution mode based on command line arguments
@@ -388,9 +388,9 @@ def main():
         use_rag = False
     
     try:
-        # Initialize service with destination and selected modules
+        # Initialize service with selected project and modules
         service = ExecutionServiceNoMongo(
-            scan_directory=args.destination,
+            scan_directory=args.project,
             scanners=args.scanners,
             fixers=args.fixers,
         )

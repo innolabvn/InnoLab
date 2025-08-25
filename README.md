@@ -111,9 +111,15 @@ SonarQ/
 ├── docker-compose.yml      # SonarQube + PostgreSQL
 ├── export_issues.py        # Script export issues
 ├── export_to_file.py       # Export utility
-├── sonar-project.properties # Cấu hình scan
-└── source_bug/             # Code mẫu để scan
+└── sonar-project.properties # Cấu hình scan
+
+projects/
+└── demo_project/           # Dự án mẫu để scan
+    ├── sonar-project.properties
+    └── ... (mã nguồn cần kiểm tra)
 ```
+
+Bạn có thể thêm testcase mới bằng cách tạo thư mục theo cấu trúc `projects/<tên_dự_án>` và đặt mã nguồn cùng file `sonar-project.properties` bên trong.
 
 ### Cách Chạy
 
