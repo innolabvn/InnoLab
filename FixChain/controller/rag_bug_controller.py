@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 import google.generativeai as genai
 from dotenv import load_dotenv
 import numpy as np
-from service.mongodb_service import MongoDBManager, get_mongo_manager
+from modules.mongodb_service import MongoDBManager, get_mongo_manager
 import uvicorn
 from bson import ObjectId
 

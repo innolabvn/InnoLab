@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 import google.generativeai as genai
 from dotenv import load_dotenv
 import numpy as np
-from service.mongodb_service import MongoDBManager
+from modules.mongodb_service import MongoDBManager
 import uvicorn
 
 # Load environment variables from root directory
