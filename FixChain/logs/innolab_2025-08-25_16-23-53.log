@@ -1,0 +1,26 @@
+2025-08-25 16:23:53,377 - innolab - INFO - ============================================================
+2025-08-25 16:23:53,377 - innolab - INFO - Bearer Scanner Test Suite
+2025-08-25 16:23:53,377 - innolab - INFO - ============================================================
+2025-08-25 16:23:53,377 - innolab - INFO - 
+1. Testing Bearer JSON parsing...
+2025-08-25 16:23:53,378 - innolab - INFO - Testing Bearer JSON parsing...
+2025-08-25 16:23:53,378 - innolab - INFO - Parsed 2 findings from sample data
+2025-08-25 16:23:53,378 - innolab - INFO -   - javascript_lang_hardcoded_secret (CRITICAL) in app.js:15
+2025-08-25 16:23:53,378 - innolab - INFO -     Tags: security, bearer, high, security, high, cwe-798
+2025-08-25 16:23:53,378 - innolab - INFO -   - javascript_lang_sql_injection (BLOCKER) in database.js:42
+2025-08-25 16:23:53,379 - innolab - INFO -     Tags: security, bearer, critical, security, high, cwe-89
+2025-08-25 16:23:53,379 - innolab - INFO - 
+2. Testing Bearer scanner...
+2025-08-25 16:23:53,379 - innolab - INFO - Starting Bearer Scanner test...
+2025-08-25 16:23:53,379 - innolab - INFO - Running Bearer scan for project: test-project
+2025-08-25 16:23:53,379 - innolab - INFO - Starting Bearer scan for project: test-project
+2025-08-25 16:23:53,379 - innolab - ERROR - Project directory not found: d:\InnoLab\SonarQ\source_bug
+2025-08-25 16:23:53,379 - innolab - INFO - Bearer scan completed. Found 0 security issues.
+2025-08-25 16:23:53,380 - innolab - INFO - Results saved to: bearer_test_results_test-project.json
+2025-08-25 16:23:53,380 - innolab - INFO - 
+============================================================
+2025-08-25 16:23:53,380 - innolab - INFO - Test Results Summary:
+2025-08-25 16:23:53,380 - innolab - INFO -   JSON Parsing Test: PASSED
+2025-08-25 16:23:53,380 - innolab - INFO -   Scanner Test: PASSED
+2025-08-25 16:23:53,380 - innolab - INFO - ============================================================
+2025-08-25 16:23:53,380 - innolab - INFO - All tests PASSED! Bearer scanner is ready to use.

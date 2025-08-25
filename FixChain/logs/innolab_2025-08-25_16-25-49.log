@@ -1,0 +1,32 @@
+2025-08-25 16:25:49,271 - innolab - INFO - ExecutionServiceNoMongo initialized with:
+2025-08-25 16:25:49,271 - innolab - INFO -   Max iterations: 5
+2025-08-25 16:25:49,271 - innolab - INFO -   Project key: my-service
+2025-08-25 16:25:49,271 - innolab - INFO -   Source code path: d:\InnoLab\projects
+2025-08-25 16:25:49,271 - innolab - INFO -   Scan directory: demo_project
+2025-08-25 16:25:49,271 - innolab - INFO -   Scan mode: ['bearer']
+2025-08-25 16:25:49,272 - innolab - INFO -   Fix mode: ['llm']
+2025-08-25 16:25:49,272 - innolab - INFO -   RAG available: True
+2025-08-25 16:25:49,272 - innolab - INFO - Starting execution without RAG (mode: DifyMode.CLOUD)
+2025-08-25 16:25:49,272 - innolab - INFO - 
+=== ITERATION 1/5 ===
+2025-08-25 16:25:49,272 - innolab - INFO - Starting Bearer scan for project: my-service
+2025-08-25 16:25:49,272 - innolab - INFO - Scanning directory: d:\InnoLab\projects\demo_project
+2025-08-25 16:25:49,273 - innolab - ERROR - Command not found: bearer
+2025-08-25 16:25:49,274 - innolab - INFO - Using Bearer Docker image
+2025-08-25 16:25:49,274 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v d:\InnoLab\projects\demo_project:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_my-service.json --quiet
+2025-08-25 16:25:50,311 - innolab - INFO - Analyzing codebase
+2025-08-25 16:25:55,398 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-25 16:25:55,399 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_my-service.json
+2025-08-25 16:25:55,400 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-25 16:25:55,400 - innolab - INFO - Found 0 Bearer security issues
+2025-08-25 16:25:55,400 - innolab - INFO - BEARER scanner found 0 bugs
+2025-08-25 16:25:55,401 - innolab - INFO - Iteration 1: Found 0 open bugs (0 BUG, 0 CODE_SMELL) across scanners: BEARER
+2025-08-25 16:25:55,401 - innolab - INFO - No bugs found - execution completed successfully
+2025-08-25 16:25:55,401 - innolab - INFO - === EXECUTION RESULT ===
+2025-08-25 16:25:55,402 - innolab - INFO - Mode: bearer
+2025-08-25 16:25:55,402 - innolab - INFO - Project: my-service
+2025-08-25 16:25:55,402 - innolab - INFO - Total bugs fixed: 0
+2025-08-25 16:25:55,402 - innolab - INFO - Total iterations: 1
+2025-08-25 16:25:55,403 - innolab - INFO - Start time: 2025-08-25T16:25:49.272297
+2025-08-25 16:25:55,403 - innolab - INFO - End time: 2025-08-25T16:25:55.401629
+2025-08-25 16:25:55,403 - innolab - INFO - Iteration 1: 0 bugs found, 0 fixed

@@ -1,0 +1,45 @@
+2025-08-25 16:32:21,886 - innolab - INFO - ExecutionServiceNoMongo initialized with:
+2025-08-25 16:32:21,887 - innolab - INFO -   Max iterations: 5
+2025-08-25 16:32:21,887 - innolab - INFO -   Project key: my-service
+2025-08-25 16:32:21,887 - innolab - INFO -   Source code path: d:\InnoLab\projects
+2025-08-25 16:32:21,887 - innolab - INFO -   Scan directory: demo_project
+2025-08-25 16:32:21,887 - innolab - INFO -   Scan mode: ['bearer']
+2025-08-25 16:32:21,888 - innolab - INFO -   Fix mode: ['llm']
+2025-08-25 16:32:21,888 - innolab - INFO -   RAG available: True
+2025-08-25 16:32:21,888 - innolab - INFO - Starting execution without RAG (mode: DifyMode.LOCAL)
+2025-08-25 16:32:21,888 - innolab - INFO - 
+=== ITERATION 1/5 ===
+2025-08-25 16:32:21,888 - innolab - INFO - Starting Bearer scan for project: my-service
+2025-08-25 16:32:21,888 - innolab - INFO - Scanning directory: d:\InnoLab\projects\demo_project
+2025-08-25 16:32:21,889 - innolab - ERROR - Command not found: bearer
+2025-08-25 16:32:21,890 - innolab - INFO - Using Bearer Docker image
+2025-08-25 16:32:21,890 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v d:\InnoLab\projects\demo_project:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_my-service.json --quiet
+2025-08-25 16:32:23,030 - innolab - INFO - Analyzing codebase
+2025-08-25 16:32:28,320 - innolab - ERROR - Command failed with return code 1
+2025-08-25 16:32:28,320 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-25 16:32:28,321 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_my-service.json
+2025-08-25 16:32:28,321 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-25 16:32:28,321 - innolab - INFO - Found 3 Bearer security issues
+2025-08-25 16:32:28,321 - innolab - INFO - BEARER scanner found 3 bugs
+2025-08-25 16:32:28,322 - innolab - INFO - Iteration 1: Found 3 open bugs (0 BUG, 0 CODE_SMELL) across scanners: BEARER
+2025-08-25 16:32:28,322 - innolab - INFO - Need to fix 3 bugs using Dify
+2025-08-25 16:32:28,322 - innolab - INFO - Running workflow with Dify API: app-21rA0wUAaR7PKPdmCX2WJxMo
+2025-08-25 16:32:28,322 - innolab - INFO - User: hieult
+2025-08-25 16:32:28,322 - innolab - INFO - Mode: bearer
+2025-08-25 16:32:28,323 - innolab - INFO - Base URL: https://api.dify.ai/v1
+2025-08-25 16:32:28,323 - innolab - INFO - Generating Dify headers for api_key: app-21...
+2025-08-25 16:32:28,323 - innolab - INFO - POST https://api.dify.ai/v1/workflows/run with payload: {'inputs': {'is_use_rag': 'False', 'report': '[{"key": "bearer_python_lang_avoid_pickle_dacfec7a132bf64e199a6d2ad0d36a87_0", "rule": "python_lang_avoid_pickle", "severity": "BLOCKER", "component": "appy.py", "line": 48, "message": "Usage of unsafe Pickle libraries. ## Description\\n\\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...", "status": "OPEN", "type": "VULNERABILITY", "effort": "15min", "debt": "15min", "tags": ["security", "bearer", "critical", "security", "medium", "cwe-502"], "creationDate": "2025-08-25T16:32:28.321664", "updateDate": "2025-08-25T16:32:28.321670", "textRange": {"startLine": 48, "endLine": 48, "startOffset": 11, "endOffset": 29}}, {"key": "bearer_python_lang_ssl_verification_d44c2edc9454db162c25339b54563d42_0", "rule": "python_lang_ssl_verification", "severity": "CRITICAL", "component": "appy.py", "line": 64, "message": "Missing SSL certificate verification. ## Description\\n\\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...", "status": "OPEN", "type": "VULNERABILITY", "effort": "15min", "debt": "15min", "tags": ["security", "bearer", "high", "security", "medium", "cwe-295"], "creationDate": "2025-08-25T16:32:28.321702", "updateDate": "2025-08-25T16:32:28.321704", "textRange": {"startLine": 64, "endLine": 64, "startOffset": 9, "endOffset": 40}}, {"key": "bearer_python_lang_weak_hash_md5_403b9d8f405ebbdf90685e618477f370_0", "rule": "python_lang_weak_hash_md5", "severity": "MAJOR", "component": "appy.py", "line": 55, "message": "Usage of weak hashing library (MDx). ## Description\\n\\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...", "status": "OPEN", "type": "VULNERABILITY", "effort": "10min", "debt": "10min", "tags": ["security", "bearer", "medium", "security", "medium", "cwe-328"], "creationDate": "2025-08-25T16:32:28.321725", "updateDate": "2025-08-25T16:32:28.321726", "textRange": {"startLine": 55, "endLine": 55, "startOffset": 9, "endOffset": 39}}]'}, 'user': 'hieult', 'response_mode': 'blocking'}
+2025-08-25 16:32:29,016 - innolab - INFO - Dify workflow run response status: 401
+2025-08-25 16:32:29,017 - innolab - INFO - Dify workflow run response: {"code": "unauthorized", "message": "Access token is invalid", "status": 401}
+
+2025-08-25 16:32:29,017 - innolab - ERROR - Failed to run workflow via Dify: 401 Client Error: UNAUTHORIZED for url: https://api.dify.ai/v1/workflows/run
+2025-08-25 16:32:29,018 - innolab - ERROR - DIFY:Error in analysis_bugs_with_dify: 401 Client Error: UNAUTHORIZED for url: https://api.dify.ai/v1/workflows/run
+2025-08-25 16:32:29,019 - innolab - INFO - No real bugs to fix after analysis
+2025-08-25 16:32:29,019 - innolab - INFO - === EXECUTION RESULT ===
+2025-08-25 16:32:29,019 - innolab - INFO - Mode: bearer
+2025-08-25 16:32:29,020 - innolab - INFO - Project: my-service
+2025-08-25 16:32:29,020 - innolab - INFO - Total bugs fixed: 0
+2025-08-25 16:32:29,020 - innolab - INFO - Total iterations: 1
+2025-08-25 16:32:29,021 - innolab - INFO - Start time: 2025-08-25T16:32:21.888170
+2025-08-25 16:32:29,021 - innolab - INFO - End time: 2025-08-25T16:32:29.019409
+2025-08-25 16:32:29,022 - innolab - INFO - Iteration 1: 3 bugs found, 0 fixed

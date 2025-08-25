@@ -87,7 +87,10 @@ class ExecutionServiceNoMongo:
         self.scanners: List = []
         # Arguments for built-in scanners
         scanner_args = {
-            'bearer': {'project_key': self.project_key},
+            'bearer': {
+                'project_key': self.project_key,
+                'scan_directory': self.scan_directory,
+            },
             'sonar': {
                 'project_key': self.project_key,
                 'scan_directory': self.scan_directory,
@@ -99,6 +102,7 @@ class ExecutionServiceNoMongo:
                 'sonar_token': self.sonar_token,
             },
         }
+        
         for mode in self.scan_modes:
             registry_name = 'sonarq' if mode == 'sonar' else mode
             args = scanner_args.get(mode) or scanner_args.get(registry_name, {})
@@ -164,9 +168,9 @@ class ExecutionServiceNoMongo:
 
             # Scan for bugs using all configured scanners
             bugs = []
-            for mode, scanner in zip(self.scan_modes, self.scanners):
+            for scan_mode, scanner in zip(self.scan_modes, self.scanners):
                 scanner_bugs = scanner.scan()
-                logger.info(f"{mode.upper()} scanner found {len(scanner_bugs)} bugs")
+                logger.info(f"{scan_mode.upper()} scanner found {len(scanner_bugs)} bugs")
                 bugs.extend(scanner_bugs)
 
             # Analyze bug counts
