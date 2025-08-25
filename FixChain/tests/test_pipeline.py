@@ -31,7 +31,7 @@ def test_pipeline_combines_scanners(monkeypatch, sonar_bugs, bearer_bugs):
     monkeypatch.setattr(SonarQScanner, "scan", sonar_mock)
     monkeypatch.setattr(BearerScanner, "scan", bearer_mock)
 
-    service = ExecutionServiceNoMongo(scan_mode=["sonarq", "bearer"])
+    service = ExecutionServiceNoMongo(scanners=["sonarq", "bearer"], fixers=["llm"])
     service.max_iterations = 1  # ensure single iteration
 
     # Analysis service returns bugs as-is
@@ -42,7 +42,7 @@ def test_pipeline_combines_scanners(monkeypatch, sonar_bugs, bearer_bugs):
     )
 
     fixer_mock = MagicMock(return_value={"success": True, "fixed_count": len(sonar_bugs) + len(bearer_bugs)})
-    service.fixer.fix_bugs = fixer_mock
+    service.fixers[0].fix_bugs = fixer_mock
 
     result = service.run_execution()
 
