@@ -80,44 +80,19 @@ class Fixer:
                 success, output_lines = CLIService.run_command_stream(fix_cmd)
                 if success:
                     output_text = "".join(output_lines)
-                    fixed_count = 0
-                    total_input_tokens = 0
-                    total_output_tokens = 0
-                    total_tokens = 0
-                    average_similarity = 0.0
-                    threshold_met_count = 0
-                    for line in output_lines:
-                        line = line.strip()
-                        if "FIXED_FILES:" in line:
-                            try:
-                                fixed_count = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "TOTAL_INPUT_TOKENS:" in line:
-                            try:
-                                total_input_tokens = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "TOTAL_OUTPUT_TOKENS:" in line:
-                            try:
-                                total_output_tokens = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "TOTAL_TOKENS:" in line:
-                            try:
-                                total_tokens = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "AVERAGE_SIMILARITY:" in line:
-                            try:
-                                average_similarity = float(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
-                        elif "THRESHOLD_MET_COUNT:" in line:
-                            try:
-                                threshold_met_count = int(line.split(":")[1].strip())
-                            except (ValueError, IndexError):
-                                pass
+                    try:
+                        summary_line = next((ln.strip() for ln in reversed(output_lines) if ln.strip()), "{}")
+                        summary = json.loads(summary_line)
+                    except json.JSONDecodeError:
+                        summary = {}
+
+                    fixed_count = summary.get("fixed_count", 0)
+                    total_input_tokens = summary.get("total_input_tokens", 0)
+                    total_output_tokens = summary.get("total_output_tokens", 0)
+                    total_tokens = summary.get("total_tokens", 0)
+                    average_similarity = summary.get("average_similarity", 0.0)
+                    threshold_met_count = summary.get("threshold_met_count", 0)
+
                     logger.info(
                         f"Batch fix completed successfully. Fixed {fixed_count} files"
                     )
@@ -128,7 +103,7 @@ class Fixer:
                         f"Average similarity: {average_similarity:.3f}, Threshold met: {threshold_met_count}"
                     )
                     return {
-                        "success": True,
+                        "success": summary.get("success", True),
                         "fixed_count": fixed_count,
                         "total_input_tokens": total_input_tokens,
                         "total_output_tokens": total_output_tokens,
