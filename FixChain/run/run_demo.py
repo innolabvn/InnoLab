@@ -95,126 +95,151 @@ class ExecutionServiceNoMongo:
             return False
     
     def scan_bearer_bugs(self) -> List[Dict]:
-        """Scan using Bearer CLI to get list of security vulnerabilities"""
+        """Read Bearer scan results from JSON file"""
         try:
-            logger.info(f"Starting Bearer scan for project: {self.project_key}")
+            logger.info(f"Loading Bearer scan results for project: {self.project_key}")
             
-            # Change to SonarQ directory
-            original_dir = os.getcwd()
+            # Look for Bearer results file in SonarQ directory
             innolab_root = os.getenv('INNOLAB_ROOT_PATH', 'd:\\InnoLab')
             sonar_dir = os.path.join(innolab_root, 'SonarQ')
-            os.chdir(sonar_dir)
+            bearer_results_path = os.path.join(sonar_dir, "bearer_results", f"bearer_results_{self.project_key}.json")
             
-            try:
-                # Handle both relative and absolute paths for scan_directory
-                if os.path.isabs(self.scan_directory):
-                    project_dir = self.scan_directory
-                else:
-                    # For relative paths, resolve from sonar_dir
-                    project_dir = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
-                
-                logger.info(f"Project directory: {project_dir}")
-                
-                # Run Bearer scan directly on host using docker run
-                output_file = os.path.join(sonar_dir, f"bearer_results_{self.project_key}.json")
-                
-                # Convert Windows path to WSL/Docker compatible path if needed
-                if os.name == 'nt':  # Windows
-                    # Convert Windows path to Docker volume format
-                    docker_project_dir = project_dir.replace('\\', '/').replace('C:', '/c').replace('D:', '/d').replace('E:', '/e')
-                    docker_output_dir = sonar_dir.replace('\\', '/').replace('C:', '/c').replace('D:', '/d').replace('E:', '/e')
-                else:
-                    docker_project_dir = project_dir
-                    docker_output_dir = sonar_dir
-                
-                # CONFIRMED: Bearer CLI Docker images are fundamentally broken
-                # Multiple versions tested (latest, v1.44.0) all exhibit same issue
-                # All commands return help text instead of executing actual functionality
-                # Framework is ready - just need a working Bearer CLI alternative
-                # Recommendation: Replace with Semgrep, CodeQL, or other security scanner
-                scan_cmd = [
-                    "docker", "run", "--rm",
-                    "-v", f"{project_dir}:/scan",
-                    "bearer/bearer:latest",
-                    "bearer", "scan", "/scan"
-                ]
-                
-                logger.info(f"Running Bearer scan: {' '.join(scan_cmd)}")
-                
-                # Start the process
-                success, output_lines = CLIService.run_command_stream(scan_cmd)
-                if not success:
-                    logger.error(f"Bearer scan failed. Output: {''.join(output_lines)}")
-                    return []
-                logger.info("Bearer scan completed successfully")
-                
-                # Parse Bearer output from stdout
-                bearer_output = ''.join(output_lines)
-                # Clean ANSI escape sequences and Unicode characters for logging
-                import re
-                clean_output = re.sub(r'\x1b\[[0-9;]*m', '', bearer_output)
-                try:
-                    # Further clean Unicode characters that can't be encoded
-                    safe_output = clean_output.encode('ascii', errors='ignore').decode('ascii')
-                    logger.info(f"Bearer scan output: {safe_output[:500]}...")  # Log first 500 chars
-                except (UnicodeEncodeError, UnicodeDecodeError):
-                    logger.info("Bearer scan output: <contains special characters>")
-                
-                # Bearer CLI Docker image appears to have issues - always shows help instead of scanning
-                # The integration framework is ready, but Bearer CLI needs to be fixed
-                # TODO: Replace with working Bearer CLI image or alternative security scanner
-                if "Usage: bearer <command>" in clean_output:
-                    logger.warning("Bearer CLI Docker images are broken - all commands show help instead of executing")
-                    logger.info("Tested versions: latest, v1.44.0 - all broken")
-                    logger.info("Bearer integration framework is complete and ready")
-                    logger.info("Recommendation: Replace with Semgrep, CodeQL, or other security scanner")
-                else:
-                    logger.info("Bearer scan produced output - parsing needed")
-                    # TODO: Parse actual Bearer scan results when CLI works
-                
+            if not os.path.exists(bearer_results_path):
+                logger.error(f"Bearer results file not found: {bearer_results_path}")
+                logger.info("Please run Bearer scan first to generate results file")
+                logger.info("Example: docker run --rm -v /path/to/project:/scan -v /path/to/output:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_my-service.json")
                 return []
-                    
-            finally:
-                # Restore original directory
-                os.chdir(original_dir)
             
-        except Exception as e:
-            logger.error(f"Error in Bearer scan process: {str(e)}")
+            logger.info(f"Reading Bearer scan results from: {bearer_results_path}")
+            
+            # Read and parse Bearer JSON results
+            with open(bearer_results_path, 'r', encoding='utf-8') as f:
+                bearer_data = json.load(f)
+            
+            logger.info(f"Bearer scan results loaded successfully")
+            
+            # Convert Bearer format to bugs format
+            bugs = self._convert_bearer_to_bugs_format(bearer_data)
+            logger.info(f"Found {len(bugs)} Bearer security issues")
+            
+            return bugs
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse Bearer JSON file: {e}")
             return []
-    
+        except Exception as e:
+            logger.error(f"Error reading Bearer scan results: {e}")
+            return []
+
+    def _clean_ansi_output(self, output: str) -> str:
+        """Clean ANSI escape sequences and Unicode characters from output"""
+        import re
+        # Remove ANSI escape sequences
+        clean_output = re.sub(r'\x1b\[[0-9;]*m', '', output)
+        try:
+            # Further clean Unicode characters that can't be encoded
+            safe_output = clean_output.encode('ascii', errors='ignore').decode('ascii')
+            return safe_output
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return clean_output
+
+    def _generate_mock_bearer_results(self) -> List[Dict]:
+        """Generate mock Bearer results for testing when CLI is broken"""
+        # This is a temporary workaround for the broken Bearer CLI
+        mock_findings = [
+            {
+                "id": "bearer_hardcoded_secret_001",
+                "rule_id": "python_lang_hardcoded_secret",
+                "severity": "HIGH",
+                "filename": "app.py",
+                "line_number": 15,
+                "description": "Hardcoded secret detected in source code",
+                "categories": ["security", "secrets"],
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z"
+            },
+            {
+                "id": "bearer_sql_injection_001", 
+                "rule_id": "python_lang_sql_injection",
+                "severity": "CRITICAL",
+                "filename": "app.py",
+                "line_number": 25,
+                "description": "Potential SQL injection vulnerability detected",
+                "categories": ["security", "injection"],
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z"
+            }
+        ]
+        
+        logger.info(f"Generated {len(mock_findings)} mock Bearer findings for testing")
+        return self._convert_bearer_to_bugs_format({"findings": mock_findings})
+
     def _convert_bearer_to_bugs_format(self, bearer_data: Dict) -> List[Dict]:
         """Convert Bearer scan results to compatible bugs format"""
         bugs = []
         
-        # Bearer typically returns findings in 'findings' or 'results' key
-        findings = bearer_data.get('findings', bearer_data.get('results', []))
+        # Bearer returns findings organized by severity levels
+        severity_levels = ['critical', 'high', 'medium', 'low', 'info']
         
-        for finding in findings:
-            bug = {
-                'key': f"bearer_{finding.get('id', 'unknown')}",
-                'rule': finding.get('rule_id', finding.get('type', 'unknown')),
-                'severity': self._map_bearer_severity(finding.get('severity', 'MEDIUM')),
-                'component': finding.get('filename', 'unknown'),
-                'line': finding.get('line_number', 1),
-                'message': finding.get('description', finding.get('message', 'Security vulnerability detected')),
-                'status': 'OPEN',
-                'type': 'VULNERABILITY',
-                'effort': '5min',
-                'debt': '5min',
-                'tags': finding.get('categories', []),
-                'creationDate': finding.get('created_at', ''),
-                'updateDate': finding.get('updated_at', ''),
-                'textRange': {
-                    'startLine': finding.get('line_number', 1),
-                    'endLine': finding.get('end_line_number', finding.get('line_number', 1)),
-                    'startOffset': finding.get('start_column', 0),
-                    'endOffset': finding.get('end_column', 0)
+        for severity in severity_levels:
+            findings = bearer_data.get(severity, [])
+            
+            for finding in findings:
+                # Extract file path relative to project root
+                filename = finding.get('filename', finding.get('full_filename', 'unknown'))
+                if filename.startswith('/scan/'):
+                    filename = filename[6:]  # Remove /scan/ prefix
+                
+                # Extract line number from source or line_number field
+                line_number = finding.get('line_number', 1)
+                if 'source' in finding and 'start' in finding['source']:
+                    line_number = finding['source']['start']
+                
+                # Create unique key using rule id and fingerprint
+                rule_id = finding.get('id', 'bearer_security_issue')
+                fingerprint = finding.get('fingerprint', hash(str(finding)) & 0x7FFFFFFF)
+                unique_key = f"bearer_{rule_id}_{fingerprint}"
+                
+                # Extract description from title and description fields
+                title = finding.get('title', 'Security vulnerability')
+                description = finding.get('description', '')
+                message = f"{title}. {description[:200]}..." if len(description) > 200 else f"{title}. {description}"
+                
+                # Extract CWE IDs
+                cwe_ids = finding.get('cwe_ids', [])
+                
+                bug = {
+                    'key': unique_key,
+                    'rule': rule_id,
+                    'severity': self._map_bearer_severity(severity),
+                    'component': filename,
+                    'line': line_number,
+                    'message': message.strip(),
+                    'status': 'OPEN',
+                    'type': 'VULNERABILITY',
+                    'effort': '15min' if severity in ['critical', 'high'] else '10min',
+                    'debt': '15min' if severity in ['critical', 'high'] else '10min',
+                    'tags': ['security', 'bearer', severity] + [f'cwe-{cwe}' for cwe in cwe_ids],
+                    'creationDate': datetime.now().isoformat(),
+                    'updateDate': datetime.now().isoformat(),
+                    'textRange': {
+                        'startLine': line_number,
+                        'endLine': line_number,
+                        'startOffset': finding.get('source', {}).get('column', {}).get('start', 0) if 'source' in finding else 0,
+                        'endOffset': finding.get('source', {}).get('column', {}).get('end', 0) if 'source' in finding else 0
+                    },
+                    # Additional Bearer-specific fields
+                    'scanner': 'bearer',
+                    'bearer_severity': severity,
+                    'cwe_ids': cwe_ids,
+                    'documentation_url': finding.get('documentation_url', ''),
+                    'code_extract': finding.get('code_extract', '')
                 }
-            }
-            bugs.append(bug)
+                bugs.append(bug)
         
+        logger.info(f"Converted {len(bugs)} Bearer findings to compatible format")
         return bugs
-    
+
     def _map_bearer_severity(self, bearer_severity: str) -> str:
         """Map Bearer severity to compatible severity"""
         severity_map = {
@@ -224,7 +249,8 @@ class ExecutionServiceNoMongo:
             'LOW': 'MINOR',
             'INFO': 'INFO'
         }
-        return severity_map.get(bearer_severity.upper(), 'MAJOR')
+        mapped = severity_map.get(bearer_severity.upper(), 'MAJOR')
+        return mapped
 
     def scan_sonarq_bugs(self) -> List[Dict]:
         """Scan SonarQube to get list of bugs"""
@@ -388,13 +414,17 @@ class ExecutionServiceNoMongo:
 
     def analysis_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, mode: DifyMode = DifyMode.CLOUD) -> Dict:
         """Analysis bugs using Dify API"""
+        # Initialize variables to avoid UnboundLocalError
+        list_bugs = []
+        bugs_to_fix = 0
+        
         try:
             # Choose API key based on mode
             api_key = self.dify_cloud_api_key if mode == DifyMode.CLOUD else self.dify_local_api_key
             
             if not api_key:
                 logger.error(f"No API key found for mode: {mode}")
-                return {"success": False, "error": "Missing API key"}
+                return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
             
             # Prepare input for Dify
             inputs = {
@@ -456,7 +486,7 @@ class ExecutionServiceNoMongo:
 
                 
         except Exception as e:
-            logger.error(f"DIFY:Error in fix_bugs_with_dify: {str(e)}")
+            logger.error(f"DIFY:Error in analysis_bugs_with_dify: {str(e)}")
             return {
                 "list_bugs": list_bugs,
                 "success": False,
