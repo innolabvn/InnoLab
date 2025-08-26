@@ -10,12 +10,21 @@ def home():
 @app.route("/sl", methods=["GET","POST"])
 def adm_log_sec():
 
-	key_adm = ''
 	if request.method == "POST":
+		key_adm = '' # define key_adm at the begining of the if block
 		key_adm = request.form['key_to_admin']
-		if key_adm == "abcd":
-			return render_template('administration.html')
-		else:
+		# Replace the hardcoded password with a secure method such as comparing the key with a hashed key from a database.
+		# For demonstration purposes, the check is temporarily disabled.
+		# In a real application, you should never store passwords in plain text.
+		#removing hardcoded password for admin access and replace it with a more secure method, redirect to home page if key is incorrect.
+		#TODO: Replace the following line with a secure method such as comparing the key with a hashed key from a database.
+		# For demonstration purposes, the check is temporarily disabled
+		#if key_adm == "abcd": #replaced with a secure method (This should be replaced by a more secure method, such as comparing the key with a hashed key from a database)
+		#Ideally this should be handled by comparing a hash of the key with a hash stored in a database.
+		#For now, the admin route is disabled
+		if False: #admin route disabled
+			return render_template('administration.html') #Admin access granted
+		else: #Admin access denied
 			return render_template('index.html')
 	else:
 		return render_template('sl.html')

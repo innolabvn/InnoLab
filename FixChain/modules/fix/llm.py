@@ -19,16 +19,15 @@ class LLMFixer(Fixer):
             logger.info(
                 f"Starting fix_bugs for {len(list_real_bugs)} bugs"
             )
+            logger.info(f"DEBUG: scan_directory = {self.scan_directory}")
             if os.path.isabs(self.scan_directory):
                 source_dir = self.scan_directory
             else:
                 innolab_root = os.getenv("INNOLAB_ROOT_PATH", "d:\\InnoLab")
-                # Handle case where scan_directory is "SonarQ" - use projects/SonarQ instead
-                if self.scan_directory == "SonarQ":
-                    source_dir = os.path.join(innolab_root, "projects", "SonarQ")
-                else:
-                    # Use projects directory instead of SonarQ directory
-                    source_dir = os.path.join(innolab_root, "projects", self.scan_directory)
+                logger.info(f"DEBUG: innolab_root = {innolab_root}")
+                # Use scan_directory directly with innolab_root
+                source_dir = os.path.join(innolab_root, self.scan_directory)
+            logger.info(f"DEBUG: source_dir = {source_dir}")
             logger.info(f"Fixing bugs in directory: {source_dir}")
             if not os.path.exists(source_dir):
                 logger.error(f"Source directory does not exist: {source_dir}")
@@ -38,11 +37,12 @@ class LLMFixer(Fixer):
                     "error": f"Source directory does not exist: {source_dir}",
                 }
             original_dir = os.getcwd()
-            innolab_root = os.getenv("INNOLAB_ROOT_PATH", "d:\\InnoLab")
-            sonar_dir = os.path.join(innolab_root, "SonarQ")
+            # SonarQ is always at d:\InnoLab\SonarQ regardless of INNOLAB_ROOT_PATH
+            sonar_dir = "d:\\InnoLab\\SonarQ"
             try:
                 os.chdir(sonar_dir)
-                issues_file_path = os.path.join(sonar_dir, "list_real_bugs.json")
+                # Create issues file in the project directory instead of SonarQ directory
+                issues_file_path = os.path.join(source_dir, "list_real_bugs.json")
                 try:
                     if os.path.exists(issues_file_path):
                         os.remove(issues_file_path)
@@ -63,13 +63,12 @@ class LLMFixer(Fixer):
                         "fixed_count": 0,
                         "error": f"Failed to create issues file: {str(e)}",
                     }
-                if os.path.isabs(self.scan_directory):
-                    scan_dir_path = self.scan_directory
-                else:
-                    scan_dir_path = self.scan_directory
+                # Use the original source_dir to fix files in the correct location
+                scan_dir_path = source_dir
+                batch_fix_path = os.path.join(sonar_dir, "batch_fix.py")
                 fix_cmd = [
                     "python",
-                    "batch_fix.py",
+                    batch_fix_path,
                     scan_dir_path,
                     "--fix",
                     "--auto",

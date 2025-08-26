@@ -1,10 +1,3 @@
-from flask import Flask, session, render_template, request, flash
-
-app = Flask(__name__)
-
-app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
-
-"""
 1. Hardcoded secrets like username and password
     There will be an admin login in the application , instead of fetching this username from the DB , username validation will happen in one of the pages like sec_adm.html.
      this is done and dusted !
@@ -55,12 +48,16 @@ secret admin > senstive information in comments
 
     @app.route('/')
     def home():
-    	try: # Wrap the route logic in a try-except block
-    		if not session.get('logged_in'):
-    			return render_template('index.html')
-    		else:
-    			return render_template('cust_error.html')
-    	except Exception as e: # Catch any exceptions that occur
-    		app.logger.error(f"An error occurred: {e}") # Log the error for debugging
-    		flash("An unexpected error occurred. Please try again later.", "error") # Provide a user-friendly error message
-    		return render_template('error.html') # Render a generic error page instead of revealing the stack trace
+    	if not session.get('logged_in'):
+    		return render_template('index.html')
+    	else:
+    		return render_template('cust_error.html')
+
+    @app.route('/login', methods=['POST'])
+    def do_login():
+    	if request.form['password'] =="123123asdf":
+    		session['logged_in'] = True
+    		return render_template('user_home.html')
+    	else :
+    		#flash('The username or password provided is wrong')
+    		return home()

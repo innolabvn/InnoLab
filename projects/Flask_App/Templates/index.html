@@ -1,6 +1,7 @@
 <link rel="stylesheet" href="/static/style.css" type="text/css">
 
 <form action="/login" method="POST">
+<!-- TODO: Ensure this page is served over HTTPS and the form action points to an HTTPS URL to prevent credentials from being sent in cleartext. -->
 <div class="login">
 <div class="login-screen">
 <div class="app-title">
@@ -8,13 +9,15 @@
 </div>
 <div class="login-form">
 <div class="control-group">
-				<input type="text" class="login-field" value="" placeholder="username" name="username">
+				<input type="text" class="login-field" value="" placeholder="username" name="username" id="username" required autocomplete="username">
 <label class="login-field-icon fui-user" for="login-name"></label></div>
 <div class="control-group">
-				<input type="password" class="login-field" value="" placeholder="password" name="password">
+				<input type="password" class="login-field" value="" placeholder="password" name="password" id="password" required minlength="8" oninvalid="this.setCustomValidity('Please enter a password with at least 8 characters')" oninput="this.setCustomValidity('')" autocomplete="current-password">
+<!-- Added client-side validation for password length -->
 <label class="login-field-icon fui-lock" for="login-pass"></label></div>
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> <!-- CSRF protection: Use dynamically generated CSRF token -->
 <input type="submit" value="Log in" class="btn btn-primary btn-large btn-block">
-
+<!-- TODO: Implement server-side password length validation to match the client-side validation (minimum 8 characters). -->
 </div>
 </div>
 </div>

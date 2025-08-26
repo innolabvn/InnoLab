@@ -83,7 +83,8 @@ class BearerScanner(Scanner):
                         "bearer", "scan", project_dir,
                         "--format", "json",
                         "--output", output_file,
-                        "--quiet"
+                        "--quiet",
+                        "--skip-path", "node_modules,*.git,__pycache__,.venv,venv,dist,build"
                     ]
                     
                     logger.info(f"Running Bearer scan: {' '.join(scan_cmd)}")
@@ -120,7 +121,8 @@ class BearerScanner(Scanner):
                         "scan", "/scan",
                         "--format", "json",
                         "--output", f"/output/{os.path.basename(output_file)}",
-                        "--quiet"
+                        "--quiet",
+                        "--skip-path", "node_modules,*.git,__pycache__,.venv,venv,dist,build"
                     ]
                     
                     logger.info(f"Running Bearer Docker scan: {' '.join(scan_cmd)}")

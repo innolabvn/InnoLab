@@ -25,7 +25,8 @@ class SonarQScanner(Scanner):
             logger.info("Step 1: Running SonarQube scan...")
             original_dir = os.getcwd()
             innolab_root = os.getenv("INNOLAB_ROOT_PATH", "d:\\InnoLab")
-            sonar_dir = os.path.join(innolab_root, "SonarQ")
+            # Hardcode sonar_dir to correct path
+            sonar_dir = "d:\\InnoLab\\SonarQ"
             os.chdir(sonar_dir)
             try:
                 logger.info(
@@ -39,11 +40,27 @@ class SonarQScanner(Scanner):
                 if os.path.isabs(self.scan_directory):
                     project_dir = self.scan_directory
                 else:
+                    # Try to find project directory relative to innolab_root first
                     project_dir = os.path.abspath(
-                        os.path.join(sonar_dir, self.scan_directory)
+                        os.path.join(innolab_root, self.scan_directory)
                     )
+                    if not os.path.exists(project_dir):
+                        # Fallback to relative to sonar_dir
+                        project_dir = os.path.abspath(
+                            os.path.join(sonar_dir, self.scan_directory)
+                        )
                 logger.info(f"Project directory: {project_dir}")
-                props_file = os.path.join(project_dir, "sonar-project.properties")
+                
+                # Copy project to source_bug directory for Docker container access
+                import shutil
+                source_bug_dir = os.path.join(sonar_dir, "source_bug")
+                if os.path.exists(source_bug_dir):
+                    shutil.rmtree(source_bug_dir)
+                shutil.copytree(project_dir, source_bug_dir)
+                logger.info(f"Copied project to source_bug directory: {source_bug_dir}")
+                
+                # Create sonar-project.properties in source_bug directory
+                props_file = os.path.join(source_bug_dir, "sonar-project.properties")
                 with open(props_file, "w", encoding="utf-8") as f:
                     f.write(f"sonar.projectKey={self.project_key}\n")
                     f.write(f"sonar.projectName={self.project_key}\n")

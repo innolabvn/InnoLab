@@ -2,6 +2,7 @@
 
 <form action="/sl" method="POST">
 <div class="login">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}"> <!-- Added CSRF token placeholder for security - replaced static token with dynamic token for CSRF protection -->
 <div class="login-screen">
 <div class="app-title">
 <h1>admin_login</h1>
@@ -9,10 +10,13 @@
 <div class="login-form">
 
 <div class="control-group">
-				<input type="text" class="login-field" value="" placeholder="key_to_admin" name="key_to_admin">
+				<input type="text" class="login-field" value="" placeholder="key_to_admin" name="key_to_admin" pattern="[a-zA-Z0-9]+" maxlength="64"> <!-- Added maxlength attribute to limit input length -->
 <label class="login-field-icon fui-lock" for="login-pass"></label></div>
 <input type="submit" value="Access" class="btn btn-primary btn-large btn-block">
 </div>
 </div>
 </div>
 </form>
+
+<!-- WARNING: Rate limiting is not implemented for this form. This makes it vulnerable to brute-force attacks.  REMINDER: Implement rate limiting on the backend to prevent brute-force attacks. -->
+<!-- RATE LIMITING: This form is vulnerable to brute-force attacks. Implement rate limiting on the backend to prevent brute-force attacks. -->

@@ -924,7 +924,7 @@ def main():
     
     # Create temporary processor to load ignore patterns
     temp_processor = SecureFixProcessor(api_key, directory, backup_dir="temp")
-    temp_processor.load_ignore_patterns(os.getcwd())
+    temp_processor.load_ignore_patterns(directory)
     
     for root, dirs, files in os.walk(directory):
         # Filter out ignored directories
