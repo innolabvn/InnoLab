@@ -27,10 +27,8 @@ class LLMFixer(Fixer):
                 if self.scan_directory == "SonarQ":
                     source_dir = os.path.join(innolab_root, "projects", "SonarQ")
                 else:
-                    sonar_dir = os.path.join(innolab_root, "SonarQ")
-                    source_dir = os.path.abspath(
-                        os.path.join(sonar_dir, self.scan_directory)
-                    )
+                    # Use projects directory instead of SonarQ directory
+                    source_dir = os.path.join(innolab_root, "projects", self.scan_directory)
             logger.info(f"Fixing bugs in directory: {source_dir}")
             if not os.path.exists(source_dir):
                 logger.error(f"Source directory does not exist: {source_dir}")
