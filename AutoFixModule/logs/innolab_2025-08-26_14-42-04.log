@@ -1,0 +1,12 @@
+2025-08-26 14:42:25,815 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 14:42:25,817 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 14:42:27,880 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:43:35,239 - innolab - INFO - Fix completed: 0 fixed, 9 failed
+2025-08-26 14:43:51,874 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 14:43:51,875 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 14:43:53,920 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:45:24,626 - innolab - INFO - Fix completed: 0 fixed, 9 failed
+2025-08-26 14:45:41,985 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 14:45:41,986 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 14:45:44,023 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:47:19,341 - innolab - INFO - Fix completed: 0 fixed, 9 failed

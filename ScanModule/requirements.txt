@@ -1,0 +1,49 @@
+# ScanModule Dependencies
+# Core FastAPI and web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Environment and configuration
+python-dotenv==1.0.0
+
+# Logging and utilities
+loguru==0.7.2
+
+# HTTP requests
+requests==2.31.0
+
+# Data processing
+pandas==2.1.4
+
+# Async support
+aiofiles==23.2.0
+
+# Process management
+psutil==5.9.6
+
+# Type hints
+typing-extensions==4.8.0
+pydantic==2.5.0
+
+# CORS middleware
+starlette==0.27.0
+
+# File handling
+pathlib2==2.3.7
+
+# Subprocess management
+subprocess32==3.5.4
+
+# JSON handling
+orjson==3.9.10
+
+# XML parsing (for SonarQube results)
+lxml==4.9.3
+beautifulsoup4==4.12.2
+
+# CSV handling
+csv-reader==1.2.0
+
+# Concurrent processing
+concurrent-futures==3.1.1

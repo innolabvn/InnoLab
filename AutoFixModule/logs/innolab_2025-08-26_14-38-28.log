@@ -1,0 +1,39 @@
+2025-08-26 14:39:10,611 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 14:39:10,613 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 14:39:12,670 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:39:12,673 - innolab - ERROR - Error fixing bug bearer_javascript_lang_dynamic_os_command_a15877223715018ff0b40de8ae5380b1_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,673 - innolab - ERROR - Error fixing bug bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,674 - innolab - ERROR - Error fixing bug bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_1: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,675 - innolab - ERROR - Error fixing bug bearer_javascript_lang_os_command_injection_cc39913b65829db5799c3ad743e397e7_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,676 - innolab - ERROR - Error fixing bug bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,677 - innolab - ERROR - Error fixing bug bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_1: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,677 - innolab - ERROR - Error fixing bug bearer_javascript_lang_raw_html_using_user_input_9be1e223403fc9dcb11396f4579547d6_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,678 - innolab - ERROR - Error fixing bug bearer_javascript_express_helmet_missing_7fde4398d401d13a4909acdaa783f38f_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,679 - innolab - ERROR - Error fixing bug bearer_javascript_express_reduce_fingerprint_c72b79444d58bb2e38b078dcb8dcb120_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:12,679 - innolab - INFO - Fix completed: 0 fixed, 9 failed
+2025-08-26 14:39:29,321 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 14:39:29,322 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 14:39:31,354 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:39:31,356 - innolab - ERROR - Error fixing bug bearer_javascript_lang_dynamic_os_command_a15877223715018ff0b40de8ae5380b1_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,357 - innolab - ERROR - Error fixing bug bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,357 - innolab - ERROR - Error fixing bug bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_1: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,358 - innolab - ERROR - Error fixing bug bearer_javascript_lang_os_command_injection_cc39913b65829db5799c3ad743e397e7_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,359 - innolab - ERROR - Error fixing bug bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,359 - innolab - ERROR - Error fixing bug bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_1: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,360 - innolab - ERROR - Error fixing bug bearer_javascript_lang_raw_html_using_user_input_9be1e223403fc9dcb11396f4579547d6_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,361 - innolab - ERROR - Error fixing bug bearer_javascript_express_helmet_missing_7fde4398d401d13a4909acdaa783f38f_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,362 - innolab - ERROR - Error fixing bug bearer_javascript_express_reduce_fingerprint_c72b79444d58bb2e38b078dcb8dcb120_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:31,362 - innolab - INFO - Fix completed: 0 fixed, 9 failed
+2025-08-26 14:39:49,516 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 14:39:49,516 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 14:39:51,596 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:39:51,600 - innolab - ERROR - Error fixing bug bearer_javascript_lang_dynamic_os_command_a15877223715018ff0b40de8ae5380b1_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,600 - innolab - ERROR - Error fixing bug bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,601 - innolab - ERROR - Error fixing bug bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_1: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,602 - innolab - ERROR - Error fixing bug bearer_javascript_lang_os_command_injection_cc39913b65829db5799c3ad743e397e7_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,603 - innolab - ERROR - Error fixing bug bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,604 - innolab - ERROR - Error fixing bug bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_1: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,604 - innolab - ERROR - Error fixing bug bearer_javascript_lang_raw_html_using_user_input_9be1e223403fc9dcb11396f4579547d6_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,605 - innolab - ERROR - Error fixing bug bearer_javascript_express_helmet_missing_7fde4398d401d13a4909acdaa783f38f_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,606 - innolab - ERROR - Error fixing bug bearer_javascript_express_reduce_fingerprint_c72b79444d58bb2e38b078dcb8dcb120_0: 'SecureFixProcessor' object has no attribute 'process_file'
+2025-08-26 14:39:51,606 - innolab - INFO - Fix completed: 0 fixed, 9 failed

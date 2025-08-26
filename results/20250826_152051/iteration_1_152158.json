@@ -1,0 +1,610 @@
+{
+  "iteration": 1,
+  "timestamp": "2025-08-26T15:20:55.741192",
+  "scan_results": [
+    {
+      "scanner": "bearer",
+      "result": {
+        "project_name": "Flask_App",
+        "project_path": "D:\\InnoLab\\projects\\demo_apps\\Flask_App",
+        "scanner_type": "bearer",
+        "scan_time": "2025-08-26T15:20:57.792467",
+        "status": "success",
+        "issues_count": 9,
+        "vulnerabilities": [
+          {
+            "key": "bearer_javascript_lang_dynamic_os_command_a15877223715018ff0b40de8ae5380b1_0",
+            "rule": "javascript_lang_dynamic_os_command",
+            "severity": "BLOCKER",
+            "component": "test_vuln.js",
+            "line": 20,
+            "message": "Unsanitized dynamic input in OS command. ## Description\n\nIncorporating unsanitized dynamic input directly into operating system commands poses a significant security risk. This practice could give attackers the opportunity to execute harmful...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "critical",
+              "security",
+              "medium",
+              "cwe-78"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201502",
+            "updateDate": "2025-08-26T15:21:06.201517",
+            "textRange": {
+              "startLine": 20,
+              "endLine": 20,
+              "startOffset": 5,
+              "endOffset": 7
+            }
+          },
+          {
+            "key": "bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_0",
+            "rule": "javascript_lang_hardcoded_secret",
+            "severity": "BLOCKER",
+            "component": "test_vuln.js",
+            "line": 6,
+            "message": "Usage of hard-coded secret. ## Description\n\nStoring secrets directly in your code is a security risk. Instead, opt for environment variables or a secret management system to safeguard your secrets.\n\n## Remediations\n\n- **Do not**...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "critical",
+              "security",
+              "medium",
+              "cwe-798"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201600",
+            "updateDate": "2025-08-26T15:21:06.201603",
+            "textRange": {
+              "startLine": 6,
+              "endLine": 6,
+              "startOffset": 1,
+              "endOffset": 39
+            }
+          },
+          {
+            "key": "bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_1",
+            "rule": "javascript_lang_hardcoded_secret",
+            "severity": "BLOCKER",
+            "component": "test_vuln.js",
+            "line": 7,
+            "message": "Usage of hard-coded secret. ## Description\n\nStoring secrets directly in your code is a security risk. Instead, opt for environment variables or a secret management system to safeguard your secrets.\n\n## Remediations\n\n- **Do not**...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "critical",
+              "security",
+              "medium",
+              "cwe-798"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201653",
+            "updateDate": "2025-08-26T15:21:06.201655",
+            "textRange": {
+              "startLine": 7,
+              "endLine": 7,
+              "startOffset": 1,
+              "endOffset": 32
+            }
+          },
+          {
+            "key": "bearer_javascript_lang_os_command_injection_cc39913b65829db5799c3ad743e397e7_0",
+            "rule": "javascript_lang_os_command_injection",
+            "severity": "BLOCKER",
+            "component": "test_vuln.js",
+            "line": 20,
+            "message": "Unsanitized user input in OS command. ## Description\n\nExecuting operating system commands with unsanitized user input can lead to command injection vulnerabilities. This occurs when attackers manipulate the input to execute unauthorized c...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "critical",
+              "security",
+              "medium",
+              "cwe-78"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201783",
+            "updateDate": "2025-08-26T15:21:06.201790",
+            "textRange": {
+              "startLine": 20,
+              "endLine": 20,
+              "startOffset": 5,
+              "endOffset": 7
+            }
+          },
+          {
+            "key": "bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_0",
+            "rule": "javascript_express_cross_site_scripting",
+            "severity": "CRITICAL",
+            "component": "test_vuln.js",
+            "line": 13,
+            "message": "Unsanitized user input in HTTP response (XSS). ## Description\n\nIncluding unsanitized user input in HTTP responses exposes your application to cross-site scripting (XSS) attacks. This vulnerability allows attackers to inject malicious scripts into ...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "high",
+              "security",
+              "medium",
+              "cwe-79"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201853",
+            "updateDate": "2025-08-26T15:21:06.201856",
+            "textRange": {
+              "startLine": 13,
+              "endLine": 13,
+              "startOffset": 5,
+              "endOffset": 20
+            }
+          },
+          {
+            "key": "bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_1",
+            "rule": "javascript_express_cross_site_scripting",
+            "severity": "CRITICAL",
+            "component": "test_vuln.js",
+            "line": 28,
+            "message": "Unsanitized user input in HTTP response (XSS). ## Description\n\nIncluding unsanitized user input in HTTP responses exposes your application to cross-site scripting (XSS) attacks. This vulnerability allows attackers to inject malicious scripts into ...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "high",
+              "security",
+              "medium",
+              "cwe-79"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201897",
+            "updateDate": "2025-08-26T15:21:06.201900",
+            "textRange": {
+              "startLine": 28,
+              "endLine": 28,
+              "startOffset": 5,
+              "endOffset": 54
+            }
+          },
+          {
+            "key": "bearer_javascript_lang_raw_html_using_user_input_9be1e223403fc9dcb11396f4579547d6_0",
+            "rule": "javascript_lang_raw_html_using_user_input",
+            "severity": "CRITICAL",
+            "component": "test_vuln.js",
+            "line": 28,
+            "message": "Unsanitized user input in raw HTML strings (XSS). ## Description\n\nIncluding unsanitized user input in HTML exposes your application to cross-site scripting (XSS) attacks. This vulnerability allows attackers to inject malicious scripts into web pages ...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "15min",
+            "debt": "15min",
+            "tags": [
+              "security",
+              "bearer",
+              "high",
+              "security",
+              "medium",
+              "cwe-79"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201949",
+            "updateDate": "2025-08-26T15:21:06.201952",
+            "textRange": {
+              "startLine": 28,
+              "endLine": 28,
+              "startOffset": 14,
+              "endOffset": 53
+            }
+          },
+          {
+            "key": "bearer_javascript_express_helmet_missing_7fde4398d401d13a4909acdaa783f38f_0",
+            "rule": "javascript_express_helmet_missing",
+            "severity": "MAJOR",
+            "component": "test_vuln.js",
+            "line": 2,
+            "message": "Missing Helmet configuration on HTTP headers. ## Description\n\nHelmet can help protect your app from some well-known web vulnerabilities by setting HTTP headers appropriately. Failing to configure Helmet for HTTP headers leaves your application vu...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "10min",
+            "debt": "10min",
+            "tags": [
+              "security",
+              "bearer",
+              "medium",
+              "security",
+              "medium",
+              "cwe-693"
+            ],
+            "creationDate": "2025-08-26T15:21:06.201996",
+            "updateDate": "2025-08-26T15:21:06.201999",
+            "textRange": {
+              "startLine": 2,
+              "endLine": 2,
+              "startOffset": 13,
+              "endOffset": 22
+            }
+          },
+          {
+            "key": "bearer_javascript_express_reduce_fingerprint_c72b79444d58bb2e38b078dcb8dcb120_0",
+            "rule": "javascript_express_reduce_fingerprint",
+            "severity": "MAJOR",
+            "component": "test_vuln.js",
+            "line": 2,
+            "message": "Missing server configuration to reduce server fingerprinting. ## Description\n\nReducing server fingerprinting enhances security by making it harder for attackers to identify the software your server is running. Server fingerprinting involves analyzing the unique ...",
+            "status": "OPEN",
+            "type": "VULNERABILITY",
+            "effort": "10min",
+            "debt": "10min",
+            "tags": [
+              "security",
+              "bearer",
+              "medium",
+              "security",
+              "medium",
+              "cwe-693"
+            ],
+            "creationDate": "2025-08-26T15:21:06.202126",
+            "updateDate": "2025-08-26T15:21:06.202143",
+            "textRange": {
+              "startLine": 2,
+              "endLine": 2,
+              "startOffset": 13,
+              "endOffset": 22
+            }
+          }
+        ],
+        "code_smells": [],
+        "bugs": [],
+        "security_hotspots": [],
+        "execution_time": 8.411144,
+        "error_message": null
+      }
+    }
+  ],
+  "analysis_result": {
+    "status": "success",
+    "total_bugs": 9,
+    "bugs_to_fix": 9,
+    "list_bugs": [
+      {
+        "key": "bearer_javascript_lang_dynamic_os_command_a15877223715018ff0b40de8ae5380b1_0",
+        "rule": "javascript_lang_dynamic_os_command",
+        "severity": "BLOCKER",
+        "component": "test_vuln.js",
+        "line": 20,
+        "message": "Unsanitized dynamic input in OS command. ## Description\n\nIncorporating unsanitized dynamic input directly into operating system commands poses a significant security risk. This practice could give attackers the opportunity to execute harmful...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "critical",
+          "security",
+          "medium",
+          "cwe-78"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201502",
+        "updateDate": "2025-08-26T15:21:06.201517",
+        "textRange": {
+          "startLine": 20,
+          "endLine": 20,
+          "startOffset": 5,
+          "endOffset": 7
+        }
+      },
+      {
+        "key": "bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_0",
+        "rule": "javascript_lang_hardcoded_secret",
+        "severity": "BLOCKER",
+        "component": "test_vuln.js",
+        "line": 6,
+        "message": "Usage of hard-coded secret. ## Description\n\nStoring secrets directly in your code is a security risk. Instead, opt for environment variables or a secret management system to safeguard your secrets.\n\n## Remediations\n\n- **Do not**...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "critical",
+          "security",
+          "medium",
+          "cwe-798"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201600",
+        "updateDate": "2025-08-26T15:21:06.201603",
+        "textRange": {
+          "startLine": 6,
+          "endLine": 6,
+          "startOffset": 1,
+          "endOffset": 39
+        }
+      },
+      {
+        "key": "bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_1",
+        "rule": "javascript_lang_hardcoded_secret",
+        "severity": "BLOCKER",
+        "component": "test_vuln.js",
+        "line": 7,
+        "message": "Usage of hard-coded secret. ## Description\n\nStoring secrets directly in your code is a security risk. Instead, opt for environment variables or a secret management system to safeguard your secrets.\n\n## Remediations\n\n- **Do not**...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "critical",
+          "security",
+          "medium",
+          "cwe-798"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201653",
+        "updateDate": "2025-08-26T15:21:06.201655",
+        "textRange": {
+          "startLine": 7,
+          "endLine": 7,
+          "startOffset": 1,
+          "endOffset": 32
+        }
+      },
+      {
+        "key": "bearer_javascript_lang_os_command_injection_cc39913b65829db5799c3ad743e397e7_0",
+        "rule": "javascript_lang_os_command_injection",
+        "severity": "BLOCKER",
+        "component": "test_vuln.js",
+        "line": 20,
+        "message": "Unsanitized user input in OS command. ## Description\n\nExecuting operating system commands with unsanitized user input can lead to command injection vulnerabilities. This occurs when attackers manipulate the input to execute unauthorized c...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "critical",
+          "security",
+          "medium",
+          "cwe-78"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201783",
+        "updateDate": "2025-08-26T15:21:06.201790",
+        "textRange": {
+          "startLine": 20,
+          "endLine": 20,
+          "startOffset": 5,
+          "endOffset": 7
+        }
+      },
+      {
+        "key": "bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_0",
+        "rule": "javascript_express_cross_site_scripting",
+        "severity": "CRITICAL",
+        "component": "test_vuln.js",
+        "line": 13,
+        "message": "Unsanitized user input in HTTP response (XSS). ## Description\n\nIncluding unsanitized user input in HTTP responses exposes your application to cross-site scripting (XSS) attacks. This vulnerability allows attackers to inject malicious scripts into ...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "high",
+          "security",
+          "medium",
+          "cwe-79"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201853",
+        "updateDate": "2025-08-26T15:21:06.201856",
+        "textRange": {
+          "startLine": 13,
+          "endLine": 13,
+          "startOffset": 5,
+          "endOffset": 20
+        }
+      },
+      {
+        "key": "bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_1",
+        "rule": "javascript_express_cross_site_scripting",
+        "severity": "CRITICAL",
+        "component": "test_vuln.js",
+        "line": 28,
+        "message": "Unsanitized user input in HTTP response (XSS). ## Description\n\nIncluding unsanitized user input in HTTP responses exposes your application to cross-site scripting (XSS) attacks. This vulnerability allows attackers to inject malicious scripts into ...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "high",
+          "security",
+          "medium",
+          "cwe-79"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201897",
+        "updateDate": "2025-08-26T15:21:06.201900",
+        "textRange": {
+          "startLine": 28,
+          "endLine": 28,
+          "startOffset": 5,
+          "endOffset": 54
+        }
+      },
+      {
+        "key": "bearer_javascript_lang_raw_html_using_user_input_9be1e223403fc9dcb11396f4579547d6_0",
+        "rule": "javascript_lang_raw_html_using_user_input",
+        "severity": "CRITICAL",
+        "component": "test_vuln.js",
+        "line": 28,
+        "message": "Unsanitized user input in raw HTML strings (XSS). ## Description\n\nIncluding unsanitized user input in HTML exposes your application to cross-site scripting (XSS) attacks. This vulnerability allows attackers to inject malicious scripts into web pages ...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "15min",
+        "debt": "15min",
+        "tags": [
+          "security",
+          "bearer",
+          "high",
+          "security",
+          "medium",
+          "cwe-79"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201949",
+        "updateDate": "2025-08-26T15:21:06.201952",
+        "textRange": {
+          "startLine": 28,
+          "endLine": 28,
+          "startOffset": 14,
+          "endOffset": 53
+        }
+      },
+      {
+        "key": "bearer_javascript_express_helmet_missing_7fde4398d401d13a4909acdaa783f38f_0",
+        "rule": "javascript_express_helmet_missing",
+        "severity": "MAJOR",
+        "component": "test_vuln.js",
+        "line": 2,
+        "message": "Missing Helmet configuration on HTTP headers. ## Description\n\nHelmet can help protect your app from some well-known web vulnerabilities by setting HTTP headers appropriately. Failing to configure Helmet for HTTP headers leaves your application vu...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "10min",
+        "debt": "10min",
+        "tags": [
+          "security",
+          "bearer",
+          "medium",
+          "security",
+          "medium",
+          "cwe-693"
+        ],
+        "creationDate": "2025-08-26T15:21:06.201996",
+        "updateDate": "2025-08-26T15:21:06.201999",
+        "textRange": {
+          "startLine": 2,
+          "endLine": 2,
+          "startOffset": 13,
+          "endOffset": 22
+        }
+      },
+      {
+        "key": "bearer_javascript_express_reduce_fingerprint_c72b79444d58bb2e38b078dcb8dcb120_0",
+        "rule": "javascript_express_reduce_fingerprint",
+        "severity": "MAJOR",
+        "component": "test_vuln.js",
+        "line": 2,
+        "message": "Missing server configuration to reduce server fingerprinting. ## Description\n\nReducing server fingerprinting enhances security by making it harder for attackers to identify the software your server is running. Server fingerprinting involves analyzing the unique ...",
+        "status": "OPEN",
+        "type": "VULNERABILITY",
+        "effort": "10min",
+        "debt": "10min",
+        "tags": [
+          "security",
+          "bearer",
+          "medium",
+          "security",
+          "medium",
+          "cwe-693"
+        ],
+        "creationDate": "2025-08-26T15:21:06.202126",
+        "updateDate": "2025-08-26T15:21:06.202143",
+        "textRange": {
+          "startLine": 2,
+          "endLine": 2,
+          "startOffset": 13,
+          "endOffset": 22
+        }
+      }
+    ],
+    "analysis_summary": {
+      "high_priority": 7,
+      "medium_priority": 2,
+      "filtered_out": 0
+    }
+  },
+  "fix_result": {
+    "success": false,
+    "fixed_count": 0,
+    "failed_count": 9,
+    "total_bugs": 9,
+    "fix_details": [
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_lang_dynamic_os_command_a15877223715018ff0b40de8ae5380b1_0",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_0",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_lang_hardcoded_secret_e9148cb3e49ff316df66e00484a16228_1",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_lang_os_command_injection_cc39913b65829db5799c3ad743e397e7_0",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_0",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_express_cross_site_scripting_e665897cc7ecdef8d764bb2388077790_1",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_lang_raw_html_using_user_input_9be1e223403fc9dcb11396f4579547d6_0",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_express_helmet_missing_7fde4398d401d13a4909acdaa783f38f_0",
+        "status": "failed",
+        "message": "Fix failed"
+      },
+      {
+        "file": "test_vuln.js",
+        "bug_key": "bearer_javascript_express_reduce_fingerprint_c72b79444d58bb2e38b078dcb8dcb120_0",
+        "status": "failed",
+        "message": "Fix failed"
+      }
+    ],
+    "summary": {
+      "success_rate": 0.0,
+      "project_path": "D:\\InnoLab\\projects\\demo_apps\\Flask_App",
+      "use_rag": false,
+      "mode": "local"
+    }
+  },
+  "bugs_fixed": 0,
+  "status": "success"
+}

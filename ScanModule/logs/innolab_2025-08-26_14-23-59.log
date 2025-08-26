@@ -1,0 +1,280 @@
+2025-08-26 14:23:59,924 - innolab - INFO - Initialized 2 scanners
+2025-08-26 14:24:14,534 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:24:14,536 - innolab - INFO - Scanning directory: d:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:24:14,538 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:24:14,538 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:24:14,538 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v d:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:24:14,623 - innolab - INFO - Unable to find image 'bearer/bearer:latest' locally
+2025-08-26 14:24:17,020 - innolab - INFO - latest: Pulling from bearer/bearer
+2025-08-26 14:24:18,669 - innolab - INFO - a359a127b94a: Pulling fs layer
+2025-08-26 14:24:18,670 - innolab - INFO - 4b9ee71ced2b: Pulling fs layer
+2025-08-26 14:24:18,670 - innolab - INFO - 3dfb1407774c: Pulling fs layer
+2025-08-26 14:24:18,670 - innolab - INFO - b71466b94f26: Pulling fs layer
+2025-08-26 14:24:19,691 - innolab - INFO - a359a127b94a: Download complete
+2025-08-26 14:24:20,289 - innolab - INFO - 3dfb1407774c: Download complete
+2025-08-26 14:24:22,489 - innolab - INFO - b71466b94f26: Download complete
+2025-08-26 14:24:23,092 - innolab - INFO - b71466b94f26: Pull complete
+2025-08-26 14:24:23,691 - innolab - INFO - 4b9ee71ced2b: Download complete
+2025-08-26 14:24:24,695 - innolab - INFO - 4b9ee71ced2b: Pull complete
+2025-08-26 14:24:24,959 - innolab - INFO - a359a127b94a: Pull complete
+2025-08-26 14:24:24,962 - innolab - INFO - 3dfb1407774c: Pull complete
+2025-08-26 14:24:24,963 - innolab - INFO - Digest: sha256:e6fba3cdae6a9a0f9591e6399e6f228bc7ad6e95f12640075c3f32b8233e36de
+2025-08-26 14:24:24,963 - innolab - INFO - Status: Downloaded newer image for bearer/bearer:latest
+2025-08-26 14:24:26,271 - innolab - INFO - Analyzing codebase
+2025-08-26 14:24:33,804 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:24:33,805 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:24:33,806 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:24:33,807 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:24:33,808 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:27:48,304 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:27:48,304 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:27:48,304 - innolab - INFO - Scanning directory: d:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:27:48,305 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:27:48,305 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:27:48,306 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v d:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:27:49,356 - innolab - INFO - Analyzing codebase
+2025-08-26 14:27:56,325 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:27:56,326 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:27:56,327 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:27:56,329 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:27:56,330 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:28:49,462 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:28:49,463 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:28:49,463 - innolab - INFO - Scanning directory: d:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:28:49,465 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:28:49,465 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:28:49,465 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v d:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:28:50,431 - innolab - INFO - Analyzing codebase
+2025-08-26 14:28:56,848 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:28:56,849 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:28:56,849 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:28:56,850 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:28:56,850 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:35:48,624 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:35:48,625 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:35:48,625 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:35:48,628 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:35:48,629 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:35:48,629 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:35:49,617 - innolab - INFO - Analyzing codebase
+2025-08-26 14:35:57,418 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:35:57,418 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:35:57,419 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:35:57,419 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:35:57,419 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:37:05,296 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:37:05,298 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:37:05,298 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:37:05,302 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:37:05,303 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:37:05,303 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:37:06,374 - innolab - INFO - Analyzing codebase
+2025-08-26 14:37:22,807 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:37:22,808 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:37:22,808 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:37:22,808 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:37:22,809 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:39:00,280 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:39:00,282 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:39:00,282 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:39:00,286 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:39:00,287 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:39:00,287 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:39:01,286 - innolab - INFO - Analyzing codebase
+2025-08-26 14:39:08,551 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:39:08,552 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:39:08,552 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:39:08,552 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:39:08,553 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:39:19,735 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:39:19,737 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:39:19,738 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:39:19,740 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:39:19,741 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:39:19,741 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:39:20,739 - innolab - INFO - Analyzing codebase
+2025-08-26 14:39:27,267 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:39:27,268 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:39:27,268 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:39:27,270 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:39:27,272 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:39:38,414 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:39:38,415 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:39:38,415 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:39:38,417 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:39:38,418 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:39:38,418 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:39:39,365 - innolab - INFO - Analyzing codebase
+2025-08-26 14:39:47,436 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:39:47,436 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:39:47,437 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:39:47,437 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:39:47,438 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:42:16,059 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:42:16,060 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:42:16,060 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:42:16,062 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:42:16,062 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:42:16,063 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:42:17,012 - innolab - INFO - Analyzing codebase
+2025-08-26 14:42:23,779 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:42:23,780 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:42:23,781 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:42:23,782 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:42:23,783 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:43:42,295 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:43:42,295 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:43:42,296 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:43:42,297 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:43:42,297 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:43:42,297 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:43:43,243 - innolab - INFO - Analyzing codebase
+2025-08-26 14:43:49,794 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:43:49,796 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:43:49,797 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:43:49,799 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:43:49,801 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:45:31,702 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:45:31,703 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:45:31,703 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:45:31,706 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:45:31,707 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:45:31,708 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:45:32,712 - innolab - INFO - Analyzing codebase
+2025-08-26 14:45:39,931 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:45:39,932 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:45:39,932 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:45:39,933 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:45:39,933 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:48:35,423 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:48:35,425 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:48:35,426 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:48:35,433 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:48:35,434 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:48:35,434 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:48:36,488 - innolab - INFO - Analyzing codebase
+2025-08-26 14:48:43,910 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:48:43,910 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:48:43,911 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:48:43,911 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:48:43,911 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:51:41,465 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:51:41,466 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:51:41,466 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:51:41,468 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:51:41,469 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:51:41,469 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:51:42,394 - innolab - INFO - Analyzing codebase
+2025-08-26 14:51:50,765 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:51:50,766 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:51:50,766 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:51:50,767 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:51:50,768 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:54:18,776 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:54:18,778 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:54:18,779 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:54:18,783 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:54:18,783 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:54:18,784 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:54:19,760 - innolab - INFO - Analyzing codebase
+2025-08-26 14:54:26,977 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:54:26,978 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:54:26,979 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:54:26,981 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:54:26,982 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 14:58:23,671 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 14:58:23,673 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:58:23,673 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 14:58:23,675 - innolab - ERROR - Command not found: bearer
+2025-08-26 14:58:23,676 - innolab - INFO - Using Bearer Docker image
+2025-08-26 14:58:23,676 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 14:58:24,708 - innolab - INFO - Analyzing codebase
+2025-08-26 14:58:32,947 - innolab - ERROR - Command failed with return code 1
+2025-08-26 14:58:32,948 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 14:58:32,949 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 14:58:32,950 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 14:58:32,952 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:01:23,538 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:01:23,539 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:01:23,539 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:01:23,541 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:01:23,541 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:01:23,541 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:01:24,470 - innolab - INFO - Analyzing codebase
+2025-08-26 15:01:32,580 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:01:32,582 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:01:32,583 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:01:32,585 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:01:32,586 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:03:56,093 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:03:56,094 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:03:56,095 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:03:56,096 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:03:56,096 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:03:56,097 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:03:57,100 - innolab - INFO - Analyzing codebase
+2025-08-26 15:04:04,564 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:04:04,566 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:04:04,568 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:04:04,569 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:04:04,571 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:20:57,792 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:20:57,794 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:20:57,795 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:20:57,798 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:20:57,799 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:20:57,800 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:20:58,867 - innolab - INFO - Analyzing codebase
+2025-08-26 15:21:06,196 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:21:06,197 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:21:06,198 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:21:06,200 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:21:06,202 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:22:05,720 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:22:05,721 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:22:05,722 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:22:05,726 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:22:05,726 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:22:05,727 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:22:06,693 - innolab - INFO - Analyzing codebase
+2025-08-26 15:22:13,232 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:22:13,234 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:22:13,235 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:22:13,236 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:22:13,238 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:23:16,028 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:23:16,030 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:23:16,030 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:23:16,032 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:23:16,032 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:23:16,032 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:23:17,039 - innolab - INFO - Analyzing codebase
+2025-08-26 15:23:24,773 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:23:24,775 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:23:24,776 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:23:24,778 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:23:24,780 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:23:55,701 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:23:55,702 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:23:55,703 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:23:55,706 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:23:55,706 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:23:55,706 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:23:56,672 - innolab - INFO - Analyzing codebase
+2025-08-26 15:24:02,988 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:24:02,988 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:24:02,988 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:24:02,989 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:24:02,989 - innolab - INFO - Found 9 Bearer security issues
+2025-08-26 15:24:29,716 - innolab - INFO - Starting Bearer scan for project: Flask_App
+2025-08-26 15:24:29,718 - innolab - INFO - Removed existing Bearer results file: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:24:29,719 - innolab - INFO - Scanning directory: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:24:29,722 - innolab - ERROR - Command not found: bearer
+2025-08-26 15:24:29,723 - innolab - INFO - Using Bearer Docker image
+2025-08-26 15:24:29,723 - innolab - INFO - Running Bearer Docker scan: docker run --rm -v D:\InnoLab\projects\demo_apps\Flask_App:/scan -v d:\InnoLab\projects\SonarQ\bearer_results:/output bearer/bearer:latest scan /scan --format json --output /output/bearer_results_Flask_App.json --quiet --skip-path node_modules,*.git,__pycache__,.venv,venv,dist,build
+2025-08-26 15:24:30,688 - innolab - INFO - Analyzing codebase
+2025-08-26 15:24:37,344 - innolab - ERROR - Command failed with return code 1
+2025-08-26 15:24:37,345 - innolab - INFO - Bearer Docker scan completed successfully
+2025-08-26 15:24:37,345 - innolab - INFO - Reading Bearer scan results from: d:\InnoLab\projects\SonarQ\bearer_results\bearer_results_Flask_App.json
+2025-08-26 15:24:37,346 - innolab - INFO - Bearer scan results loaded successfully
+2025-08-26 15:24:37,347 - innolab - INFO - Found 9 Bearer security issues

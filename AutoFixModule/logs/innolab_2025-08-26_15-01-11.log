@@ -1,0 +1,4 @@
+2025-08-26 15:01:34,643 - innolab - INFO - Analyzing 9 bugs
+2025-08-26 15:01:34,645 - innolab - INFO - Analysis completed: 9 real bugs identified
+2025-08-26 15:01:36,709 - innolab - INFO - Fixing 9 bugs in project: D:\InnoLab\projects\demo_apps\Flask_App
+2025-08-26 15:02:48,233 - innolab - INFO - Fix completed: 0 fixed, 9 failed

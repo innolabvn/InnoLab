@@ -1,0 +1,4 @@
+2025-08-26 14:16:34,473 - innolab - INFO - Initialized 2 scanners
+2025-08-26 14:21:15,438 - innolab - ERROR - Error scanning project d:\InnoLab\projects\demo_apps\Flask_App: 'BearerScanner' object has no attribute 'scan_project'
+2025-08-26 14:22:59,588 - innolab - ERROR - Error scanning project d:\InnoLab\projects\demo_apps\Flask_App: 'BearerScanner' object has no attribute 'scan_project'
+2025-08-26 14:23:30,650 - innolab - ERROR - Error scanning project d:\InnoLab\projects\demo_apps\Flask_App: 'BearerScanner' object has no attribute 'scan_project'
