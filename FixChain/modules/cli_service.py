@@ -2,54 +2,8 @@ from __future__ import annotations
 import subprocess
 from typing import List, Optional, Sequence
 from utils.logger import logger
-
 class CLIService:
     """Helper service for running CLI commands with logging."""
-
-    @staticmethod
-    def run_command(
-        command: Sequence[str] | str,
-        cwd: Optional[str] = None,
-        env: Optional[dict] = None,
-        shell: bool = False,
-    ) -> bool:
-        """Run a command and log its output.
-
-        Args:
-            command: Command to execute. Can be a list of args or a string if ``shell`` is True.
-            cwd: Working directory for the command.
-            env: Optional environment variables.
-            shell: Whether to execute through the shell.
-
-        Returns:
-            bool: True if command succeeded (return code 0), False otherwise.
-        """
-        try:
-            result = subprocess.run(
-                command,
-                cwd=cwd,
-                env=env,
-                shell=shell,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                check=False,
-            )
-            if result.stdout:
-                logger.info(result.stdout.strip())
-            if result.stderr:
-                logger.warning(result.stderr.strip())
-            if result.returncode != 0:
-                logger.error(f"Command failed with return code {result.returncode}")
-                return False
-            return True
-        except FileNotFoundError:
-            cmd = command if isinstance(command, str) else command[0]
-            logger.error(f"Command not found: {cmd}")
-            return False
-        except Exception as e:
-            logger.error(f"Error running command {command}: {e}")
-            return False
 
     @staticmethod
     def run_command_stream(
@@ -68,7 +22,6 @@ class CLIService:
             process = subprocess.Popen(
                 command,
                 cwd=cwd,
-                env=env,
                 shell=shell,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -87,7 +40,7 @@ class CLIService:
                     # Ensure safe logging by encoding to ASCII with error handling
                     safe_line = clean_line.encode('ascii', errors='ignore').decode('ascii')
                     if safe_line.strip():  # Only log non-empty lines
-                        logger.info(safe_line)
+                        logger.info(f"stdout: {safe_line}")
                 except Exception as e:
                     # Fallback for any encoding issues
                     logger.info("[OUTPUT] <line with encoding issues>")

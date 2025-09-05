@@ -22,11 +22,11 @@ class BearerScanner(Scanner):
             logger.info(f"Starting Bearer scan for project: {self.project_key}")
             
             # Setup paths
-            innolab_root = os.getenv("INNOLAB_ROOT_PATH", "d:\\InnoLab")
+            innolab_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             proj_dir = os.path.join(innolab_root, "projects")
             
             # Ensure bearer_results directory exists
-            bearer_results_dir = os.path.join(innolab_root, "bearer_results")
+            bearer_results_dir = os.path.join(proj_dir, "bearer_results")
             os.makedirs(bearer_results_dir, exist_ok=True)
             
             # Output file path

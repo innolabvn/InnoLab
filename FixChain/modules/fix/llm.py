@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import os
+import sys
 from typing import Dict, List
 
 from utils.logger import logger
@@ -25,13 +26,15 @@ class LLMFixer(Fixer):
             logger.info(f"DEBUG: scan_directory = {self.scan_directory}")
             if os.path.isabs(self.scan_directory):
                 source_dir = self.scan_directory
-            else:
-                innolab_root = os.getenv("INNOLAB_ROOT_PATH", "D:\\VPAX\\InnoLab\\projects")
-                logger.info(f"DEBUG: innolab_root = {innolab_root}")
-                # Use scan_directory directly with innolab_root
-                source_dir = os.path.join(innolab_root, self.scan_directory)
+
+            original_dir = os.getcwd()
+            # Get SonarQ directory relative to the actual InnoLab root
+            actual_innolab_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            utils_dir = os.path.join(actual_innolab_root, "FixChain", "utils")
+            project_dir = os.path.join(actual_innolab_root, "projects")
+            source_dir = os.path.join(project_dir, self.scan_directory)
             logger.info(f"DEBUG: source_dir = {source_dir}")
-            logger.info(f"Fixing bugs in directory: {source_dir}")
+
             if not os.path.exists(source_dir):
                 logger.error(f"Source directory does not exist: {source_dir}")
                 return {
@@ -39,10 +42,6 @@ class LLMFixer(Fixer):
                     "fixed_count": 0,
                     "error": f"Source directory does not exist: {source_dir}",
                 }
-            original_dir = os.getcwd()
-            # Get SonarQ directory relative to the actual InnoLab root
-            actual_innolab_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            utils_dir = os.path.join(actual_innolab_root, "utils")
             try:
                 os.chdir(utils_dir)
                 # Create issues file in the project directory instead of SonarQ directory
@@ -71,7 +70,7 @@ class LLMFixer(Fixer):
                 scan_dir_path = source_dir
                 batch_fix_path = os.path.join(utils_dir, "batch_fix.py")
                 fix_cmd = [
-                    "python",
+                    sys.executable,
                     batch_fix_path,
                     scan_dir_path,
                     "--fix",

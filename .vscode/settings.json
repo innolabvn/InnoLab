@@ -1,0 +1,5 @@
+{
+    "python.defaultInterpreterPath": "D:/VPAX/InnoLab/FixChain/venv/Scripts/python.exe",
+    "git.ignoreLimitWarning": true,
+    "postman.settings.dotenv-detection-notification-visibility": false,
+}

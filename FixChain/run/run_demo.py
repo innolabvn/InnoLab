@@ -28,7 +28,7 @@ except Exception as e:
     RAG_AVAILABLE = False
 
 # Load environment variables from root directory
-root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 load_dotenv(root_env_path)
 
 class ExecutionServiceNoMongo:
@@ -41,7 +41,6 @@ class ExecutionServiceNoMongo:
         # Configuration from environment variables
         self.max_iterations = int(os.getenv('MAX_ITERATIONS', '5'))
         self.project_key = os.getenv('PROJECT_KEY')
-        self.source_code_path = os.getenv('SOURCE_CODE_PATH')
         # Priority: parameter > environment variable > default
         self.scan_directory = scan_directory or os.getenv('SCAN_DIRECTORY', 'projects/demo_project')
 
@@ -51,7 +50,7 @@ class ExecutionServiceNoMongo:
         elif scanners:
             self.scan_modes = [m.lower() for m in scanners]
         else:
-            self.scan_modes = ['sonar']
+            self.scan_modes = ['bearer']
 
         # Fixer configuration - allow comma separated string or list
         if isinstance(fixers, str):
@@ -68,7 +67,6 @@ class ExecutionServiceNoMongo:
         # Log configuration
         logger.info(f"Max iterations: {self.max_iterations}")
         logger.info(f"Project key: {self.project_key}")
-        logger.info(f"Source code path: {self.source_code_path}")
         logger.info(f"Scan directory: {self.scan_directory}")
         logger.info(f"Scan mode: {self.scan_modes}")
         logger.info(f"Fix mode: {self.fix_modes}")
@@ -130,29 +128,15 @@ class ExecutionServiceNoMongo:
                 
                 # Determine the correct scan path similar to Bearer scanner logic
                 innolab_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                sonar_dir = os.path.join(innolab_root, "SonarQ")
                 
-                if self.scan_directory and self.scan_directory != "projects/demo_project":
-                    if self.scan_directory == "SonarQ":
-                        # Special case for SonarQ - use projects/SonarQ
-                        scan_path = os.path.join(innolab_root, "projects", "SonarQ")
-                    elif os.path.isabs(self.scan_directory):
+                if self.scan_directory and self.scan_directory != "projects/Flask_App":
+                    if os.path.isabs(self.scan_directory):
                         scan_path = self.scan_directory
                     else:
-                        # Try relative to innolab_root first
-                        scan_path = os.path.abspath(os.path.join(innolab_root, self.scan_directory))
-                        if not os.path.exists(scan_path):
-                            # Then try relative to sonar_dir
-                            scan_path = os.path.abspath(os.path.join(sonar_dir, self.scan_directory))
-                            if not os.path.exists(scan_path):
-                                # Finally try as direct path under innolab_root
-                                scan_path = os.path.abspath(os.path.join(innolab_root, os.path.basename(self.scan_directory)))
+                        scan_path = os.path.abspath(os.path.join(innolab_root, "projects" ,self.scan_directory))
                 else:
                     # Default to demo_project directory
-                    scan_path = os.path.join(innolab_root, "projects", "demo_project")
-                    if not os.path.exists(scan_path):
-                        # Fallback to source_bug directory if demo_project doesn't exist
-                        scan_path = os.path.join(sonar_dir, "source_bug")
+                    scan_path = os.path.join(innolab_root, "projects", "Flask_App")
                 
                 if not os.path.exists(scan_path):
                     logger.error(f"Scan directory not found: {scan_path}")
@@ -394,17 +378,14 @@ def main():
                        help='Run with RAG support (insert default RAG data and use RAG for bug fixing)')
     parser.add_argument('--project', type=str, default='projects/demo_project',
                        help='Path to project directory to scan (default: projects/demo_project)')
-    parser.add_argument('--scanners', type=str, default='sonar',
-                       help='Comma-separated scanners to use for bug detection (default: sonar)')
+    parser.add_argument('--scanners', type=str, default='bearer',
+                       help='Comma-separated scanners to use for bug detection (default: bearer)')
     parser.add_argument('--fixers', type=str, default='llm',
                        help='Comma-separated fixers to apply (default: llm)')
     
     args = parser.parse_args()
     
-    print("🚀 Running ExecutionService Demo")
-    print("This demo runs the bug fixing process without MongoDB dependency")
     print(f"RAG functionality: {'Available' if RAG_AVAILABLE else 'Not Available'}")
-    print(f"Scanners: {args.scanners}")
     print(f"Fixers: {args.fixers}")
     print(f"Project directory: {args.project}")
     print("-" * 60)

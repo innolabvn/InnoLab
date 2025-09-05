@@ -100,23 +100,19 @@ def run_workflow_with_dify(api_key, inputs, user, response_mode, mode=DifyMode.C
     """Run a workflow via Dify API using the workflow's api_key."""
     try:
         logger.info(f"Running workflow with Dify API: {api_key}")
-        logger.info(f"User: {user}")
-        logger.info(f"Mode: {mode}")
-
         base_url = DIFY_BASE_URL
-        logger.info(f"Base URL: {base_url}")
         url = f"{base_url}/workflows/run"
         headers = get_headers(api_key)
         headers["Content-Type"] = "application/json"
         payload = {"inputs": inputs, "user": user, "response_mode": response_mode}
-        logger.info(f"POST {url} with payload: {payload}")
+        # logger.info(f"POST {url} with payload: {payload}")
         response = requests.post(url, headers=headers, json=payload, timeout=(10, 180))
-        logger.info(f"Dify workflow run response status: {response.status_code}")
-        logger.info(f"Dify workflow run response: {response.text}")
+        # logger.info(f"Dify workflow run response status: {response.status_code}")
+        # logger.info(f"Dify workflow run response: {response.text}")
         response.raise_for_status()
         return response.json()  # Trả về ngay sau khi gọi API
     except requests.exceptions.Timeout:
-        logger.error("Dify API request timed out (run_workflow endpoint).")
+        logger.error("Dify API request timed out.")
         raise
     except Exception as e:
         logger.error(f"Failed to run workflow via Dify: {str(e)}")

@@ -30,7 +30,7 @@ class FixResult:
     original_size: int
     fixed_size: int
     issues_found: List[str]
-    validation_errors: List[str]
+    validation_errors: Optional[List[str]] = None
     backup_path: Optional[str] = None
     processing_time: float = 0.0
     similarity_ratio: float = 0.0
@@ -139,7 +139,7 @@ class CodeValidator:
             return False, errors
     
     @staticmethod
-    def check_code_quality(original: str, fixed: str) -> Dict[str, any]:
+    def check_code_quality(original: str, fixed: str):
         """Compare code quality metrics"""
         return {
             'size_change': len(fixed) - len(original),
@@ -156,7 +156,7 @@ class CodeValidator:
 class SecureFixProcessor:
     """Enhanced secure processor with comprehensive validation"""
     
-    def __init__(self, api_key: str, source_dir: str, backup_dir: str | None, similarity_threshold: float = 0.85):
+    def __init__(self, api_key: str, source_dir: str, backup_dir: Optional[str], similarity_threshold: float = 0.85):
         self.similarity_threshold = similarity_threshold  # Ngưỡng chấp nhận độ tương thích
         self.model = self._setup_gemini(api_key)
         self.source_dir = os.path.abspath(source_dir)  # Store absolute path of source directory
@@ -167,7 +167,7 @@ class SecureFixProcessor:
         self.rag_service = RAGService()
         
         # Create unique backup directory
-        self.backup_dir = "backups"
+        self.backup_dir = backup_dir or "backups"
         self._setup_logging()
     
     def _setup_gemini(self, api_key: str):
@@ -413,8 +413,13 @@ class SecureFixProcessor:
                 rag_suggestion = self.search_rag_for_similar_fixes(file_path, issues_data)
             
             # Attempt fix with retries
-            fixed_code = None
+            fixed_code = ""
             validation_errors = []
+
+            # Extract token usage from response
+            input_tokens = 0
+            output_tokens = 0
+            total_tokens = 0
             
             for attempt in range(max_retries + 1):
                 try:
@@ -450,11 +455,6 @@ class SecureFixProcessor:
                     # Generate fix
                     response = self.model.generate_content(prompt)
                     candidate_fixed = self._clean_response(response.text)
-                    
-                    # Extract token usage from response
-                    input_tokens = 0
-                    output_tokens = 0
-                    total_tokens = 0
                     
                     if hasattr(response, 'usage_metadata') and response.usage_metadata:
                         input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
@@ -576,7 +576,7 @@ class SecureFixProcessor:
         }
         return rules.get(file_ext, "- Maintain original functionality\n- Fix syntax errors only")
     
-    def _load_prompt_template(self, template_type: str, custom_prompt: str = None):
+    def _load_prompt_template(self, template_type: str, custom_prompt: Optional[str] = None):
         """Load prompt template from files or use custom prompt"""
         try:
             # Setup Jinja2 environment for template loading
@@ -601,13 +601,13 @@ class SecureFixProcessor:
                     else:
                         # Fallback to inline custom template
                         template_content = f"""
-{custom_prompt}
+                                            {custom_prompt}
 
-Code cần sửa:
-{{{{ original_code }}}}
+                                            Code cần sửa:
+                                            {{{{ original_code }}}}
 
-Chỉ trả về code đã sửa, không cần markdown formatting hay giải thích.
-"""
+                                            Chỉ trả về code đã sửa, không cần markdown formatting hay giải thích.
+                                            """
                 else:
                     # Use template file based on type
                     template_file = template_files.get(template_type, 'fix.j2')
@@ -638,7 +638,7 @@ Chỉ trả về code đã sửa, không cần markdown formatting hay giải th
         
         return SimpleTemplate(template_content), {}
     
-    def _log_template_usage(self, file_path: str, template_type: str, custom_prompt: str, rendered_prompt: str):
+    def _log_template_usage(self, file_path: str, template_type: str, custom_prompt: Optional[str], rendered_prompt: str):
         """Log template usage for analysis"""
         try:
             log_data = {
@@ -690,7 +690,7 @@ Chỉ trả về code đã sửa, không cần markdown formatting hay giải th
             print(f"  Warning: RAG search failed: {str(e)}")
             return None
     
-    def add_bug_to_rag(self, fix_result: FixResult, issues_data: List[Dict] = None, 
+    def add_bug_to_rag(self, fix_result: FixResult, issues_data: Optional[List[Dict]], 
                        raw_response: str = "", fixed_code: str = "") -> bool:
         """Add fixed bug information to RAG system using RAGService"""
         try:
@@ -1009,7 +1009,7 @@ def main():
         print("Starting file scanning...")
     
     # Process files
-    processor = SecureFixProcessor(api_key, directory)
+    processor = SecureFixProcessor(api_key, directory, None)
     processor.load_ignore_patterns(directory)
     results = []
     processed_files = set()  # Track processed files for copy-all feature
