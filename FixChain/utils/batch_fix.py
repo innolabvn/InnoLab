@@ -397,6 +397,9 @@ class SecureFixProcessor:
                                  issues_data: Optional[List[Dict]] = None, enable_rag: bool = False) -> FixResult:
         """Fix file with comprehensive validation"""
         start_time = datetime.now()
+        # Attempt fix with retries
+        fixed_code = ""
+        validation_errors = []
         
         try:
             # Read original file
@@ -412,9 +415,6 @@ class SecureFixProcessor:
             if enable_rag:
                 rag_suggestion = self.search_rag_for_similar_fixes(file_path, issues_data)
             
-            # Attempt fix with retries
-            fixed_code = ""
-            validation_errors = []
 
             # Extract token usage from response
             input_tokens = 0
@@ -874,14 +874,10 @@ def main():
 
 
     parser.add_argument('--auto', action='store_true', help='Auto mode: skip confirmation prompts')
-    parser.add_argument('--issues-file', type=str, help='JSON file containing issues from SonarQube or other tools')
+    parser.add_argument('--issues-file', type=str, help='JSON file containing issues from scan tools')
     parser.add_argument('--enable-rag', action='store_true', help='Enable RAG integration to store fixed bugs information')
     
     args = parser.parse_args()
-    
-    print("Enhanced Secure Batch Fix Script")
-    print("Advanced AI-powered code fixing with validation & safety checks")
-    print("=" * 70)
     
     # Setup - Load environment variables from root directory
     root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
@@ -889,61 +885,28 @@ def main():
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
         print("Error: GEMINI_API_KEY not found in .env file")
+        import sys
         sys.exit(1)
     
     # Get directory
     if args.destination:
         directory = args.destination
     else:
-        print("\nUsage Examples:")
-        print("  python batch_fix.py source_bug --scan-only                    # Scan only")
-        print("  python batch_fix.py source_bug --fix                          # Scan and fix")
-        print("  python batch_fix.py source_bug --fix --auto                   # Fix without confirmation")
-
-        print("  python batch_fix.py source_bug --fix --prompt \"Fix security issues\" # Fix with custom prompt")
-
-        print("  python batch_fix.py /path/to/code --fix --auto                # Fix specific directory automatically")
-        print("  python batch_fix.py source_bug --fix --issues-file issues.json # Fix using SonarQube issues")
-        print("  python batch_fix.py source_bug --fix --enable-rag             # Fix and store results in RAG system")
-        print("\nLogging:")
-        print("  Template usage and AI responses are automatically logged to ./logs/template_usage_TIMESTAMP.log")
-        print("  Log entries include template type, custom prompts, response quality metrics, and file paths")
-        print("  Use these logs to analyze template effectiveness and AI response quality")
-        print("\n")
         directory = input("Enter directory path: ").strip()
     
     if not directory or not os.path.isdir(directory):
         print(f"Invalid directory: {directory}")
-        if not args.destination:
-            print("\nUsage Examples:")
-            print("  python batch_fix.py source_bug --scan-only")
-            print("  python batch_fix.py source_bug --fix")
-            print("  python batch_fix.py source_bug --fix --auto")
-
-            print("  python batch_fix.py source_bug --fix --prompt \"Fix security issues\"")
-
-            print("  python batch_fix.py source_bug --fix --issues-file issues.json")
-            print("\nLogging:")
-            print("  Template usage and AI responses are logged to ./logs/template_usage_TIMESTAMP.log")
-            print("  Logs include template type, prompts, response metrics, and processing details")
         return
     
     # Determine mode and output directory
     fix_mode = args.fix and not args.scan_only
     mode_text = "FIXING" if fix_mode else "SCANNING"
-    print(f"\n{mode_text} Mode Enabled")
-    
-    if fix_mode:
-        print("Fixing files in-place (overwriting originals)")
+    print(f"\n{mode_text} Mode")
     
     # Custom prompt
     custom_prompt = args.prompt
     if custom_prompt:
         print(f"Using custom prompt: {custom_prompt[:50]}{'...' if len(custom_prompt) > 50 else ''}")
-    
-    # RAG integration
-    if args.enable_rag:
-        print("RAG Integration: Enabled - Fixed bugs will be stored in RAG system")
     
     # Load issues file if provided
     issues_by_file = {}

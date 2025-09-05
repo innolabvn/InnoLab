@@ -23,14 +23,14 @@ class AnalysisService:
         counts["TOTAL"] = len(bugs)
         return counts
 
-    def analyze_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, source_code: str = "") -> Dict:
+    def analyze_bugs_with_dify(self, bugs: List[Dict], use_rag: bool = False, source_code: str = ""):
         list_bugs = []
         bugs_to_fix = 0
         try:
             api_key = self.dify_cloud_api_key
             if not api_key:
                 logger.error(f"No API key found for Dify")
-                return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
+                return {"success": False, "error": "Missing API key"}
             inputs = {
                 "is_use_rag": str(use_rag),
                 "src": source_code,
@@ -40,7 +40,6 @@ class AnalysisService:
             response = run_workflow_with_dify(
                 api_key=api_key,
                 inputs=inputs,
-                user="hieult",
                 response_mode="blocking",
             )
             outputs = response.get("data", {}).get("outputs", {})

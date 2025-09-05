@@ -43,11 +43,8 @@ class CLIService:
                         logger.info(f"stdout: {safe_line}")
                 except Exception as e:
                     # Fallback for any encoding issues
-                    logger.info("[OUTPUT] <line with encoding issues>")
-            return_code = process.wait()
-            if return_code != 0:
-                logger.error(f"Command failed with return code {return_code}")
-                return False, output_lines
+                    logger.info("stdout error: {e}")
+            process.wait()
             return True, output_lines
         except FileNotFoundError:
             cmd = command if isinstance(command, str) else command[0]

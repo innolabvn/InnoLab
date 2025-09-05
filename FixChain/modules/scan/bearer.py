@@ -45,7 +45,6 @@ class BearerScanner(Scanner):
                 if os.path.isabs(self.scan_directory):
                     project_dir = self.scan_directory
                 else:
-                    # Try relative to innolab_root first
                     project_dir = os.path.abspath(os.path.join(innolab_root, self.scan_directory))
                     if not os.path.exists(project_dir):
                         # Then try relative to proj_dir
@@ -55,10 +54,7 @@ class BearerScanner(Scanner):
                             project_dir = os.path.abspath(os.path.join(innolab_root, os.path.basename(self.scan_directory)))
             else:
                 # Default to demo_project directory
-                project_dir = os.path.join(innolab_root, "projects", "demo_project")
-                if not os.path.exists(project_dir):
-                    # Fallback to source_bug directory if demo_project doesn't exist
-                    project_dir = os.path.join(proj_dir, "source_bug")
+                project_dir = os.path.join(innolab_root, "projects", "Flask_App")
             
             if not os.path.exists(project_dir):
                 logger.error(f"Project directory not found: {project_dir}")
@@ -69,9 +65,7 @@ class BearerScanner(Scanner):
             # Run Bearer scan with proper JSON output
             # Use bearer CLI directly if available, otherwise use docker
             scan_success = False
-            try:
-                logger.info("Using Bearer Docker image")
-                
+            try:                
                 scan_cmd = [
                     "docker", "run", "--rm",
                     "-v", f"{project_dir}:/scan",
@@ -80,18 +74,18 @@ class BearerScanner(Scanner):
                     "scan", "/scan",
                     "--format", "json",
                     "--output", f"/output/{os.path.basename(output_file)}",
-                    "--quiet",
+                    "--hide-progress-bar",
                     "--skip-path", "node_modules,*.git,__pycache__,.venv,venv,dist,build"
                 ]
                 
-                logger.info(f"Running Bearer Docker scan...")
+                logger.info(f"Running Bearer Docker")
                 success, output_lines = CLIService.run_command_stream(scan_cmd)
                 
                 # Check if output file exists regardless of command exit code
                 # Bearer sometimes returns non-zero exit code but still produces valid output
-                if os.path.exists(output_file):
+                if success | os.path.exists(output_file):
                     scan_success = True
-                    logger.info("Bearer Docker scan completed successfully")
+                    logger.info("Bearer Docker scan completed")
                 else:
                     logger.error("Bearer Docker scan failed")
                     # Log output for debugging
@@ -101,7 +95,7 @@ class BearerScanner(Scanner):
                     logger.error(f"Bearer scan output: {clean_output[:1000]}")
                     
             except Exception as docker_error:
-                logger.error(f"Error running Bearer Docker scan: {docker_error}")
+                logger.error(f"Error running Bearer scan: {docker_error}")
             
             # If scan failed, return empty list
             if not scan_success or not os.path.exists(output_file):
@@ -112,8 +106,8 @@ class BearerScanner(Scanner):
             logger.info(f"Reading Bearer scan results from: {output_file}")
             with open(output_file, "r", encoding="utf-8") as f:
                 bearer_data = json.load(f)
+                logger.info("Bearer scan results loaded successfully")
             
-            logger.info("Bearer scan results loaded successfully")
             
             # Debug: Log raw Bearer data structure
             logger.debug(f"Bearer data keys: {list(bearer_data.keys())}")

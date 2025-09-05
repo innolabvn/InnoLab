@@ -13,19 +13,10 @@ from dotenv import load_dotenv
 # Add the project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lib.dify_lib import DifyMode
 from utils.logger import logger
 from modules.scan import registry as scan_registry
 from modules.fix import registry as fix_registry
 from modules.analysis_service import AnalysisService
-
-try:
-    # Check if RAG functionality is available
-    # For demo purposes, RAG is available but simplified
-    RAG_AVAILABLE = True
-except Exception as e:
-    logger.warning(f"Error checking RAG availability: {e}")
-    RAG_AVAILABLE = False
 
 # Load environment variables from root directory
 root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
@@ -70,7 +61,6 @@ class ExecutionServiceNoMongo:
         logger.info(f"Scan directory: {self.scan_directory}")
         logger.info(f"Scan mode: {self.scan_modes}")
         logger.info(f"Fix mode: {self.fix_modes}")
-        logger.info(f"RAG available: {RAG_AVAILABLE}")
 
         # Initialize services
         self.analysis_service = AnalysisService(
@@ -86,7 +76,7 @@ class ExecutionServiceNoMongo:
         }
         
         for mode in self.scan_modes:
-            registry_name = 'sonarq' if mode == 'sonar' else mode
+            registry_name = mode
             args = scanner_args.get(mode) or scanner_args.get(registry_name, {})
             self.scanners.append(scan_registry.create(registry_name, **args))
 
@@ -182,12 +172,10 @@ class ExecutionServiceNoMongo:
     def run_execution(self, use_rag: bool = False) -> Dict:
         """Run execution with or without RAG support"""
         start_time = datetime.now()
-        logger.info(f"Starting execution {'with' if use_rag else 'without'} RAG")
-        
         iterations = []
         total_bugs_fixed = 0
         for iteration in range(1, self.max_iterations + 1):
-            logger.info(f"=== ITERATION {iteration}/{self.max_iterations} ===")
+            logger.info(f"===== ITERATION {iteration}/{self.max_iterations} =====")
 
             # Scan for bugs using all configured scanners
             bugs = []
@@ -385,23 +373,14 @@ def main():
     
     args = parser.parse_args()
     
-    print(f"RAG functionality: {'Available' if RAG_AVAILABLE else 'Not Available'}")
     print(f"Fixers: {args.fixers}")
     print(f"Project directory: {args.project}")
     print("-" * 60)
     
     # Determine execution mode based on command line arguments
     if args.insert_rag:
-        if not RAG_AVAILABLE:
-            print("\n⚠️  Warning: --insert_rag specified but RAG functionality is not available")
-            print("Falling back to execution without RAG")
-            use_rag = False
-        else:
-            print("\nRunning with RAG support")
-            use_rag = True
+        use_rag = True
     else:
-        # Default to running without RAG (no interactive mode)
-        print("\nRunning with default mode: without RAG")
         use_rag = False
     
     try:
@@ -412,12 +391,7 @@ def main():
             fixers=args.fixers,
         )
         
-        # Run execution based on user choice
-        if use_rag:
-            print(f"\nRunning with RAG support, scanners: {args.scanners}")
-        else:
-            print(f"\nRunning without RAG, scanners: {args.scanners})...")
-        
+        print("\nRunning scanners")
         result = service.run_execution(use_rag=use_rag)
         
         # Display results
@@ -438,21 +412,19 @@ def main():
             print(f"        + Type Code-smell: {bugs_ignored}")
    
             bugs_to_fix = iteration.get('analysis_result', {}).get('bugs_to_fix', 0)
-            print(f"    🔧 Bugs to fix: {bugs_to_fix}")
+            print(f"🔧 Bugs to fix: {bugs_to_fix}")
             rescan_found = iteration.get('rescan_bugs_found', 0)
             rescan_bug_type = iteration.get('rescan_bugs_type_bug', 0)
             rescan_code_smell = iteration.get('rescan_bugs_type_code_smell', 0)
-            print(f"    🔄 Bugs after rescan: {rescan_found} ({rescan_bug_type} BUG, {rescan_code_smell} CODE_SMELL)")
-            print(f"    🚫 Bugs Ignored: {bugs_ignored}")
+            print(f"🔄 Bugs after rescan: {rescan_found} ({rescan_bug_type} BUG, {rescan_code_smell} CODE_SMELL)")
+            print(f"🚫 Bugs Ignored: {bugs_ignored}")
        
-
-            # print(f"    Bugs remain: {iteration.get('fix_result', {}).get('bugs_remain', 0)}")
             fix_results = iteration.get('fix_results', [])
             fix_result = fix_results[-1] if fix_results else iteration.get('fix_result', {})
             
             # Hiển thị thông tin token usage nếu có
             if fix_result.get('total_tokens', 0) > 0:
-                print(f"    💰 Token Usage:")
+                print(f"💰 Token Usage:")
                 print(f"        + Input tokens: {fix_result.get('total_input_tokens', 0):,}")
                 print(f"        + Output tokens: {fix_result.get('total_output_tokens', 0):,}")
                 print(f"        + Total tokens: {fix_result.get('total_tokens', 0):,}")
