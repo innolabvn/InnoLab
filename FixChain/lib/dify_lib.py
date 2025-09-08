@@ -21,7 +21,7 @@ def run_workflow_with_dify(api_key, inputs, response_mode):
         url = f"{base_url}/workflows/run"
         headers = get_headers(api_key)
         headers["Content-Type"] = "application/json"
-        payload = {"inputs": inputs, "response_mode": response_mode}
+        payload = {"inputs": inputs, "user": "user", "response_mode": response_mode}
         # logger.info(f"POST {url} with payload: {payload}")
         response = requests.post(url, headers=headers, json=payload, timeout=(10, 180))
         # logger.info(f"Dify workflow run response status: {response.status_code}")

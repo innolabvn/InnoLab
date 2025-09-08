@@ -49,3 +49,6 @@ out/
 
 # OS files
 *.bak # Exclude backup files
+
+# JetBrains IDEs
+.idea/ # Exclude .idea directory created by JetBrains IDEs
