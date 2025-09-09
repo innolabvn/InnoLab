@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Optional, Sequence
 import subprocess
 import re
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 
 class CLIService:
     """Helper service for running CLI commands with logging."""

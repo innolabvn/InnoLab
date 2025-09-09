@@ -7,7 +7,7 @@ from pymongo import MongoClient, ASCENDING, TEXT
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure
 from dotenv import load_dotenv
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 
 # Load environment variables from root directory
 root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), '.env')

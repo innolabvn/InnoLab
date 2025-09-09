@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
 from .base import Fixer
 
@@ -138,7 +138,7 @@ class LLMFixer(Fixer):
             # Chuẩn bị lệnh chạy batch_fix
             fix_cmd = [
                 sys.executable,
-                str(batch_fix_path),
+                "-m", "app.services.batch_fix.cli",
                 str(source_dir),
                 "--fix",
                 "--auto",

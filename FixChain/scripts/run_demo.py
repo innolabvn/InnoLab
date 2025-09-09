@@ -14,7 +14,7 @@ import os
 from typing import List
 
 from dotenv import load_dotenv
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 from src.app.services.execution.service import ExecutionConfig, ExecutionServiceNoMongo
 
 

@@ -4,7 +4,7 @@ import json, os
 from datetime import datetime
 from typing import Optional, Tuple, Dict, Any
 from jinja2 import Environment, FileSystemLoader
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 
 class TemplateManager:
     def __init__(self, prompt_dir: Optional[str] = None) -> None:

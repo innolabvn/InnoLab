@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, TypedDict
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 
 # ---- Config ----
 DEFAULT_BASE_URL = "https://api.dify.ai/v1"

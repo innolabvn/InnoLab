@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse, json, os
 from pathlib import Path
 from dotenv import load_dotenv
-from FixChain.src.app.services.log_service import logger
+from src.app.services.log_service import logger
 from app.services.batch_fix.processor import SecureFixProcessor
 
 def run():
