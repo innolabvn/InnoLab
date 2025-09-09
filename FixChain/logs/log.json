@@ -1,0 +1,1161 @@
+{
+    "project_key": "my-app",
+    "total_bugs_fixed": 0,
+    "iterations": [
+        {
+            "iteration": 1,
+            "bugs_found": 5,
+            "bugs_type_bug": 0,
+            "bugs_type_code_smell": 0,
+            "timestamp": "2025-09-09T09:50:48.283677",
+            "analysis_result": {
+                "success": true,
+                "list_bugs": {
+                    "bugs_to_fix": 5,
+                    "bugs": [
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of unsafe Pickle libraries. RAG: Type normalization",
+                            "rule_description": "Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...",
+                            "rule_key": "python_lang_avoid_pickle",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of insecure HTTP connection. RAG: Type normalization",
+                            "rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...",
+                            "rule_key": "python_lang_insecure_http",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to missing signature verification of JWT. RAG: Type normalization",
+                            "rule_description": "Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+                            "rule_key": "python_lang_jwt_verification_bypass",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to missing SSL certificate verification. RAG: Type normalization",
+                            "rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+                            "rule_key": "python_lang_ssl_verification",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of weak hashing library (MDx). RAG: Type normalization",
+                            "rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+                            "rule_key": "python_lang_weak_hash_md5",
+                            "type": "vulnerability"
+                        }
+                    ]
+                },
+                "bugs_to_fix": 5,
+                "message": "Need to fix 5 bugs"
+            },
+            "fix_results": [
+                {
+                    "success": true,
+                    "fixed_count": 0,
+                    "total_input_tokens": 0,
+                    "total_output_tokens": 0,
+                    "total_tokens": 0,
+                    "average_similarity": 0.0,
+                    "threshold_met_count": 0,
+                    "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                    "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+                }
+            ],
+            "fix_result": {
+                "success": true,
+                "fixed_count": 0,
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_tokens": 0,
+                "average_similarity": 0.0,
+                "threshold_met_count": 0,
+                "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+            },
+            "rescan_bugs_found": 5,
+            "rescan_bugs_type_bug": 0,
+            "rescan_bugs_type_code_smell": 0
+        },
+        {
+            "iteration": 2,
+            "bugs_found": 5,
+            "bugs_type_bug": 0,
+            "bugs_type_code_smell": 0,
+            "timestamp": "2025-09-09T09:51:09.623402",
+            "analysis_result": {
+                "success": true,
+                "list_bugs": {
+                    "bugs_to_fix": 5,
+                    "bugs": [
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of unsafe Pickle libraries. RAG: vulnerability",
+                            "rule_description": "Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...",
+                            "rule_key": "python_lang_avoid_pickle",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability due to the usage of an insecure HTTP connection. RAG: vulnerability",
+                            "rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...",
+                            "rule_key": "python_lang_insecure_http",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to missing signature verification of JWT. RAG: vulnerability",
+                            "rule_description": "Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+                            "rule_key": "python_lang_jwt_verification_bypass",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability due to missing SSL certificate verification. RAG: vulnerability",
+                            "rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+                            "rule_key": "python_lang_ssl_verification",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of a weak hashing library (MD5). RAG: vulnerability",
+                            "rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+                            "rule_key": "python_lang_weak_hash_md5",
+                            "type": "vulnerability"
+                        }
+                    ]
+                },
+                "bugs_to_fix": 5,
+                "message": "Need to fix 5 bugs"
+            },
+            "fix_results": [
+                {
+                    "success": true,
+                    "fixed_count": 0,
+                    "total_input_tokens": 0,
+                    "total_output_tokens": 0,
+                    "total_tokens": 0,
+                    "average_similarity": 0.0,
+                    "threshold_met_count": 0,
+                    "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                    "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+                }
+            ],
+            "fix_result": {
+                "success": true,
+                "fixed_count": 0,
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_tokens": 0,
+                "average_similarity": 0.0,
+                "threshold_met_count": 0,
+                "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+            },
+            "rescan_bugs_found": 5,
+            "rescan_bugs_type_bug": 0,
+            "rescan_bugs_type_code_smell": 0
+        },
+        {
+            "iteration": 3,
+            "bugs_found": 5,
+            "bugs_type_bug": 0,
+            "bugs_type_code_smell": 0,
+            "timestamp": "2025-09-09T09:51:31.972943",
+            "analysis_result": {
+                "success": true,
+                "list_bugs": {
+                    "bugs_to_fix": 5,
+                    "bugs": [
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of unsafe Pickle libraries. RAG: Type normalization",
+                            "rule_description": "Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...",
+                            "rule_key": "python_lang_avoid_pickle",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability because it uses an insecure HTTP connection. RAG: Type normalization",
+                            "rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...",
+                            "rule_key": "python_lang_insecure_http",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability due to missing signature verification of JWT. RAG: Type normalization",
+                            "rule_description": "Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+                            "rule_key": "python_lang_jwt_verification_bypass",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability because of missing SSL certificate verification. RAG: Type normalization",
+                            "rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+                            "rule_key": "python_lang_ssl_verification",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability because it uses a weak hashing library (MD5). RAG: Type normalization",
+                            "rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+                            "rule_key": "python_lang_weak_hash_md5",
+                            "type": "vulnerability"
+                        }
+                    ]
+                },
+                "bugs_to_fix": 5,
+                "message": "Need to fix 5 bugs"
+            },
+            "fix_results": [
+                {
+                    "success": true,
+                    "fixed_count": 0,
+                    "total_input_tokens": 0,
+                    "total_output_tokens": 0,
+                    "total_tokens": 0,
+                    "average_similarity": 0.0,
+                    "threshold_met_count": 0,
+                    "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                    "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+                }
+            ],
+            "fix_result": {
+                "success": true,
+                "fixed_count": 0,
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_tokens": 0,
+                "average_similarity": 0.0,
+                "threshold_met_count": 0,
+                "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+            },
+            "rescan_bugs_found": 5,
+            "rescan_bugs_type_bug": 0,
+            "rescan_bugs_type_code_smell": 0
+        },
+        {
+            "iteration": 4,
+            "bugs_found": 5,
+            "bugs_type_bug": 0,
+            "bugs_type_code_smell": 0,
+            "timestamp": "2025-09-09T09:51:54.811636",
+            "analysis_result": {
+                "success": true,
+                "list_bugs": {
+                    "bugs_to_fix": 5,
+                    "bugs": [
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability related to the usage of unsafe Pickle libraries.",
+                            "rule_description": "Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...",
+                            "rule_key": "python_lang_avoid_pickle",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability because it uses insecure HTTP connections.",
+                            "rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...",
+                            "rule_key": "python_lang_insecure_http",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability due to missing signature verification of JWT.",
+                            "rule_description": "Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+                            "rule_key": "python_lang_jwt_verification_bypass",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability because it is missing SSL certificate verification.",
+                            "rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+                            "rule_key": "python_lang_ssl_verification",
+                            "type": "vulnerability"
+                        },
+                        {
+                            "action": "Fix",
+                            "bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+                            "classification": "True Positive",
+                            "reason": "The issue is a vulnerability because it uses a weak hashing library (MD5).",
+                            "rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+                            "rule_key": "python_lang_weak_hash_md5",
+                            "type": "vulnerability"
+                        }
+                    ]
+                },
+                "bugs_to_fix": 5,
+                "message": "Need to fix 5 bugs"
+            },
+            "fix_results": [
+                {
+                    "success": true,
+                    "fixed_count": 0,
+                    "total_input_tokens": 0,
+                    "total_output_tokens": 0,
+                    "total_tokens": 0,
+                    "average_similarity": 0.0,
+                    "threshold_met_count": 0,
+                    "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+                    "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+                }
+            ],
+            "fix_result": {
+                "success": true,
+                "fif JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+                "rule_key": "python_lang_jwt_verification_bypass",
+                "type": "vulnerability"
+            },
+            {
+                "action": "Fix",
+                "bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+                "classification": "True Positive",
+                "reason": "The issue is a vulnerability because it is missing SSL certificate verification.",
+                "rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+                "rule_key": "python_lang_ssl_verification",
+                "type": "vulnerability"
+            },
+            {
+                "action": "Fix",
+                "bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+                "classification": "True Positive",
+                "reason": "The issue is a vulnerability because it uses a weak hashing library (MD5).",
+                "rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+                "rule_key": "python_lang_weak_hash_md5",
+                "type": "vulnerability"
+            }
+        ]
+    },
+    "bugs_to_fix": 5,
+    "message": "Need to fix 5 bugs"
+},
+"fix_results": [
+    {
+        "success": true,
+        "fixed_count": 0,
+        "total_input_tokens": 0,
+        "total_output_tokens": 0,
+        "total_tokens": 0,
+        "average_similarity": 0.0,
+        "threshold_met_count": 0,
+        "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+        "message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+    }
+],
+"fix_result": {
+    "success": true,
+    "fivulnerability"
+},
+{
+    "action": "Fix",
+    "bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+    "classification": "True Positive",
+    "reason": "The issue is a vulnerability because it is missing SSL certificate verification.",
+    "rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+    "rule_key": "python_lang_ssl_verification",
+    "type": "vulnerability"
+},
+{
+    "action": "Fix",
+    "bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+    "classification": "True Positive",
+    "reason": "The issue is a vulnerability because it uses a weak hashing library (MD5).",
+    "rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+    "rule_key": "python_lang_weak_hash_md5",
+    "type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fiSL certificate verification.",
+"rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "The issue is a vulnerability because it uses a weak hashing library (MD5).",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fic2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "The issue is a vulnerability because it uses a weak hashing library (MD5).",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fiDescription\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fi"python_lang_weak_hash_md5", "type": "vulnerability"}]}, "bugs_to_fix": 5, "message": "Need to fix 5 bugs"}, "fix_results": [{"success": true, "fixed_count": 0, "total_input_tokens": 0, "total_output_tokens": 0, "total_tokens": 0, "average_similarity": 0.0, "threshold_met_count": 0, "output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fil_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fi from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixCxed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+},
+"rescan_bugs_found": 5,
+"rescan_bugs_type_bug": 0,
+"rescan_bugs_type_code_smell": 0
+},
+{
+"iteration": 5,
+"bugs_found": 5,
+"bugs_type_bug": 0,
+"bugs_type_code_smell": 0,
+"timestamp": "2025-09-09T09:52:17.431997",
+"analysis_result": {
+"success": true,
+"list_bugs": {
+"bugs_to_fix": 5,
+"bugs": [
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0",
+"classification": "True Positive",
+"reason": "Usage of pickle library is a known vulnerability. Type is vulnerability.",
+"rule_description": "Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...",
+"rule_key": "python_lang_avoid_pickle",
+"type": "vulnerability"n make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...", "rule_key": "python_lang_avoid_pickle", "type": "vulnerability"}, {"action": "Fix", "bug_id": "bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0", "classification": "True Positive", "reason": "Using insecure HTTP connections is a vulnerability. Type is vulnerability.", "rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...", "rule_key": "python_lang_insecure_http", "type": "vulnerability"}, {"action": "Fix", "bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96bae
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0",
+"classification": "True Positive",
+"reason": "Using insecure HTTP connections is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...",
+"rule_key": "python_lang_insecure_http",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0",
+"classification": "True Positive",
+"reason": "Missing JWT signature verification is a vulnerability. Type is vulnerability.",
+"rule_description": "Missing signature verification of JWT. ## Description\n\lity.",
+"rule_description": "Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...",
+"rule_key": "python_lang_insecure_http",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0",
+"classification": "True Positive",
+"reason": "Missing JWT signature verification is a vulnerability. Type is vulnerability.",
+"rule_description": "Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+"rule_key": "python_lang_je89aee95e_0",
+"classification": "True Positive",
+"reason": "Missing JWT signature verification is a vulnerability. Type is vulnerability.",
+"rule_description": "Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+"rule_key": "python_lang_jwt_verification_bypass",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+"classification": "True Positive",
+"reason": "Missing SSL certifnFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...",
+"rule_key": "python_lang_jwt_verification_bypass",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+"classification": "True Positive",
+"reason": "Missing SSL certifwt_verification_bypass",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0",
+"classification": "True Positive",
+"reason": "Missing SSL certificate verification is a vulnerability. Type is vulnerability.",
+"rule_description": "Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tok of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tok of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can prod of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successful of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call  of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total. of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tok of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tok of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total. of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total. of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tok of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can prod of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": " of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bear of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...",
+"rule_key": "python_lang_ssl_verification",
+"type": "vulnerability"
+},
+{
+"action": "Fix",
+"bug_id": "bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0",
+"classification": "True Positive",
+"reason": "Using weak hashing algorithms like MD5 is a vulnerability. Type is vulnerability.",
+"rule_description": "Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...",
+"rule_key": "python_lang_weak_hash_md5",
+"type": "vulnerability"
+}
+]
+},
+"bugs_to_fix": 5,
+"message": "Need to fix 5 bugs"
+},
+"fix_results": [
+{
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+}
+],
+"fix_result": {
+"success": true,
+"fixed_count": 0,
+"total_input_tokens": 0,
+"total_output_tokens": 0,
+"total_tokens": 0,
+"average_similarity": 0.0,
+"threshold_met_count": 0,
+"output": "Traceback (most recent call last):\n  File \"D:\\VPAX\\InnoLab\\FixChain\\src\\app\\services\\batch_fix\\cli.py\", line 6, in <module>\n    from app.core.logger import logger\nModuleNotFoundError: No module named 'app'\n",
+"message": "Successfully fixed 0 files using LLM with 2 specific issues. Used 0 tokens total."
+},
+"rescan_bugs_found": 5,
+"rescan_bugs_type_bug": 0,
+"rescan_bugs_type_code_smell": 0
+}
+],
+"start_time": "2025-09-09T09:50:41.474692",
+"end_time": "2025-09-09T09:52:32.204122",
+"duration_seconds": 110.72943,
+"rag_enabled": true
+}

@@ -1,42 +1,25 @@
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: rag_mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: rag_db
-    volumes:
-      - mongodb_data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d
-    networks:
-      - rag_network
-    command: mongod --noauth
-
-  rag-api:
+  api:
     build: .
-    container_name: rag_api_backend
-    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/rag_db
-      MONGODB_DATABASE: rag_db
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-    env_file:
-      - .env
+      MONGODB_URI: "mongodb://admin:password123@mongodb:27017/"
+      MONGODB_DATABASE: "rag_db"
     depends_on:
       - mongodb
-    networks:
-      - rag_network
+
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    ports:
+      - "27017:27017"
     volumes:
-      - ./logs:/app/logs
+      - mongo_data:/data/db
 
 volumes:
-  mongodb_data:
-    driver: local
-
-networks:
-  rag_network:
-    driver: bridge
+  mongo_data:
