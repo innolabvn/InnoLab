@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
-from src.app.core.logger import logger
+from FixChain.src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
 from .base import Fixer
 

@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
 
-from app.core.logger import logger
+from FixChain.src.app.services.log_service import logger
 from app.services.batch_fix.models import FixResult
 from app.services.batch_fix import validators as V
 from app.services.batch_fix.templates import TemplateManager, strip_markdown_code

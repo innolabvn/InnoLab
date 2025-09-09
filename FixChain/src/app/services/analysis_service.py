@@ -3,7 +3,7 @@ import json
 import os
 from typing import Dict, List, Any, TypedDict, Optional, Union, cast
 
-from src.app.core.logger import logger
+from FixChain.src.app.services.log_service import logger
 from src.app.adapters.dify_client import run_workflow_with_dify, DifyRunResponse
 
 

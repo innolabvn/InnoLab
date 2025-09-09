@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.logger import logger
+from FixChain.src.app.services.log_service import logger
 
 
 # ---------- Data models ----------

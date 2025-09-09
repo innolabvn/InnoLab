@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from src.app.core.logger import logger
+from FixChain.src.app.services.log_service import logger
 from src.app.services.analysis_service import AnalysisService
 from src.app.domains.scan import BearerScanner
 from src.app.domains.fix import LLMFixer

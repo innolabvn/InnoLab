@@ -17,6 +17,7 @@
 │     │  ├─ batch_fix/        
 │     │  ├─ analysis_service.py         
 │     │  ├─ cli_service.py              
+│     │  ├─ logger.py                  # (was utils/logger.py, đã cải tiến)
 │     │  ├─ rag_service.py              # client gọi API knowledge/fix-cases
 │     │  └─ __init__.py
 │     ├─ adapters/                      # kết nối ra ngoài (LLM/GenAI, reranker…)
@@ -26,10 +27,7 @@
 │     │  │─ dify_client.py 
 │     │  └─ __init__.py
 │     ├─ repositories/                  # truy cập hạ tầng dữ liệu
-│     │  ├─ mongo.py                    # (was modules/mongodb_service.py)
-│     ├─ core/                          # hạ tầng chung
-│     │  ├─ logger.py                  # (was utils/logger.py, đã cải tiến)
-│     │  └─ __init__.py
+│     │  └─ mongo.py                    # (was modules/mongodb_service.py)
 │     ├─ domains/                       # (tuỳ chọn) chuyên biệt Scanner/Fixer
 │     │  ├─ scan/
 │     │  └─ fix/
