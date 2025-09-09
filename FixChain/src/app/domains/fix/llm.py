@@ -138,7 +138,7 @@ class LLMFixer(Fixer):
             # Chuẩn bị lệnh chạy batch_fix
             fix_cmd = [
                 sys.executable,
-                "-m", "app.services.batch_fix.cli",
+                "-m", "src.app.services.batch_fix.cli",
                 str(source_dir),
                 "--fix",
                 "--auto",

@@ -6,11 +6,11 @@ from pathlib import Path
 from datetime import datetime
 
 from src.app.services.log_service import logger
-from app.services.batch_fix.models import FixResult
-from app.services.batch_fix import validators as V
-from app.services.batch_fix.templates import TemplateManager, strip_markdown_code
-from app.services.batch_fix.rag_integration import RAGAdapter
-from app.adapters.llm.google_genai import client, GENERATION_MODEL
+from src.app.services.batch_fix.models import FixResult
+from src.app.services.batch_fix import validators as V
+from src.app.services.batch_fix.templates import TemplateManager, strip_markdown_code
+from src.app.services.batch_fix.rag_integration import RAGAdapter
+from src.app.adapters.llm.google_genai import client, GENERATION_MODEL
 
 class SecureFixProcessor:
     def __init__(self, source_dir: str, backup_dir: Optional[str] = None, similarity_threshold: float = 0.85) -> None:

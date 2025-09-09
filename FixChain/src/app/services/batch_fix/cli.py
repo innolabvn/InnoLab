@@ -4,7 +4,7 @@ import argparse, json, os
 from pathlib import Path
 from dotenv import load_dotenv
 from src.app.services.log_service import logger
-from app.services.batch_fix.processor import SecureFixProcessor
+from src.app.services.batch_fix.processor import SecureFixProcessor
 
 def run():
     parser = argparse.ArgumentParser(description="Secure Batch Fix (AI-powered)")

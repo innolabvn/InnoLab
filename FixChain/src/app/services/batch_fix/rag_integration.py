@@ -2,8 +2,8 @@
 from __future__ import annotations
 from typing import Dict, List, Optional
 from pathlib import Path
-from app.services.rag_service import RAGService
-from app.services.batch_fix.models import FixResult
+from src.app.services.rag_service import RAGService
+from src.app.services.batch_fix.models import FixResult
 
 class RAGAdapter:
     def __init__(self) -> None:

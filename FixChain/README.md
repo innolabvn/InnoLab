@@ -31,7 +31,7 @@
 │     ├─ domains/                       # (tuỳ chọn) chuyên biệt Scanner/Fixer
 │     │  ├─ scan/
 │     │  └─ fix/
-│     ├─ prompt/                       
+│     ├─ prompts/                       
 │     └─ __init__.py
 ├─ scripts/
 │  └─ run_demo.py
