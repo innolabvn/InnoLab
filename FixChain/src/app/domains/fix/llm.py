@@ -105,9 +105,9 @@ class LLMFixer(Fixer):
                     continue
         return {}
 
-    def fix_bugs(self, list_real_bugs: List[Dict], use_rag: bool = False) -> Dict:
+    def fix_bugs(self, list_real_bugs: List[Dict], use_rag: bool = False, bugs_count: int = 0) -> Dict:
         try:
-            logger.info("Starting fix_bugs for %d bugs", len(list_real_bugs))
+            logger.info("Starting fix_bugs for %d bugs", bugs_count)
             ok_src, source_dir, err_src = self._resolve_source_dir()
             logger.info("DEBUG: source_dir = %s", source_dir)
 

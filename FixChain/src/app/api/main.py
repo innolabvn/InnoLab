@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.app.api.routers import bug_catalog, knowledge, fix_cases
+from src.app.api.routers import bug_catalog, knowledge, fix_cases, scanner_kb
 
 app = FastAPI(
     title="FixChain - Bug Catalog, Knowledge Base & Fix Cases",
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(bug_catalog, prefix="/api/v1/bug-catalog", tags=["Bug Catalog"])
 app.include_router(knowledge,   prefix="/api/v1/knowledge",    tags=["Knowledge Base"])
 app.include_router(fix_cases,   prefix="/api/v1/fix-cases",    tags=["Fix Cases"])
+app.include_router(scanner_kb.router)
 
 @app.get("/")
 def root():

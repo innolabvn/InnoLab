@@ -1,3 +1,4 @@
+# src\app\services\analysis_service.py
 from __future__ import annotations
 import json
 import os
@@ -5,6 +6,7 @@ from typing import Dict, List, Any, TypedDict, Optional, Union, cast
 
 from src.app.services.log_service import logger
 from src.app.adapters.dify_client import run_workflow_with_dify, DifyRunResponse
+from src.app.services.rag_service import RAGService
 
 
 class AnalysisResult(TypedDict, total=False):
@@ -24,6 +26,7 @@ class AnalysisService:
             dify_cloud_api_key
             or os.getenv("DIFY_CLOUD_API_KEY", "").strip()
         )
+        self.rag = RAGService()
 
     def count_bug_types(self, bugs: List[Dict[str, Any]]) -> Dict[str, int]:
         counts: Dict[str, int] = {"BUG": 0, "CODE_SMELL": 0, "VULNERABILITY": 0}
@@ -41,7 +44,9 @@ class AnalysisService:
     ) -> AnalysisResult:
         """
         Gửi báo cáo bugs sang Dify workflow và rút ra số lượng bugs cần FIX.
-
+        Optionally:
+           - Lưu context phân tích vào RAG (agent=analysis)
+           - Truy vấn RAG để lấy retrieved_context truyền cho workflow khi use_rag=True
         Returns:
             {
               "success": bool,
@@ -60,10 +65,44 @@ class AnalysisService:
                 logger.error("Dify API key is missing. Set DIFY_CLOUD_API_KEY.")
                 return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
 
+            # ---- (A) Lưu context vào RAG ----
+            # 1) Tóm tắt ngắn report + snapshot source (tránh quá dài)
+            try:
+                collection = (os.getenv("SCANNER_RAG_COLLECTION", "kb_scanner_signals").strip() or None)
+                self.rag.add_analysis_context(
+                    report=bugs or [],
+                    source_snippet=source_code[:4000],
+                    project=os.getenv("PROJECT_NAME", None),
+                    collection_name=collection,
+                )
+            except Exception as e:
+                logger.warning("RAG (analysis) insert failed: %s", e)
+
+            # ---- (B) Truy vấn RAG để lấy retrieved_context ----
+            retrieved_context = ""
+            if use_rag:
+                try:
+                    # Tạo query gọn gàng từ report
+                    rule_descriptions = {str(b.get("rule_description", "")).strip() for b in (bugs or []) if b.get("rule_description")}
+                    q = " ".join(list(rule_descriptions))[:1000] or json.dumps(bugs, ensure_ascii=False)[:1000]
+                    collection = (os.getenv("SCANNER_RAG_COLLECTION", "").strip() or None)
+                    result = self.rag.search_text(
+                        text=q,
+                        limit=5,
+                        collection_name=collection,
+                        filters={"metadata.agent": "analysis"},
+                    )
+                    if result.success and result.sources:
+                        retrieved_context = "\n\n---\n".join([str(s.get("content", "")) for s in result.sources])
+                except Exception as e:
+                    logger.warning("RAG (analysis) search failed: %s", e)
+
+            # ---- (C) Gọi Dify ----
             inputs = {
                 "is_use_rag": "True" if use_rag else "False",
                 "src": source_code,
                 "report": json.dumps(bugs, ensure_ascii=False),
+                "retrieved_context": retrieved_context,
             }
             logger.info("Sending %d bug(s) to Dify workflow (use_rag=%s).", len(bugs), use_rag)
 

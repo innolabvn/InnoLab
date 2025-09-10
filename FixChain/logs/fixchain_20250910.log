@@ -1,0 +1,179 @@
+2025-09-10 12:44:35 | INFO     | FixChain | service:35 | Max iterations: 5
+2025-09-10 12:44:35 | INFO     | FixChain | service:36 | Project key: my-app
+2025-09-10 12:44:35 | INFO     | FixChain | service:37 | Scan directory: Flask_App
+2025-09-10 12:44:35 | INFO     | FixChain | service:38 | Scan modes: ['bearer']
+2025-09-10 12:44:35 | INFO     | FixChain | service:39 | Fix modes: ['llm']
+2025-09-10 12:44:35 | INFO     | FixChain | service:61 | Validating default RAG dataset file...
+2025-09-10 12:44:35 | INFO     | FixChain | service:69 | Dataset file validated: ../FixChain/data/mocks/sample_rag_bugs.json
+2025-09-10 12:44:35 | INFO     | FixChain | service:140 | ===== ITERATION 1/5 =====
+2025-09-10 12:44:35 | INFO     | FixChain | bearer:31 | Starting Bearer scan for project_key=my-app
+2025-09-10 12:44:35 | INFO     | FixChain | bearer:72 | Running Bearer Docker scan
+2025-09-10 12:44:36 | INFO     | FixChain | cli_service:44 | stdout: Analyzing codebase
+2025-09-10 12:44:38 | INFO     | FixChain | cli_service:44 | stdout: Loading rules
+2025-09-10 12:44:40 | INFO     | FixChain | cli_service:44 | stdout: Scanning target /scan
+2025-09-10 12:44:42 | INFO     | FixChain | cli_service:44 | stdout: Running Detectors
+2025-09-10 12:44:42 | INFO     | FixChain | cli_service:44 | stdout: Generating dataflow
+2025-09-10 12:44:42 | INFO     | FixChain | cli_service:44 | stdout: Evaluating rules
+2025-09-10 12:44:43 | INFO     | FixChain | bearer:91 | Reading Bearer results from: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:44:43 | INFO     | FixChain | bearer:96 | Found 5 Bearer security issues
+2025-09-10 12:44:43 | INFO     | FixChain | service:146 | BEARER scanner found 5 bugs
+2025-09-10 12:44:43 | INFO     | FixChain | service:148 | [{'key': 'bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0', 'rule': 'python_lang_avoid_pickle', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 126, 'message': 'Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-502'], 'creationDate': '2025-09-10T12:44:43.905921', 'updateDate': '2025-09-10T12:44:43.905921', 'textRange': {'startLine': 126, 'endLine': 126, 'startOffset': 15, 'endOffset': 33}}, {'key': 'bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0', 'rule': 'python_lang_insecure_http', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 187, 'message': 'Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-319'], 'creationDate': '2025-09-10T12:44:43.905921', 'updateDate': '2025-09-10T12:44:43.905921', 'textRange': {'startLine': 187, 'endLine': 187, 'startOffset': 9, 'endOffset': 76}}, {'key': 'bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0', 'rule': 'python_lang_jwt_verification_bypass', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 139, 'message': 'Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-347'], 'creationDate': '2025-09-10T12:44:43.905921', 'updateDate': '2025-09-10T12:44:43.905921', 'textRange': {'startLine': 139, 'endLine': 139, 'startOffset': 19, 'endOffset': 94}}, {'key': 'bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0', 'rule': 'python_lang_ssl_verification', 'severity': 'CRITICAL', 'component': 'app.py', 'line': 90, 'message': 'Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'high', 'security', 'medium', 'cwe-295'], 'creationDate': '2025-09-10T12:44:43.906451', 'updateDate': '2025-09-10T12:44:43.906451', 'textRange': {'startLine': 90, 'endLine': 90, 'startOffset': 9, 'endOffset': 51}}, {'key': 'bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0', 'rule': 'python_lang_weak_hash_md5', 'severity': 'MAJOR', 'component': 'app.py', 'line': 48, 'message': 'Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '10min', 'debt': '10min', 'tags': ['security', 'bearer', 'medium', 'security', 'medium', 'cwe-328'], 'creationDate': '2025-09-10T12:44:43.906451', 'updateDate': '2025-09-10T12:44:43.906451', 'textRange': {'startLine': 48, 'endLine': 48, 'startOffset': 16, 'endOffset': 46}}]
+2025-09-10 12:44:43 | INFO     | FixChain | service:154 | Iteration 1: 5 bugs total
+2025-09-10 12:44:43 | INFO     | FixChain | service:95 | Reading source code from directory: D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:44:45 | INFO     | FixChain | analysis_service:107 | Sending 5 bug(s) to Dify workflow (use_rag=True).
+2025-09-10 12:44:45 | INFO     | FixChain | dify_client:71 | Dify run workflow: https://api.dify.ai/v1/workflows/run (mode=blocking)
+2025-09-10 12:44:46 | ERROR    | FixChain | dify_client:89 | Dify API HTTP 400: {"code":"invalid_param","message":"1 validation error for VariableEntity\nmax_length\n  Unable to parse input string as an integer, exceeded maximum size [type=int_parsing_size, input_value=1e+29, input_type=float]\n    For further information visit https:\/\/errors.pydantic.dev\/2.11\/v\/int_parsin
+2025-09-10 12:44:46 | ERROR    | FixChain | analysis_service:140 | Dify analysis error: 400 Client Error: BAD REQUEST for url: https://api.dify.ai/v1/workflows/run
+2025-09-10 12:44:46 | INFO     | FixChain | service:185 | Dify analysis result: {'success': False, 'error': '400 Client Error: BAD REQUEST for url: https://api.dify.ai/v1/workflows/run', 'list_bugs': [], 'bugs_to_fix': 0}
+2025-09-10 12:44:46 | INFO     | FixChain | service:190 | Dify identified 0 real bugs to fix
+2025-09-10 12:44:46 | INFO     | FixChain | service:121 | === EXECUTION RESULT ===
+2025-09-10 12:44:46 | INFO     | FixChain | service:122 | Project: my-app
+2025-09-10 12:44:46 | INFO     | FixChain | service:123 | Total bugs fixed: 0
+2025-09-10 12:44:46 | INFO     | FixChain | service:124 | Total iterations: 1
+2025-09-10 12:44:46 | INFO     | FixChain | service:125 | Start time: 2025-09-10T12:44:35.674490
+2025-09-10 12:44:46 | INFO     | FixChain | service:126 | End time: 2025-09-10T12:44:46.854097
+2025-09-10 12:44:46 | INFO     | FixChain | service:129 | Iteration 1: 5 bugs found, 0 file fixed
+2025-09-10 12:54:08 | INFO     | FixChain | service:35 | Max iterations: 5
+2025-09-10 12:54:08 | INFO     | FixChain | service:36 | Project key: my-app
+2025-09-10 12:54:08 | INFO     | FixChain | service:37 | Scan directory: Flask_App
+2025-09-10 12:54:08 | INFO     | FixChain | service:38 | Scan modes: ['bearer']
+2025-09-10 12:54:08 | INFO     | FixChain | service:39 | Fix modes: ['llm']
+2025-09-10 12:54:08 | INFO     | FixChain | service:61 | Validating default RAG dataset file...
+2025-09-10 12:54:08 | INFO     | FixChain | service:69 | Dataset file validated: ../FixChain/data/mocks/sample_rag_bugs.json
+2025-09-10 12:54:08 | INFO     | FixChain | service:140 | ===== ITERATION 1/5 =====
+2025-09-10 12:54:08 | INFO     | FixChain | bearer:31 | Starting Bearer scan for project_key=my-app
+2025-09-10 12:54:08 | INFO     | FixChain | bearer:56 | Removed existing Bearer results file: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:54:08 | INFO     | FixChain | bearer:72 | Running Bearer Docker scan
+2025-09-10 12:54:10 | INFO     | FixChain | cli_service:44 | stdout: Analyzing codebase
+2025-09-10 12:54:12 | INFO     | FixChain | cli_service:44 | stdout: Loading rules
+2025-09-10 12:54:13 | INFO     | FixChain | cli_service:44 | stdout: Scanning target /scan
+2025-09-10 12:54:16 | INFO     | FixChain | cli_service:44 | stdout: Running Detectors
+2025-09-10 12:54:16 | INFO     | FixChain | cli_service:44 | stdout: Generating dataflow
+2025-09-10 12:54:16 | INFO     | FixChain | cli_service:44 | stdout: Evaluating rules
+2025-09-10 12:54:18 | INFO     | FixChain | bearer:91 | Reading Bearer results from: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:54:18 | INFO     | FixChain | bearer:96 | Found 5 Bearer security issues
+2025-09-10 12:54:18 | INFO     | FixChain | service:146 | BEARER scanner found 5 bugs
+2025-09-10 12:54:18 | INFO     | FixChain | service:148 | [{'key': 'bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0', 'rule': 'python_lang_avoid_pickle', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 126, 'message': 'Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-502'], 'creationDate': '2025-09-10T12:54:18.177909', 'updateDate': '2025-09-10T12:54:18.177909', 'textRange': {'startLine': 126, 'endLine': 126, 'startOffset': 15, 'endOffset': 33}}, {'key': 'bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0', 'rule': 'python_lang_insecure_http', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 187, 'message': 'Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-319'], 'creationDate': '2025-09-10T12:54:18.177909', 'updateDate': '2025-09-10T12:54:18.177909', 'textRange': {'startLine': 187, 'endLine': 187, 'startOffset': 9, 'endOffset': 76}}, {'key': 'bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0', 'rule': 'python_lang_jwt_verification_bypass', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 139, 'message': 'Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-347'], 'creationDate': '2025-09-10T12:54:18.178427', 'updateDate': '2025-09-10T12:54:18.178427', 'textRange': {'startLine': 139, 'endLine': 139, 'startOffset': 19, 'endOffset': 94}}, {'key': 'bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0', 'rule': 'python_lang_ssl_verification', 'severity': 'CRITICAL', 'component': 'app.py', 'line': 90, 'message': 'Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'high', 'security', 'medium', 'cwe-295'], 'creationDate': '2025-09-10T12:54:18.178427', 'updateDate': '2025-09-10T12:54:18.178427', 'textRange': {'startLine': 90, 'endLine': 90, 'startOffset': 9, 'endOffset': 51}}, {'key': 'bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0', 'rule': 'python_lang_weak_hash_md5', 'severity': 'MAJOR', 'component': 'app.py', 'line': 48, 'message': 'Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '10min', 'debt': '10min', 'tags': ['security', 'bearer', 'medium', 'security', 'medium', 'cwe-328'], 'creationDate': '2025-09-10T12:54:18.178427', 'updateDate': '2025-09-10T12:54:18.178427', 'textRange': {'startLine': 48, 'endLine': 48, 'startOffset': 16, 'endOffset': 46}}]
+2025-09-10 12:54:18 | INFO     | FixChain | service:154 | Iteration 1: 5 bugs total
+2025-09-10 12:54:18 | INFO     | FixChain | service:95 | Reading source code from directory: D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:54:20 | INFO     | FixChain | analysis_service:107 | Sending 5 bug(s) to Dify workflow (use_rag=True).
+2025-09-10 12:54:20 | INFO     | FixChain | dify_client:71 | Dify run workflow: https://api.dify.ai/v1/workflows/run (mode=blocking)
+2025-09-10 12:54:30 | INFO     | FixChain | service:185 | Dify analysis result: {'success': True, 'list_bugs': {'bugs_to_fix': 5, 'bugs': [{'action': 'Fix', 'bug_id': 'bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability related to the usage of the pickle library, which can lead to unsafe code execution. RAG: vulnerability', 'rule_description': 'Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...', 'rule_key': 'python_lang_avoid_pickle', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability due to the usage of insecure HTTP connections. RAG: vulnerability', 'rule_description': 'Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...', 'rule_key': 'python_lang_insecure_http', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability due to missing JWT signature verification. RAG: vulnerability', 'rule_description': 'Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...', 'rule_key': 'python_lang_jwt_verification_bypass', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability due to missing SSL certificate verification. RAG: vulnerability', 'rule_description': 'Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...', 'rule_key': 'python_lang_ssl_verification', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_weak_hash_md5_65c9c2496677f21552e48b34c59791e4_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability due to the usage of a weak hashing algorithm (MD5). RAG: vulnerability', 'rule_description': 'Usage of weak hashing library (MDx). ## Description\n\nUsing a weak hashing library, such as MD5, increases the risk of data breaches. MD5 itself is vulnerable to collision attacks, where two different inputs can produce the same hash valu...', 'rule_key': 'python_lang_weak_hash_md5', 'type': 'vulnerability'}]}, 'bugs_to_fix': 5, 'message': 'Need to fix 5 bugs'}
+2025-09-10 12:54:30 | INFO     | FixChain | service:190 | Dify identified 5 real bugs to fix
+2025-09-10 12:54:30 | INFO     | FixChain | llm:110 | Starting fix_bugs for 5 bugs
+2025-09-10 12:54:30 | INFO     | FixChain | llm:112 | DEBUG: source_dir = D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:54:30 | INFO     | FixChain | llm:136 | Created issues file: D:\VPAX\InnoLab\projects\Flask_App\list_real_bugs_hxmlemfi.json
+2025-09-10 12:54:30 | INFO     | FixChain | llm:150 | RAG integration enabled for bug fixing
+2025-09-10 12:54:30 | INFO     | FixChain | llm:152 | Running command: D:\VPAX\InnoLab\FixChain\venv\Scripts\python.exe -m src.app.services.batch_fix.cli D:\VPAX\InnoLab\projects\Flask_App --fix --auto --issues-file D:\VPAX\InnoLab\projects\Flask_App\list_real_bugs_hxmlemfi.json --enable-rag
+2025-09-10 12:54:59 | INFO     | FixChain | cli_service:44 | stdout: 2025-09-10 12:54:59 | INFO     | FixChain | rag_service:217 | [RAG] Add to Knowledge (fixer): D:\VPAX\InnoLab\projects\Flask_App\app.py
+2025-09-10 12:55:03 | INFO     | FixChain | cli_service:44 | stdout: 2025-09-10 12:55:03 | INFO     | FixChain | rag_service:217 | [RAG] Add to Knowledge (fixer): D:\VPAX\InnoLab\projects\Flask_App\fixignore.txt
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: FIXING Mode
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: Directory: D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: Found 2 code files
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: Files to process:
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: 1. app.py
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: 2. fixignore.txt
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: Auto mode: proceeding without confirmation
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: [1/2] Fixing: app.py
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: Success (24.0s)
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: [2/2] Fixing: fixignore.txt
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: Success (2.5s)
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: ======================================================================
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: BATCH_FIX_RESULT: SUCCESS
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: FIXED_FILES: 2
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: FAILED_FILES: 0
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: TOTAL_INPUT_TOKENS: 3599
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: TOTAL_OUTPUT_TOKENS: 4569
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: TOTAL_TOKENS: 8168
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: AVERAGE_SIMILARITY: 0.940
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: THRESHOLD_MET_COUNT: 2
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: SIMILARITY_THRESHOLD: 0.85
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: AVERAGE_PROCESSING_TIME: 13.3
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: END_BATCH_RESULT
+2025-09-10 12:55:04 | INFO     | FixChain | cli_service:44 | stdout: {"success": true, "fixed_count": 2, "failed_count": 0, "total_input_tokens": 3599, "total_output_tokens": 4569, "total_tokens": 8168, "average_similarity": 0.940048232722888, "threshold_met_count": 2, "similarity_threshold": 0.85, "average_processing_time": 13.253099}
+2025-09-10 12:55:04 | INFO     | FixChain | llm:158 | Cleaned up temporary issues file: D:\VPAX\InnoLab\projects\Flask_App\list_real_bugs_hxmlemfi.json
+2025-09-10 12:55:04 | INFO     | FixChain | llm:178 | Batch fix completed. Fixed=2 | Tokens: in=3599 out=4569 total=8168 | AvgSim=0.940 | ThresholdMet=2
+2025-09-10 12:55:04 | INFO     | FixChain | bearer:31 | Starting Bearer scan for project_key=my-app
+2025-09-10 12:55:04 | INFO     | FixChain | bearer:56 | Removed existing Bearer results file: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:55:04 | INFO     | FixChain | bearer:72 | Running Bearer Docker scan
+2025-09-10 12:55:06 | INFO     | FixChain | cli_service:44 | stdout: Analyzing codebase
+2025-09-10 12:55:09 | INFO     | FixChain | cli_service:44 | stdout: Loading rules
+2025-09-10 12:55:12 | INFO     | FixChain | cli_service:44 | stdout: Scanning target /scan
+2025-09-10 12:55:14 | INFO     | FixChain | cli_service:44 | stdout: Running Detectors
+2025-09-10 12:55:14 | INFO     | FixChain | cli_service:44 | stdout: Generating dataflow
+2025-09-10 12:55:14 | INFO     | FixChain | cli_service:44 | stdout: Evaluating rules
+2025-09-10 12:55:15 | INFO     | FixChain | bearer:91 | Reading Bearer results from: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:55:15 | INFO     | FixChain | bearer:96 | Found 4 Bearer security issues
+2025-09-10 12:55:15 | INFO     | FixChain | service:140 | ===== ITERATION 2/5 =====
+2025-09-10 12:55:15 | INFO     | FixChain | bearer:31 | Starting Bearer scan for project_key=my-app
+2025-09-10 12:55:15 | INFO     | FixChain | bearer:56 | Removed existing Bearer results file: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:55:15 | INFO     | FixChain | bearer:72 | Running Bearer Docker scan
+2025-09-10 12:55:17 | INFO     | FixChain | cli_service:44 | stdout: Analyzing codebase
+2025-09-10 12:55:19 | INFO     | FixChain | cli_service:44 | stdout: Loading rules
+2025-09-10 12:55:21 | INFO     | FixChain | cli_service:44 | stdout: Scanning target /scan
+2025-09-10 12:55:23 | INFO     | FixChain | cli_service:44 | stdout: Running Detectors
+2025-09-10 12:55:23 | INFO     | FixChain | cli_service:44 | stdout: Generating dataflow
+2025-09-10 12:55:23 | INFO     | FixChain | cli_service:44 | stdout: Evaluating rules
+2025-09-10 12:55:24 | INFO     | FixChain | bearer:91 | Reading Bearer results from: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:55:24 | INFO     | FixChain | bearer:96 | Found 4 Bearer security issues
+2025-09-10 12:55:24 | INFO     | FixChain | service:146 | BEARER scanner found 4 bugs
+2025-09-10 12:55:24 | INFO     | FixChain | service:148 | [{'key': 'bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0', 'rule': 'python_lang_avoid_pickle', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 123, 'message': 'Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-502'], 'creationDate': '2025-09-10T12:55:24.889212', 'updateDate': '2025-09-10T12:55:24.889212', 'textRange': {'startLine': 123, 'endLine': 123, 'startOffset': 15, 'endOffset': 33}}, {'key': 'bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0', 'rule': 'python_lang_insecure_http', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 183, 'message': 'Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-319'], 'creationDate': '2025-09-10T12:55:24.889212', 'updateDate': '2025-09-10T12:55:24.889212', 'textRange': {'startLine': 183, 'endLine': 183, 'startOffset': 9, 'endOffset': 76}}, {'key': 'bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0', 'rule': 'python_lang_jwt_verification_bypass', 'severity': 'BLOCKER', 'component': 'app.py', 'line': 136, 'message': 'Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'critical', 'security', 'medium', 'cwe-347'], 'creationDate': '2025-09-10T12:55:24.889212', 'updateDate': '2025-09-10T12:55:24.889212', 'textRange': {'startLine': 136, 'endLine': 136, 'startOffset': 19, 'endOffset': 94}}, {'key': 'bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0', 'rule': 'python_lang_ssl_verification', 'severity': 'CRITICAL', 'component': 'app.py', 'line': 87, 'message': 'Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...', 'status': 'OPEN', 'type': 'VULNERABILITY', 'effort': '15min', 'debt': '15min', 'tags': ['security', 'bearer', 'high', 'security', 'medium', 'cwe-295'], 'creationDate': '2025-09-10T12:55:24.889212', 'updateDate': '2025-09-10T12:55:24.889212', 'textRange': {'startLine': 87, 'endLine': 87, 'startOffset': 9, 'endOffset': 51}}]
+2025-09-10 12:55:24 | INFO     | FixChain | service:154 | Iteration 2: 4 bugs total
+2025-09-10 12:55:24 | INFO     | FixChain | service:95 | Reading source code from directory: D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:55:27 | INFO     | FixChain | analysis_service:107 | Sending 4 bug(s) to Dify workflow (use_rag=True).
+2025-09-10 12:55:27 | INFO     | FixChain | dify_client:71 | Dify run workflow: https://api.dify.ai/v1/workflows/run (mode=blocking)
+2025-09-10 12:55:33 | INFO     | FixChain | service:185 | Dify analysis result: {'success': True, 'list_bugs': {'bugs_to_fix': 4, 'bugs': [{'action': 'Fix', 'bug_id': 'bearer_python_lang_avoid_pickle_97c590b3c24fe6d7133f6e4d3358ab50_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability related to the usage of unsafe Pickle libraries.', 'rule_description': 'Usage of unsafe Pickle libraries. ## Description\n\nUsing pickle, _pickle and cPickle can make your application vulnerable to unsafe code execution. This is because the deserialization logic of these libraries allows for arbitrary code ...', 'rule_key': 'python_lang_avoid_pickle', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_insecure_http_2e018b6e4219d525e9e9f6283d2d8403_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability related to the usage of insecure HTTP connection.', 'rule_description': 'Usage of insecure HTTP connection. ## Description\n\nYour application is at risk when it connects to APIs using insecure HTTP connections. This vulnerability occurs because HTTP lacks encryption, making data susceptible to interception a...', 'rule_key': 'python_lang_insecure_http', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_jwt_verification_bypass_e53489cd0e178da1ee96baee89aee95e_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability related to missing signature verification of JWT.', 'rule_description': 'Missing signature verification of JWT. ## Description\n\nFailing to verify the signature of JSON Web Tokens (JWTs) compromises the security of an application. Signature verification is crucial for confirming the authenticity and integrity of...', 'rule_key': 'python_lang_jwt_verification_bypass', 'type': 'vulnerability'}, {'action': 'Fix', 'bug_id': 'bearer_python_lang_ssl_verification_973982c3a3525d3706e7bd03aabb5970_0', 'classification': 'True Positive', 'reason': 'The issue is a vulnerability related to missing SSL certificate verification.', 'rule_description': 'Missing SSL certificate verification. ## Description\n\nMissing or optional SSL certificate verification can compromise the security of sensitive data. This vulnerability arises when an application fails to check for valid SSL certificates ...', 'rule_key': 'python_lang_ssl_verification', 'type': 'vulnerability'}]}, 'bugs_to_fix': 4, 'message': 'Need to fix 4 bugs'}
+2025-09-10 12:55:33 | INFO     | FixChain | service:190 | Dify identified 4 real bugs to fix
+2025-09-10 12:55:33 | INFO     | FixChain | llm:110 | Starting fix_bugs for 4 bugs
+2025-09-10 12:55:33 | INFO     | FixChain | llm:112 | DEBUG: source_dir = D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:55:33 | INFO     | FixChain | llm:136 | Created issues file: D:\VPAX\InnoLab\projects\Flask_App\list_real_bugs_rxogem0s.json
+2025-09-10 12:55:33 | INFO     | FixChain | llm:150 | RAG integration enabled for bug fixing
+2025-09-10 12:55:33 | INFO     | FixChain | llm:152 | Running command: D:\VPAX\InnoLab\FixChain\venv\Scripts\python.exe -m src.app.services.batch_fix.cli D:\VPAX\InnoLab\projects\Flask_App --fix --auto --issues-file D:\VPAX\InnoLab\projects\Flask_App\list_real_bugs_rxogem0s.json --enable-rag
+2025-09-10 12:56:03 | INFO     | FixChain | cli_service:44 | stdout: 2025-09-10 12:56:03 | INFO     | FixChain | rag_service:217 | [RAG] Add to Knowledge (fixer): D:\VPAX\InnoLab\projects\Flask_App\app.py
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: 2025-09-10 12:56:08 | INFO     | FixChain | rag_service:217 | [RAG] Add to Knowledge (fixer): D:\VPAX\InnoLab\projects\Flask_App\fixignore.txt
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: FIXING Mode
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: Directory: D:\VPAX\InnoLab\projects\Flask_App
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: Found 2 code files
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: Files to process:
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: 1. app.py
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: 2. fixignore.txt
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: Auto mode: proceeding without confirmation
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: [1/2] Fixing: app.py
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: Success (28.1s)
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: [2/2] Fixing: fixignore.txt
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: Success (2.1s)
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: ======================================================================
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: BATCH_FIX_RESULT: SUCCESS
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: FIXED_FILES: 2
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: FAILED_FILES: 0
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: TOTAL_INPUT_TOKENS: 3485
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: TOTAL_OUTPUT_TOKENS: 5178
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: TOTAL_TOKENS: 8663
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: AVERAGE_SIMILARITY: 0.942
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: THRESHOLD_MET_COUNT: 2
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: SIMILARITY_THRESHOLD: 0.85
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: AVERAGE_PROCESSING_TIME: 15.1
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: END_BATCH_RESULT
+2025-09-10 12:56:08 | INFO     | FixChain | cli_service:44 | stdout: {"success": true, "fixed_count": 2, "failed_count": 0, "total_input_tokens": 3485, "total_output_tokens": 5178, "total_tokens": 8663, "average_similarity": 0.9421805792163543, "threshold_met_count": 2, "similarity_threshold": 0.85, "average_processing_time": 15.1170745}
+2025-09-10 12:56:09 | INFO     | FixChain | llm:158 | Cleaned up temporary issues file: D:\VPAX\InnoLab\projects\Flask_App\list_real_bugs_rxogem0s.json
+2025-09-10 12:56:09 | INFO     | FixChain | llm:178 | Batch fix completed. Fixed=2 | Tokens: in=3485 out=5178 total=8663 | AvgSim=0.942 | ThresholdMet=2
+2025-09-10 12:56:09 | INFO     | FixChain | bearer:31 | Starting Bearer scan for project_key=my-app
+2025-09-10 12:56:09 | INFO     | FixChain | bearer:56 | Removed existing Bearer results file: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:56:09 | INFO     | FixChain | bearer:72 | Running Bearer Docker scan
+2025-09-10 12:56:10 | INFO     | FixChain | cli_service:44 | stdout: Analyzing codebase
+2025-09-10 12:56:12 | INFO     | FixChain | cli_service:44 | stdout: Loading rules
+2025-09-10 12:56:12 | INFO     | FixChain | cli_service:44 | stdout: Scanning target /scan
+2025-09-10 12:56:14 | INFO     | FixChain | cli_service:44 | stdout: Running Detectors
+2025-09-10 12:56:14 | INFO     | FixChain | cli_service:44 | stdout: Generating dataflow
+2025-09-10 12:56:14 | INFO     | FixChain | cli_service:44 | stdout: Evaluating rules
+2025-09-10 12:56:16 | INFO     | FixChain | bearer:91 | Reading Bearer results from: D:\VPAX\InnoLab\projects\bearer_results\bearer_results_my-app.json
+2025-09-10 12:56:16 | INFO     | FixChain | bearer:96 | Found 0 Bearer security issues
+2025-09-10 12:56:16 | INFO     | FixChain | service:253 | All bugs resolved after rescan
+2025-09-10 12:56:16 | INFO     | FixChain | service:121 | === EXECUTION RESULT ===
+2025-09-10 12:56:16 | INFO     | FixChain | service:122 | Project: my-app
+2025-09-10 12:56:16 | INFO     | FixChain | service:123 | Total bugs fixed: 4
+2025-09-10 12:56:16 | INFO     | FixChain | service:124 | Total iterations: 2
+2025-09-10 12:56:16 | INFO     | FixChain | service:125 | Start time: 2025-09-10T12:54:08.826150
+2025-09-10 12:56:16 | INFO     | FixChain | service:126 | End time: 2025-09-10T12:56:16.270008
+2025-09-10 12:56:16 | INFO     | FixChain | service:129 | Iteration 1: 5 bugs found, 2 file fixed
+2025-09-10 12:56:16 | INFO     | FixChain | service:129 | Iteration 2: 4 bugs found, 2 file fixed

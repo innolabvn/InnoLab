@@ -1,14 +1,15 @@
-#!/usr/bin/env python3
+# src\app\services\rag_service.py
 """
 RAG Service client
-- Search Knowledge Base (RAG Scanner support)
-- Add generic doc to Knowledge
-- Add Fix Case to Fix Cases collection (RAG Fixer support)
+- Search Knowledge Base (Scanner / Analyzer support)
+- Add generic doc to Knowledge (analysis context)
+- Add Fix Case to Fix Cases collection (Fixer support)
 """
 
 import os
+import time
 import requests
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,46 +62,133 @@ class RAGService:
         self.headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
     # ---------- Public: Search ----------
-    def search_rag_knowledge(self, issues_data: List[Dict], limit: int = 5) -> RAGSearchResult:
+    def search_rag_knowledge(
+        self, 
+        issues_data: Optional[List[Dict]] = None,
+        limit: int = 5,
+        query: Optional[str] = None,
+        collection_name: Optional[str] = None,
+        filters: Optional[Dict] = None,
+        combine_mode: str = "OR",
+    ) -> RAGSearchResult:
         """
         Search Knowledge Base for similar rules/notes that inform bug classification or fixes.
         Sends an OR-combined list of rule descriptions.
         """
+        # Build payload from either query or issues_data (back-compat)
+        if query:
+            payload = {"query": query, "limit": int(limit), "combine_mode": combine_mode}
+        else:
+            payload = self._transform_issues_to_search_query(issues_data or [], limit)
+        # Optional target collection + filters (Scanner/Fixer split)
+        if collection_name:
+            payload["collection_name"] = str(collection_name)
+        if filters:
+            payload["filters"] = filters
+        if not payload.get("query"):
+            return RAGSearchResult(answer="No relevant issues found for RAG search.", sources=[], query="", success=False, error_message="No searchable issues found")
+
         try:
-            payload = self._transform_issues_to_search_query(issues_data, limit)
-            if not payload.get("query"):
-                return RAGSearchResult(
-                    answer="No relevant issues found for RAG search.",
-                    sources=[],
-                    query="",
-                    success=False,
-                    error_message="No searchable issues found",
-                )
-
-            logger.info(f"[RAG] Knowledge search: {str(payload['query'])[:120]} ...")
             resp = requests.post(self.knowledge_search, json=payload, headers=self.headers, timeout=self.timeout)
-
-            if resp.ok:
-                data = resp.json()
-                return RAGSearchResult(
-                    answer=str(data.get("answer", "")),
-                    sources=list(data.get("sources", [])),
-                    query=str(data.get("query", "")),
-                    success=True,
-                )
-
-            msg = f"Knowledge search failed ({resp.status_code}): {resp.text[:200]}"
-            logger.error(msg)
-            return RAGSearchResult(answer="", sources=[], query="", success=False, error_message=msg)
-
+            if not resp.ok:
+                return RAGSearchResult(answer="", sources=[], query=str(payload.get("query","")), success=False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
+            data = resp.json()
         except requests.exceptions.RequestException as e:
-            msg = f"Knowledge search request error: {e}"
+            return RAGSearchResult(answer="", sources=[], query=str(payload.get("query","")), success=False, error_message=f"Request error: {e}")
+        except ValueError:
+            return RAGSearchResult(answer="", sources=[], query=str(payload.get("query","")), success=False, error_message="Invalid JSON response from RAG service")
+        
+        return RAGSearchResult(
+            answer=str(data.get("answer", "")),
+            sources=list(data.get("sources", [])),
+            query=str(data.get("query", "")),
+            success=True,
+        )
+    
+        # ---------- Internal HTTP helpers ----------
+    def _post_with_retry(self, url: str, payload: Dict, retries: int = 2) -> requests.Response:
+        last_exc: Optional[Exception] = None
+        for i in range(retries + 1):
+            try:
+                resp = requests.post(url, json=payload, headers=self.headers, timeout=self.timeout)
+                if resp.ok:
+                    return resp
+                # retry only on transient 5xx
+                if 500 <= resp.status_code < 600 and i < retries:
+                    time.sleep(0.6 * (i + 1))
+                    continue
+                return resp
+            except requests.exceptions.RequestException as e:
+                last_exc = e
+                if i < retries:
+                    time.sleep(0.6 * (i + 1))
+                    continue
+                raise
+        # should not reach here
+        raise last_exc or RuntimeError("Unknown POST error")
+    
+    def search_text(
+        self,
+        text: str,
+        limit: int = 5,
+        collection_name: Optional[str] = None,
+        filters: Optional[Dict] = None,
+    ) -> RAGSearchResult:
+        """Convenience wrapper for free-text search."""
+        return self.search_rag_knowledge(
+            issues_data=None,
+            limit=limit,
+            query=text,
+            collection_name=collection_name,
+            filters=filters,
+        )
+    # ---------- Public: Add (Analysis / Knowledge) ----------
+    def add_analysis_context(
+        self,
+        report: List[Dict],
+        source_snippet: str = "",
+        project: Optional[str] = None,
+        component: Optional[str] = None,
+        collection_name: Optional[str] = None,
+    ) -> RAGAddResult:
+        """
+        Add an analysis context document (agent = 'analysis') to Knowledge.
+        """
+        summary = self._summarize_report(report)
+        content = (
+            f"[ANALYSIS REPORT]\nCounts: {summary}\n"
+            f"[SOURCE_SNIPPET]\n{(source_snippet or '')[:4000]}"
+        )
+        metadata: Dict = {
+            "agent": "analysis",
+            "project": project,
+            "component": component,
+            "report_size": len(report or []),
+            "kind": "analysis_context",
+        }
+        payload: Dict = {"content": content, "metadata": metadata}
+        if collection_name:
+            payload["collection_name"] = collection_name
+
+        try:
+            resp = self._post_with_retry(self.knowledge_add, payload)
+        except requests.exceptions.RequestException as e:
+            msg = f"Knowledge add (analysis) request error: {e}"
             logger.error(msg)
-            return RAGSearchResult(answer="", sources=[], query="", success=False, error_message=msg)
-        except Exception as e:
-            msg = f"Knowledge search unexpected error: {e}"
+            return RAGAddResult(success=False, error_message=msg)
+
+        if not resp.ok:
+            msg = f"Knowledge add (analysis) failed ({resp.status_code}): {resp.text[:200]}"
             logger.error(msg)
-            return RAGSearchResult(answer="", sources=[], query="", success=False, error_message=msg)
+            return RAGAddResult(success=False, error_message=msg)
+
+        data = resp.json()
+        return RAGAddResult(
+            success=True,
+            document_id=str(data.get("document_id", "")),
+            content_length=len(content),
+        )
+
 
     # ---------- Public: Add (Knowledge) ----------
     def add_fix_to_rag(
@@ -122,8 +210,12 @@ class RAGService:
                 fixed_code=fixed_code,
             )
 
-            logger.info(f"[RAG] Add to Knowledge: {fix_context.get('file_path', 'unknown')}")
-            resp = requests.post(self.knowledge_add, json=payload, headers=self.headers, timeout=self.timeout)
+            # ensure agent label
+            payload.setdefault("metadata", {})
+            payload["metadata"].setdefault("agent", "fixer")
+
+            logger.info(f"[RAG] Add to Knowledge (fixer): {fix_context.get('file_path', 'unknown')}")
+            resp = self._post_with_retry(self.knowledge_add, payload)
 
             if resp.ok:
                 data = resp.json()
@@ -178,7 +270,7 @@ class RAGService:
             }
 
             logger.info(f"[RAG] Add Fix Case: {fix_context.get('file_path', 'unknown')}")
-            resp = requests.post(self.fix_cases_import, json=import_payload, headers=self.headers, timeout=self.timeout)
+            resp = self._post_with_retry(self.fix_cases_import, import_payload)
 
             if resp.ok:
                 data = resp.json()
@@ -205,17 +297,31 @@ class RAGService:
         Health check Knowledge Base endpoint (default).
         """
         try:
-            resp = requests.get(self.knowledge_health, timeout=5)
-            return resp.ok
+            k_ok = requests.get(self.knowledge_health, headers=self.headers, timeout=5).ok
+            f_ok = requests.get(self.fix_cases_health, headers=self.headers, timeout=5).ok
+            return bool(k_ok and f_ok)
         except Exception:
             return False
 
     # ---------- Public: Prompt helper ----------
-    def get_rag_context_for_prompt(self, issues_data: List[Dict]) -> str:
+    def get_rag_context_for_prompt(self, issues_data: List[Dict], agent: str = "fixer") -> str:
         """
         Summarize top-3 knowledge sources to append into a Fix prompt.
         """
-        result = self.search_rag_knowledge(issues_data, limit=3)
+        if agent not in ("fixer", "analysis"):
+            agent = "fixer"
+
+        if agent == "analysis":
+            collection = (os.getenv("SCANNER_RAG_COLLECTION", "kb_scanner_signals").strip() or None)
+        else:
+            collection = (os.getenv("FIXER_RAG_COLLECTION", "bug_rag_documents").strip() or None)
+        # Cho phép cấu hình collection Scanner khi cần
+        result = self.search_rag_knowledge(
+            issues_data=issues_data,
+            limit=3,
+            collection_name=collection,
+            filters={"metadata.agent": agent},
+        )
         if not result.success or not result.sources:
             return "No relevant previous fixes found in knowledge base."
 
@@ -238,8 +344,8 @@ class RAGService:
     # ---------- Transforms ----------
     def _transform_issues_to_search_query(self, issues_data: List[Dict], limit: int) -> Dict:
         """
-        Build a Knowledge search payload:
-          { "query": [<rule1>, <rule2>, ...], "limit": N, "combine_mode": "OR" }
+        Build a Knowledge search payload.
+        Backend usually accepts a string; join rules with OR to maximize recall.
         """
         query_list: List[str] = []
         for issue in issues_data or []:
@@ -250,7 +356,8 @@ class RAGService:
                 if rule_desc and rule_desc not in query_list:
                     query_list.append(rule_desc)
 
-        return {"query": query_list, "limit": int(limit), "combine_mode": "OR"}
+        q = " OR ".join(query_list)
+        return {"query": q, "limit": int(limit), "combine_mode": "OR"}
 
     def _transform_fix_to_knowledge_document(
         self,
@@ -286,6 +393,7 @@ class RAGService:
         content = f"Bug: Fixed {len(fix_summary) if fix_summary else 0} issues in {file_name}"
 
         metadata: Dict = {
+            "agent": "fixer",
             "bug_title": f"Fixed issues in {file_name}",
             "bug_context": bug_context or ["No specific bug context available"],
             "fix_summary": fix_summary or [{
@@ -362,7 +470,8 @@ class RAGService:
             "project": project,
             "component": component,
             "metadata": {
-                "source": "SonarQ|FixChain",
+                "source": "FixChain",
+                "agent": "fixer",
                 "bug_title": f"Fixed issues in {file_name}",
                 "fix_context": fix_context or {},
             },
@@ -384,7 +493,16 @@ class RAGService:
             ".sql": "sql",
         }
         return mapping.get(ext, "text")
-
+    
+    @staticmethod
+    def _summarize_report(report: List[Dict]) -> Dict[str, int]:
+        counts = {"BUG": 0, "CODE_SMELL": 0, "VULNERABILITY": 0}
+        for b in report or []:
+            t = str(b.get("type", "")).upper()
+            if t in counts:
+                counts[t] += 1
+        counts["TOTAL"] = len(report or [])
+        return counts
 
 # ---------- Quick self-test ----------
 if __name__ == "__main__":

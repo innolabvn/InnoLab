@@ -10,7 +10,6 @@ for p in (SRC_DIR, PROJECT_ROOT):
 
 import argparse
 import json
-import os
 from typing import List
 
 from dotenv import load_dotenv
@@ -75,30 +74,25 @@ def main() -> None:
 
         for i, iteration in enumerate(result.get("iterations", []), 1):
             print(f"\n  Iteration {i}:")
-            print(f"    🐞 Bugs found: {iteration.get('bugs_found')}")
-            print(f"        + Type Bug: {iteration.get('bugs_type_bug')}")
-            bugs_ignored = iteration.get("bugs_type_code_smell", 0)
-            print(f"        + Type Code-smell: {bugs_ignored}")
+            print(f"Bugs found: {iteration.get('bugs_found')}")
+            print(f"    + Bug: {iteration.get('bug')}")
+            print(f"    + Code-smell: {iteration.get('code_smell')}")
 
             ar = iteration.get("analysis_result", {})
-            print(f"🔧 Bugs to fix: {ar.get('bugs_to_fix', 0)}")
+            print(f"Bugs to fix: {ar.get('bugs_to_fix', 0)}")
 
-            rescan_found = iteration.get("rescan_bugs_found", 0)
-            rescan_bug_type = iteration.get("rescan_bugs_type_bug", 0)
-            rescan_code_smell = iteration.get("rescan_bugs_type_code_smell", 0)
-            print(f"🔄 Bugs after rescan: {rescan_found} ({rescan_bug_type} BUG, {rescan_code_smell} CODE_SMELL)")
-            print(f"🚫 Bugs Ignored: {bugs_ignored}")
+            print(f"Bugs after rescan: {iteration.get('escan_bugs_found', 0)}")
 
             # in token nếu có (tuỳ fixer)
             fix_results = iteration.get("fix_results", [])
             fix_result = fix_results[-1] if fix_results else iteration.get("fix_result", {})
             if fix_result.get("total_tokens", 0) > 0:
-                print("💰 Token Usage:")
-                print(f"        + Input tokens: {fix_result.get('total_input_tokens', 0):,}")
-                print(f"        + Output tokens: {fix_result.get('total_output_tokens', 0):,}")
-                print(f"        + Total tokens: {fix_result.get('total_tokens', 0):,}")
-                print(f"        + Average similarity: {fix_result.get('average_similarity', 0):.3f}")
-                print(f"        + Threshold met: {fix_result.get('threshold_met_count', 0)}")
+                print("Token Usage:")
+                print(f"    + Input tokens: {fix_result.get('total_input_tokens', 0):,}")
+                print(f"    + Output tokens: {fix_result.get('total_output_tokens', 0):,}")
+                print(f"    + Total tokens: {fix_result.get('total_tokens', 0):,}")
+                print(f"    + Average similarity: {fix_result.get('average_similarity', 0):.3f}")
+                print(f"    + Threshold met: {fix_result.get('threshold_met_count', 0)}")
 
             if fix_result.get("message"):
                 print(f"    Message: {fix_result.get('message')}")
@@ -108,10 +102,10 @@ def main() -> None:
 
         # JSON cuối để machines parse
         print("\nEND_EXECUTION_RESULT_JSON")
-        print(json.dumps(result, ensure_ascii=False))
+        # print(json.dumps(result, ensure_ascii=False))
 
     except Exception as e:
-        print(f"\n❌ Error during execution: {e}")
+        print(f"\nError during execution: {e}")
         logger.exception("Demo failed")
 
 

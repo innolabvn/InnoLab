@@ -1,3 +1,4 @@
+# src\app\repositories\mongo.py
 import os
 import math
 from datetime import datetime, timezone
@@ -206,63 +207,79 @@ class MongoDBManager:
             raise Exception(f"Error searching documents: {str(e)}")
 
     def search_by_embedding(self, query_embedding: List[float], top_k: int = 5) -> List[Dict]:
+        return self.search_by_embedding_v2(query_embedding=query_embedding, top_k=top_k)
+    
+    def search_by_embedding_v2(
+        self,
+        query_embedding: List[float],
+        top_k: int = 5,
+        collection_name: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict]:
         """
-        Ưu tiên dùng $vectorSearch (Atlas Vector Index: 'vector_index', path: 'embedding').
-        Fallback: cosine similarity trên dữ liệu có sẵn (embeddings_collection hoặc documents.embedding).
+        Vector search qua $vectorSearch trên collection chỉ định (mặc định: documents).
+        - Yêu cầu Atlas Vector Index 'vector_index' (path: 'embedding', numDimensions: 768, similarity: cosine)
+        - Trả về 'similarity_score' (lấy từ $meta: 'searchScore')
+        - Có thể lọc theo metadata.* qua 'filters'
+        Fallback: cosine trên embedding local nếu $vectorSearch không khả dụng.
         """
-        # 1) Thử vectorSearch trên `documents`
+        col = self.get_collection(collection_name) if collection_name else self.documents_collection
+
+        # 1) Thử $vectorSearch
         try:
-            pipeline = [{
-                "$vectorSearch": {
-                    "index": "vector_index",
-                    "path": "embedding",
-                    "queryVector": query_embedding,
-                    "numCandidates": max(top_k * 10, 50),
-                    "limit": top_k,
-                }
-            }]
-            results = list(self.documents_collection.aggregate(pipeline))
-            # Chuẩn hoá output (dùng key 'similarity' giống code cũ)
-            out = []
-            for r in results:
-                out.append({
-                    "doc_id": r.get("doc_id"),
-                    "content": r.get("content", ""),
-                    "metadata": r.get("metadata", {}),
-                    # Vector Search trả về 'score' (tuỳ cấu hình), chuẩn hoá tên:
-                    "similarity": r.get("score", r.get("similarity", 0)),
-                })
-            if out:
+            pipeline = [
+                {
+                    "$vectorSearch": {
+                        "index": "vector_index",
+                        "path": "embedding",
+                        "queryVector": query_embedding,
+                        "numCandidates": max(top_k * 20, 100),
+                        "limit": top_k,
+                    }
+                },
+                { "$set": { "similarity_score": { "$meta": "searchScore" } } }
+            ]
+            if filters:
+                match = {}
+                for k, v in (filters or {}).items():
+                    match[f"metadata.{k}"] = v
+                pipeline.append({ "$match": match })
+
+            results = list(col.aggregate(pipeline))
+            if results:
+                out = []
+                for r in results:
+                    out.append({
+                        "doc_id": r.get("doc_id"),
+                        "content": r.get("content", ""),
+                        "metadata": r.get("metadata", {}),
+                        "similarity_score": r.get("similarity_score", r.get("score", 0)),
+                    })
                 return out
         except OperationFailure as ofe:
-            # Atlas Search chưa enable/index chưa tồn tại
-            logger.warning(f"$vectorSearch not available, fallback to cosine. Detail: {ofe.details if hasattr(ofe, 'details') else str(ofe)}")
+            logger.warning(f"$vectorSearch not available on '{col.name}', fallback to cosine. Detail: {getattr(ofe, 'details', str(ofe))}")
         except Exception as e:
-            logger.warning(f"$vectorSearch error, fallback to cosine: {e}")
+            logger.warning(f"$vectorSearch error on '{col.name}', fallback to cosine: {e}")
 
-        # 2) Fallback: cosine trên embeddings_collection (legacy) hoặc documents.embedding
+        # 2) Fallback: cosine
         try:
-            similarities = []
-
-            # Ưu tiên documents.embedding (mới)
-            cursor = self.documents_collection.find({"embedding": {"$exists": True}})
-            docs = list(cursor)
-            if not docs:
-                # fallback cuối: legacy collection
+            # Load docs có embedding
+            docs = list(col.find({"embedding": {"$exists": True}}))
+            use_legacy = False
+            if not docs and col.name != "embeddings":
+                # fallback cuối: legacy embeddings collection  join content
                 docs = list(self.embeddings_collection.find())
                 use_legacy = True
-            else:
-                use_legacy = False
 
+            sims = []
             for d in docs:
                 if use_legacy:
                     doc_id = d["doc_id"]
                     vec = d.get("vector", [])
                     sim = self.cosine_similarity(query_embedding, vec)
-                    # load document content/metadata
-                    doc = self.documents_collection.find_one({"doc_id": doc_id}) or {}
-                    content = doc.get("content", "")
-                    metadata = doc.get("metadata", {})
+                    base_doc = self.documents_collection.find_one({"doc_id": doc_id}) or {}
+                    content = base_doc.get("content", "")
+                    metadata = base_doc.get("metadata", {})
                 else:
                     doc_id = d.get("doc_id")
                     vec = d.get("embedding", [])
@@ -270,19 +287,29 @@ class MongoDBManager:
                     content = d.get("content", "")
                     metadata = d.get("metadata", {})
 
-                similarities.append((doc_id, sim, content, metadata))
+                # Áp dụng filters (nếu có) trên metadata
+                if filters:
+                    ok = True
+                    for fk, fv in filters.items():
+                        if (metadata or {}).get(fk) != fv:
+                            ok = False
+                            break
+                    if not ok:
+                        continue
 
-            similarities.sort(key=lambda x: x[1], reverse=True)
-            top = similarities[:top_k]
+                sims.append((doc_id, sim, content, metadata))
+
+            sims.sort(key=lambda x: x[1], reverse=True)
+            top = sims[:top_k]
             return [{
                 "doc_id": t[0],
                 "content": t[2],
                 "metadata": t[3],
-                "similarity": t[1],
+                "similarity_score": t[1],
             } for t in top]
 
         except Exception as e:
-            raise Exception(f"Error searching by embedding: {str(e)}")
+            raise Exception(f"Error searching by embedding (fallback): {str(e)}")
 
     @staticmethod
     def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:

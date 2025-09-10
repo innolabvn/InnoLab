@@ -33,6 +33,9 @@ class SearchInput(BaseModel):
     query: Union[str, List[str]]
     limit: int = Field(default=5, ge=1, le=20)
     combine_mode: str = Field(default="OR", pattern="^(OR|AND)$")
+    # NEW: chọn collection & filters để tách Scanner/Fixer
+    collection_name: Optional[str] = None
+    filters: Dict[str, Any] = Field(default_factory=dict)
 
 class SearchResponse(BaseModel):
     answer: str
@@ -101,16 +104,29 @@ async def add_document(doc_input: DocumentInput):
 async def search_documents(search_input: SearchInput):
     ensure_inited()
     try:
+        collection_name = search_input.collection_name
+        extra_filters = search_input.filters or {}
         if isinstance(search_input.query, str):
+            # Chọn collection (nếu không truyền, dùng default của manager)
             query_text = search_input.query
             emb = await get_gemini_embedding(query_text)
-            results = mongo_manager.search_by_embedding(query_embedding=emb, top_k=search_input.limit)
+            results = mongo_manager.search_by_embedding(
+                query_embedding=emb,
+                top_k=search_input.limit,
+                collection_name=collection_name,
+                filters=extra_filters,
+            )
         else:
             query_text = " ".join(search_input.query)
             all_results = []
             for q in search_input.query:
                 emb = await get_gemini_embedding(q)
-                all_results.extend(mongo_manager.search_by_embedding(query_embedding=emb, top_k=search_input.limit))
+                all_results.extend(mongo_manager.search_by_embedding(
+                    query_embedding=emb, 
+                    top_k=search_input.limit,
+                    collection_name=collection_name,
+                    filters=extra_filters,
+                ))
             if search_input.combine_mode.upper() == "AND":
                 counts = {}
                 for doc in all_results:
@@ -134,11 +150,14 @@ async def search_documents(search_input: SearchInput):
             return SearchResponse(answer="Xin lỗi, tôi không tìm thấy thông tin liên quan.", sources=[], query=query_text)
 
         answer = await generate_answer_with_gemini(query_text, results)
-        sources = [{
-            "content": d["content"][:200] + "..." if len(d["content"]) > 200 else d["content"],
-            "metadata": d.get("metadata", {}),
-            "similarity_score": d.get("similarity_score", 0),
-        } for d in results]
+        sources = []
+        for d in results:
+            content = d.get("content", "")
+            sources.append({
+                "content": content[:200] + "..." if len(content) > 200 else content,
+                "metadata": d.get("metadata", {}),
+                "similarity_score": d.get("similarity_score", d.get("similarity", 0)),
+            })
         return SearchResponse(answer=answer, sources=sources, query=query_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during search: {str(e)}")

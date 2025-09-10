@@ -61,7 +61,7 @@ def generate_gemini_embedding(text: str) -> List[float]:
         return r.embeddings[0].values
     except Exception as e:
         print(f"Error generating embedding: {e}")
-        return [0.0] * 768
+        return [0.0] * 768  # 768-dim embedding
 
 def format_bug_for_rag(bug: BugRAGItem) -> str:
     parts = [
@@ -137,22 +137,29 @@ async def search_bugs_in_rag(request: BugSearchRequest):
         mongo_manager = get_mongo_manager()
         collection = mongo_manager.get_collection(request.collection_name)
         query_embedding = generate_gemini_embedding(request.query)
-        pipeline = [{
-            "$vectorSearch": {
-                "index": "vector_index",
-                "path": "embedding",
-                "queryVector": query_embedding,
-                "numCandidates": request.top_k * 10,
-                "limit": request.top_k,
-            }
-        }]
+        pipeline = [
+            {
+                "$vectorSearch": {
+                    "index": "vector_index",
+                    "path": "embedding",
+                    "queryVector": query_embedding,
+                    "numCandidates": request.top_k * 20,
+                    "limit": request.top_k
+                }
+            },
+            { "$set": { "similarity_score": { "$meta": "searchScore" } } }
+        ]
         if request.filters:
             match_stage = {"$match": {}}
             for k, v in request.filters.items():
                 match_stage["$match"][f"metadata.{k}"] = v
             pipeline.append(match_stage)
-        results = list(collection.aggregate(pipeline))
-        results = convert_objectid_to_str(results)
+        docs = list(collection.aggregate(pipeline))
+        # Chuẩn hoá field 'similarity_score' để các router khác dùng chung
+        for d in docs:
+            if "similarity" in d and "similarity_score" not in d:
+                d["similarity_score"] = d["similarity"]
+        results = convert_objectid_to_str(docs)
         return {"query": request.query, "results": results, "total_found": len(results), "collection": request.collection_name}
     except Exception:
         # fallback text search

@@ -110,11 +110,11 @@ class ExecutionServiceNoMongo:
 
     @staticmethod
     def _count_bug_types(bugs: List[Dict[str, Any]]) -> Dict[str, int]:
-        counts: Dict[str, int] = {"BUG": 0, "CODE_SMELL": 0, "VULNERABILITY": 0}
+        counts: Dict[str, int] = {}
         for b in bugs:
-            t = str(b.get("type", "UNKNOWN")).upper()
-            counts[t] = counts.get(t, 0) + 1
-        counts["TOTAL"] = sum(counts.get(k, 0) for k in counts if k != "TOTAL")
+            bug_type = str(b.get("type", "UNKNOWN")).upper()
+            counts[bug_type] = counts.get(bug_type, 0) + 1
+        counts["TOTAL"] = sum(v for k, v in counts.items() if k != "TOTAL")
         return counts
 
     def _log_execution_result(self, result: Dict[str, Any]) -> None:
@@ -127,7 +127,7 @@ class ExecutionServiceNoMongo:
 
         for i, it in enumerate(result.get("iterations", []), 1):
             logger.info(
-                "Iteration %s: %s bugs found, %s fixed",
+                "Iteration %s: %s bugs found, %s file fixed",
                 i, it.get("bugs_found"), it.get("fix_result", {}).get("fixed_count", 0)
             )
 
@@ -145,22 +145,20 @@ class ExecutionServiceNoMongo:
                 sb = scanner.scan()
                 logger.info("%s scanner found %s bugs", mode.upper(), len(sb))
                 all_bugs.extend(sb)
+                logger.info(all_bugs)
 
             counts = self._count_bug_types(all_bugs)
-            bugs_total = counts.get("TOTAL", 0)
-            n_bug = counts.get("BUG", 0)
-            n_smell = counts.get("CODE_SMELL", 0)
+            bugs_total = counts.get("VULNERABILITY", 0)
+
 
             logger.info(
-                "Iteration %s: %s bugs total (%s BUG, %s CODE_SMELL)",
-                it, bugs_total, n_bug, n_smell
+                "Iteration %s: %s bugs total",
+                it, bugs_total
             )
 
             it_result: Dict[str, Any] = {
                 "iteration": it,
                 "bugs_found": bugs_total,
-                "bugs_type_bug": n_bug,
-                "bugs_type_code_smell": n_smell,
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -170,23 +168,7 @@ class ExecutionServiceNoMongo:
                     "success": True,
                     "fixed_count": 0,
                     "failed_count": 0,
-                    "bugs_remain": 0,
-                    "bugs_type_bug": 0,
-                    "bugs_type_code_smell": 0,
                     "message": "No bugs found",
-                }
-                iterations.append(it_result)
-                break
-
-            if n_bug == 0 and n_smell > 0:
-                it_result["fix_result"] = {
-                    "success": True,
-                    "fixed_count": 0,
-                    "failed_count": 0,
-                    "bugs_remain": n_smell,
-                    "bugs_type_bug": 0,
-                    "bugs_type_code_smell": n_smell,
-                    "message": f"Only code smell issues remain ({n_smell}), no bugs to fix",
                 }
                 iterations.append(it_result)
                 break
@@ -198,9 +180,12 @@ class ExecutionServiceNoMongo:
             analysis = self.analysis_service.analyze_bugs_with_dify(
                 all_bugs, use_rag=use_rag, source_code=source_code
             )
+            logger.info("Dify analysis result: %s", analysis)
             it_result["analysis_result"] = analysis
 
             list_real_bugs = analysis.get("list_bugs")
+            bugs_count = analysis.get("bugs_to_fix", 0)
+            logger.info("Dify identified %s real bugs to fix", bugs_count)
             if isinstance(list_real_bugs, str):
                 try:
                     list_real_bugs = json.loads(list_real_bugs)
@@ -211,15 +196,14 @@ class ExecutionServiceNoMongo:
                 list_real_bugs = []
 
             # Không có bug thực sự để fix
-            if not list_real_bugs or analysis.get("bugs_to_fix", 0) == 0:
+            if not list_real_bugs or bugs_count == 0:
                 msg = "No real bugs identified for fixing after analysis" if not list_real_bugs else "Dify analysis reports no bugs to fix"
                 it_result["fix_result"] = {
                     "success": True,
                     "fixed_count": 0,
                     "failed_count": 0,
-                    "bugs_remain": bugs_total,
-                    "bugs_type_bug": n_bug,
-                    "bugs_type_code_smell": n_smell,
+                    "bug": 0,
+                    "code_smell": bugs_total,
                     "message": msg,
                 }
                 iterations.append(it_result)
@@ -228,7 +212,7 @@ class ExecutionServiceNoMongo:
             # Fix
             fix_results: List[Dict[str, Any]] = []
             for fixer in self.fixers:
-                raw = fixer.fix_bugs(list_real_bugs, use_rag=use_rag)
+                raw = fixer.fix_bugs(list_real_bugs, use_rag=use_rag, bugs_count=bugs_count)
                 if isinstance(raw, str):
                     try:
                         fix_result = json.loads(raw.splitlines()[-1])
@@ -254,21 +238,18 @@ class ExecutionServiceNoMongo:
                 rescan.extend(scanner.scan())
             r_counts = self._count_bug_types(rescan)
             it_result["rescan_bugs_found"] = r_counts.get("TOTAL", 0)
-            it_result["rescan_bugs_type_bug"] = r_counts.get("BUG", 0)
-            it_result["rescan_bugs_type_code_smell"] = r_counts.get("CODE_SMELL", 0)
-
+            it_result["rescan_bugs"] = r_counts.get("VULNERABILITY", 0)
             logger.info(
                 "Rescan found %s open bugs (%s BUG, %s CODE_SMELL)",
                 it_result["rescan_bugs_found"],
-                it_result["rescan_bugs_type_bug"],
-                it_result["rescan_bugs_type_code_smell"],
+                it_result["rescan_bugs"]
             )
 
             iterations.append(it_result)
 
             if it_result["rescan_bugs_found"] == 0:
                 logger.info("All bugs resolved after rescan")
-                break
+                break    
 
         end = datetime.now()
         result: Dict[str, Any] = {
