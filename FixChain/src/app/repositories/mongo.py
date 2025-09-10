@@ -157,8 +157,8 @@ class MongoDBManager:
     def insert_rag_document(
         self,
         content: str,
-        metadata: Dict[str, Any] = None,
-        embedding: List[float] = None,
+        metadata: Dict[str, Any],
+        embedding: List[float],
         collection_name: str = "rag_documents",
     ) -> str:
         """Insert RAG document vào collection xác định (dùng cho fix_cases/knowledge)."""

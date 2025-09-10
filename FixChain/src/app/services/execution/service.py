@@ -240,9 +240,8 @@ class ExecutionServiceNoMongo:
             it_result["rescan_bugs_found"] = r_counts.get("TOTAL", 0)
             it_result["rescan_bugs"] = r_counts.get("VULNERABILITY", 0)
             logger.info(
-                "Rescan found %s open bugs (%s BUG, %s CODE_SMELL)",
+                "Rescan found %s open bugs",
                 it_result["rescan_bugs_found"],
-                it_result["rescan_bugs"]
             )
 
             iterations.append(it_result)

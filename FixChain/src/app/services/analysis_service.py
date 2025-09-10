@@ -29,7 +29,7 @@ class AnalysisService:
         self.rag = RAGService()
 
     def count_bug_types(self, bugs: List[Dict[str, Any]]) -> Dict[str, int]:
-        counts: Dict[str, int] = {"BUG": 0, "CODE_SMELL": 0, "VULNERABILITY": 0}
+        counts: Dict[str, int] = {"VULNERABILITY": 0}
         for bug in bugs:
             bug_type = str(bug.get("type", "UNKNOWN"))
             counts[bug_type] = counts.get(bug_type, 0) + 1

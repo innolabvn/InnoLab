@@ -26,7 +26,7 @@ def run():
         print(f"Invalid directory: {directory}"); return
 
     fix_mode = args.fix and not args.scan_only
-    print("\nFIXING Mode" if fix_mode else "\nSCANNING Mode")
+    print("\nFIXING MODE" if fix_mode else "\nSCANNING MODE")
 
     issues_by_file = {}
     if args.issues_file and os.path.exists(args.issues_file):

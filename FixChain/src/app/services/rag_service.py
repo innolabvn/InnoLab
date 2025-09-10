@@ -396,11 +396,7 @@ class RAGService:
             "agent": "fixer",
             "bug_title": f"Fixed issues in {file_name}",
             "bug_context": bug_context or ["No specific bug context available"],
-            "fix_summary": fix_summary or [{
-                "title": "General code improvement",
-                "why": "Applied AI-generated fixes",
-                "change": "Code quality and bug fixes",
-            }],
+            "fix_summary": fix_summary,
             "fixed_source_present": bool(fixed_code),
             "code_language": code_language,
             "code": fixed_code or "",

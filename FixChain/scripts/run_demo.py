@@ -38,7 +38,7 @@ def main() -> None:
     if os.path.exists(env_path):
         load_dotenv(env_path)
 
-    dify_key = os.getenv("DIFY_CLOUD_API_KEY")  # có thể để trống: AnalysisService sẽ báo lỗi mềm
+    dify_key = os.getenv("DIFY_CLOUD_API_KEY")
 
     cfg = ExecutionConfig(
         max_iterations=int(os.getenv("MAX_ITERATIONS", str(args.iterations))),
