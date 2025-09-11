@@ -81,7 +81,7 @@ def main() -> None:
             ar = iteration.get("analysis_result", {})
             print(f"Bugs to fix: {ar.get('bugs_to_fix', 0)}")
 
-            print(f"Bugs after rescan: {iteration.get('escan_bugs_found', 0)}")
+            print(f"Bugs after rescan: {iteration.get('rescan_bugs_found', 0)}")
 
             # in token nếu có (tuỳ fixer)
             fix_results = iteration.get("fix_results", [])
