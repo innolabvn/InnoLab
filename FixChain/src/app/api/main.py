@@ -1,12 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.app.api.routers import bug_catalog, knowledge, fix_cases, scanner_kb
+from src.app.api.routers import knowledge, fixer_rag, scanner_rag
 
-app = FastAPI(
-    title="FixChain - Bug Catalog, Knowledge Base & Fix Cases",
-    version="2.0.0",
-    description="Hệ thống quản lý bug + RAG Scanner/Fixer trên MongoDB & Gemini",
-)
+app = FastAPI(title="FixChain API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,24 +13,18 @@ app.add_middleware(
 )
 
 # Prefix mới, tên dễ hiểu
-app.include_router(bug_catalog, prefix="/api/v1/bug-catalog", tags=["Bug Catalog"])
 app.include_router(knowledge,   prefix="/api/v1/knowledge",    tags=["Knowledge Base"])
-app.include_router(fix_cases,   prefix="/api/v1/fix-cases",    tags=["Fix Cases"])
-app.include_router(scanner_kb.router)
+app.include_router(fixer_rag,   prefix="/api/v1/fixer-rag",    tags=["Fixer RAG"])
+app.include_router(scanner_rag,  prefix="/api/v1/scanner-rag",  tags=["Scanner RAG"])
 
 @app.get("/")
 def root():
     return {
         "message": "Welcome to FixChain",
         "services": {
-            "bug_catalog": "/api/v1/bug-catalog",
-            "knowledge_base": "/api/v1/knowledge",
-            "fix_cases": "/api/v1/fix-cases",
+            "Knowledge Base": "/api/v1/knowledge",
+            "Fixer RAG": "/api/v1/fixer-rag",
+            "Scanner RAG": "/api/v1/scanner-rag",
         },
         "docs": "/docs",
-        "health": "/health",
     }
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}

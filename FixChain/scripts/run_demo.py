@@ -25,11 +25,7 @@ def _parse_list(arg: str, default: List[str]) -> List[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="ExecutionService Demo - Bug fixing with Dify AI")
-    parser.add_argument("--insert_rag", action="store_true", help="Use RAG (validate default dataset and enable RAG path)")
-    parser.add_argument("--project", type=str, default="projects/demo_project", help="Path to project directory to scan")
-    parser.add_argument("--scanners", type=str, default="bearer", help="Comma-separated scanners to use (default: bearer)")
-    parser.add_argument("--fixers", type=str, default="llm", help="Comma-separated fixers to apply (default: llm)")
-    parser.add_argument("--iterations", type=int, default=5, help="Max iterations (default: 5)")
+    parser.add_argument("--project", type=str, default="", help="Path to project directory to scan")
     args = parser.parse_args()
 
     # Load .env từ repo root
@@ -41,71 +37,57 @@ def main() -> None:
     dify_key = os.getenv("DIFY_CLOUD_API_KEY")
 
     cfg = ExecutionConfig(
-        max_iterations=int(os.getenv("MAX_ITERATIONS", str(args.iterations))),
-        project_key=os.getenv("PROJECT_KEY", "my-service"),
+        max_iterations=int(os.getenv("MAX_ITERATIONS", 5)),
         scan_directory=args.project,
-        scan_modes=_parse_list(args.scanners, ["bearer"]),
-        fix_modes=_parse_list(args.fixers, ["llm"]),
+        scan_modes=['bearer'],
         dify_cloud_api_key=dify_key,
     )
 
-    print(f"Fixers: {','.join(cfg.fix_modes)}")
-    print(f"Project directory: {cfg.scan_directory}")
-    print("-" * 60)
-
-    use_rag = bool(args.insert_rag)
+    logger.info(f"Project directory: {cfg.scan_directory}")
 
     try:
         svc = ExecutionServiceNoMongo(cfg)
+        result = svc.run()
 
-        if use_rag:
-            # Không bắt buộc; chỉ validate file dataset
-            svc.insert_rag_default()
-
-        result = svc.run(use_rag=use_rag)
-
-        print("\n" + "=" * 50)
-        print("📊 EXECUTION RESULTS")
-        print("=" * 50)
-        print(f"Project: {result.get('project_key')}")
-        print(f"Total bugs fixed: {result.get('total_bugs_fixed')}")
-        print(f"Total iterations: {len(result.get('iterations', []))}")
-        print(f"Duration: {result.get('duration_seconds'):.2f} seconds")
+        logger.info("=" * 20)
+        logger.info("📊 EXECUTION RESULTS")
+        logger.info("=" * 20)
+        logger.info(f"Total iterations: {len(result.get('iterations', []))}")
+        logger.info(f"Total bugs fixed: {result.get('total_bugs_fixed')}")
+        logger.info(f"Total duration: {result.get('duration_seconds'):.2f} seconds")
 
         for i, iteration in enumerate(result.get("iterations", []), 1):
-            print(f"\n  Iteration {i}:")
-            print(f"Bugs found: {iteration.get('bugs_found')}")
-            print(f"    + Bug: {iteration.get('bug')}")
-            print(f"    + Code-smell: {iteration.get('code_smell')}")
+            logger.info(f"Iteration {i}:")
+            logger.info(f"Bugs found: {iteration.get('bugs_found')}")
+            logger.info(f"Bug: {iteration.get('bug')}")
+            logger.info(f"Code-smell: {iteration.get('code_smell')}")
 
-            ar = iteration.get("analysis_result", {})
-            print(f"Bugs to fix: {ar.get('bugs_to_fix', 0)}")
+            analysis_result = iteration.get("analysis_result", {})
+            logger.info(f"Bugs to fix: {analysis_result.get('bugs_to_fix', 0)}")
+            logger.info(f"Bugs after rescan: {iteration.get('rescan_bugs_found', 0)}")
 
-            print(f"Bugs after rescan: {iteration.get('rescan_bugs_found', 0)}")
-
-            # in token nếu có (tuỳ fixer)
             fix_results = iteration.get("fix_results", [])
             fix_result = fix_results[-1] if fix_results else iteration.get("fix_result", {})
             if fix_result.get("total_tokens", 0) > 0:
-                print("Token Usage:")
-                print(f"    + Input tokens: {fix_result.get('total_input_tokens', 0):,}")
-                print(f"    + Output tokens: {fix_result.get('total_output_tokens', 0):,}")
-                print(f"    + Total tokens: {fix_result.get('total_tokens', 0):,}")
-                print(f"    + Average similarity: {fix_result.get('average_similarity', 0):.3f}")
-                print(f"    + Threshold met: {fix_result.get('threshold_met_count', 0)}")
+                logger.info("Token Usage:")
+                logger.info(f"Input tokens: {fix_result.get('total_input_tokens', 0):,}")
+                logger.info(f"Output tokens: {fix_result.get('total_output_tokens', 0):,}")
+                logger.info(f"Total tokens: {fix_result.get('total_tokens', 0):,}")
+                logger.info(f"Average similarity: {fix_result.get('average_similarity', 0):.3f}")
+                logger.info(f"Threshold met: {fix_result.get('threshold_met_count', 0)}")
 
             if fix_result.get("message"):
-                print(f"    Message: {fix_result.get('message')}")
+                logger.info(f"Message: {fix_result.get('message')}")
 
-        print(f"\nStart time: {result.get('start_time')}")
-        print(f"End time: {result.get('end_time')}")
+        logger.info(f"Start time: {result.get('start_time')}")
+        logger.info(f"End time: {result.get('end_time')}")
 
         # JSON cuối để machines parse
-        print("\nEND_EXECUTION_RESULT_JSON")
-        # print(json.dumps(result, ensure_ascii=False))
+        logger.info("END_EXECUTION_RESULT_JSON")
+        logger.info(json.dumps(result, ensure_ascii=False))
 
     except Exception as e:
-        print(f"\nError during execution: {e}")
+        logger.info(f"Error during execution: {e}")
         logger.exception("Demo failed")
 
 

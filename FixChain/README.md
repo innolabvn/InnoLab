@@ -9,7 +9,6 @@
 │     ├─ api/                           # FastAPI endpoints
 │     │  ├─ main.py                     # entry FastAPI: app.api.main:app
 │     │  └─ routers/
-│     │     ├─ bug_catalog.py           # (was bug_controller.py)
 │     │     ├─ knowledge.py             # (was rag_controller.py)
 │     │     ├─ fix_cases.py             # (was rag_bug_controller.py)
 │     │     └─ __init__.py
@@ -35,6 +34,4 @@
 │     └─ __init__.py
 ├─ scripts/
 │  └─ run_demo.py
-├─ data/                    
-│  └─ mocks/
 └─ logs/              

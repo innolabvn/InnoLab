@@ -1,25 +1,22 @@
 services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
   api:
     build: .
     ports:
       - "8000:8000"
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      MONGODB_URI: "mongodb://admin:password123@mongodb:27017/"
-      MONGODB_DATABASE: "rag_db"
+      MONGODB_URI: "mongodb://mongodb:27017/"
+      MONGODB_DATABASE: "fixchain"
     depends_on:
       - mongodb
-
-  mongodb:
-    image: mongo:7
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
 
 volumes:
   mongo_data:

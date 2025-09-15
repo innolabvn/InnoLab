@@ -105,11 +105,11 @@ class LLMFixer(Fixer):
                     continue
         return {}
 
-    def fix_bugs(self, list_real_bugs: List[Dict], use_rag: bool = False, bugs_count: int = 0) -> Dict:
+    def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int = 0) -> Dict:
         try:
             logger.info("Starting fix_bugs for %d bugs", bugs_count)
             ok_src, source_dir, err_src = self._resolve_source_dir()
-            logger.info("DEBUG: source_dir = %s", source_dir)
+            logger.info("Source_dir = %s", source_dir)
 
             if not ok_src:
                 logger.error(err_src)
@@ -140,16 +140,11 @@ class LLMFixer(Fixer):
                 sys.executable,
                 "-m", "src.app.services.batch_fix.cli",
                 str(source_dir),
-                "--fix",
-                "--auto",
                 "--issues-file",
-                str(issues_file_path),  # truyền absolute path -> an toàn
+                str(issues_file_path),
             ]
-            if use_rag:
-                fix_cmd.append("--enable-rag")
-                logger.info("RAG integration enabled for bug fixing")
 
-            logger.info("Running command: %s", " ".join(fix_cmd))
+            logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
 
             # Luôn cố gắng xoá file tạm
@@ -160,6 +155,7 @@ class LLMFixer(Fixer):
                 logger.warning("Could not cleanup issues file: %s", e)
 
             output_text = "".join(output_lines)
+            logger.debug("Batch fix output:\n%s", output_text)
 
             if not success:
                 logger.error("Batch fix failed")
@@ -167,6 +163,8 @@ class LLMFixer(Fixer):
 
             # Parse JSON summary từ stdout
             summary = self._parse_summary_from_stdout(output_lines) or {}
+            logger.debug("Parsed summary: %s", summary)
+            
             fixed_count = int(summary.get("fixed_count", 0))
             total_input_tokens = int(summary.get("total_input_tokens", 0))
             total_output_tokens = int(summary.get("total_output_tokens", 0))

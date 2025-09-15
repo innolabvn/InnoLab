@@ -41,7 +41,7 @@ class CLIService:
                     # Ensure safe logging by encoding to ASCII with error handling
                     safe_line = clean_line.encode('ascii', errors='ignore').decode('ascii')
                     if safe_line.strip():  # Only log non-empty lines
-                        logger.info(f"stdout: {safe_line}")
+                        logger.debug(f"stdout: {safe_line}")
                 except Exception as e:
                     # Fallback for any encoding issues
                     logger.warning("stdout decode error: %s", e)

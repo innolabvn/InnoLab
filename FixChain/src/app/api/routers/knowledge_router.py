@@ -2,107 +2,98 @@
 """
 Thêm doc, semantic search, stats, delete
 """
+from datetime import datetime
 import os
 from typing import List, Dict, Any, Union, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL, GENERATION_MODEL
-from src.app.repositories.mongo import MongoDBManager
+from src.app.repositories.mongo import get_mongo_manager
+from src.app.services.log_service import logger
 
 root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))), '.env')
 load_dotenv(root_env_path)
 
-# Lazy resources
-embedding_model = None
-llm_model = None
-mongo_manager: Optional[MongoDBManager] = None
-
-def ensure_inited():
-    global embedding_model, llm_model, mongo_manager
-    if mongo_manager is None:
-        mongo_manager = MongoDBManager()
-
 router = APIRouter()
 
 class DocumentInput(BaseModel):
-    content: str = Field(..., min_length=10, description="Document cần thêm vào knowledge base")
-    metadata: Dict[str, Any] = Field(default={})
+    content: str
+    metadata: Dict[str, Any]
 
 class SearchInput(BaseModel):
     query: Union[str, List[str]]
     limit: int = Field(default=5, ge=1, le=20)
     combine_mode: str = Field(default="OR", pattern="^(OR|AND)$")
     # NEW: chọn collection & filters để tách Scanner/Fixer
-    collection_name: Optional[str] = None
-    filters: Dict[str, Any] = Field(default_factory=dict)
+    collection_name: str
+    filters: Dict[str, Any]
 
 class SearchResponse(BaseModel):
+    query: str
     answer: str
     sources: List[Dict[str, Any]]
-    query: str
 
 async def get_gemini_embedding(text: str) -> List[float]:
-    ensure_inited()
     try:
         res = client.models.embed_content(model=EMBEDDING_MODEL, contents=text)
-        return res.embeddings[0].values
+        res_embeddings = getattr(res, "embeddings", None)
+        if not res_embeddings or not res_embeddings[0]:
+            embedding = [0.0] * 768
+            logger.warning("Empty embedding received, returning zero vector")
+        else:
+            embedding = res_embeddings[0].values
+            logger.debug(f"Generated embedding of length {len(embedding)}")
+        return embedding
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating embedding: {str(e)}")
+        logger.error(f"Error generating embedding: {str(e)}")
+        raise
 
 async def generate_answer_with_gemini(query: str, context_docs: List[Dict]) -> str:
     try:
-        context = "\n\n".join([f"Document {i+1}: {doc.get('content','')}" for i, doc in enumerate(context_docs)])
+        context = "\n".join([f"Document {i+1}: {doc.get('content','')}" for i, doc in enumerate(context_docs)])
         prompt = f"""
-Bạn là AI assistant. Dựa trên thông tin dưới đây, trả lời chính xác, tiếng Việt.
-Thông tin:
-{context}
+                Bạn là AI assistant. Dựa trên thông tin dưới đây, trả lời chính xác, tiếng Việt.
+                Thông tin:
+                {context}
 
-Câu hỏi: {query}
+                Question {query}
 
-Nếu không đủ dữ liệu, hãy nói không đủ thông tin.
-"""
+                Nếu không đủ dữ liệu, hãy nói không đủ thông tin.
+                """
         resp = client.models.generate_content(model=GENERATION_MODEL, contents=prompt)
-        return resp.text
+        response_content = resp.text or ""
+        logger.debug(f"LLM response: {response_content}")
+        return response_content.strip()
     except Exception as e:
         return f"Error generating answer: {str(e)}"
 
-@router.get("/")
-async def root():
-    return {
-        "message": "Knowledge base with MongoDB & Gemini Flash 2.0 is running!",
-        "version": "2.0.0",
-        "features": [
-            "MongoDB document storage",
-            "Gemini embeddings",
-            "Gemini generation",
-            "Semantic search",
-        ],
-        "endpoints": {"add_document": "POST /add", "search": "POST /search", "stats": "GET /stats"},
-    }
-
 @router.get("/health")
 async def health_check():
-    ensure_inited()
+    mongo_manager = get_mongo_manager()
     try:
-        mongo_manager.client.admin.command("ping")
-        return {"status": "healthy", "database": "connected", "ai_model": "gemini-2.0-flash-exp"}
+        stat = mongo_manager.client.admin.command("ping")
+        if stat.get("ok") != 1:
+            raise RuntimeError("MongoDB ping failed")
+        return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 @router.post("/add")
 async def add_document(doc_input: DocumentInput):
-    ensure_inited()
+    mongo_manager = get_mongo_manager()
     try:
         emb = await get_gemini_embedding(doc_input.content[:4000])
+        logger.debug(f"Generated embedding {emb} for document")
         doc_id = mongo_manager.add_document(content=doc_input.content, embedding=emb, metadata=doc_input.metadata)
-        return {"message": "Document added successfully", "document_id": str(doc_id), "content_length": len(doc_input.content), "embedding_model": "gemini-2.0-flash-exp"}
+        logger.debug(f"Document added with ID: {doc_id}, content length: {len(doc_input.content)}")
+        return {"message": "Document added successfully", "document_id": str(doc_id), "content_length": len(doc_input.content)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error adding document: {str(e)}")
 
 @router.post("/search", response_model=SearchResponse)
 async def search_documents(search_input: SearchInput):
-    ensure_inited()
+    mongo_manager = get_mongo_manager()
     try:
         collection_name = search_input.collection_name
         extra_filters = search_input.filters or {}
@@ -161,23 +152,3 @@ async def search_documents(search_input: SearchInput):
         return SearchResponse(answer=answer, sources=sources, query=query_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during search: {str(e)}")
-
-@router.get("/stats")
-async def get_stats():
-    ensure_inited()
-    try:
-        count = mongo_manager.get_document_count()
-        return {"status": "active", "document_count": count, "database": "MongoDB", "embedding_model": "gemini-2.0-flash-exp", "llm_model": "gemini-2.0-flash-exp", "storage_type": "MongoDB with vector embeddings"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting stats: {str(e)}")
-
-@router.delete("/documents/{doc_id}")
-async def delete_document(doc_id: str):
-    ensure_inited()
-    try:
-        ok = mongo_manager.delete_document(doc_id)
-        if ok:
-            return {"message": "Document deleted successfully", "document_id": doc_id}
-        raise HTTPException(status_code=404, detail="Document not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting document: {str(e)}")

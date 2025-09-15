@@ -9,7 +9,7 @@ RAG Service client
 import os
 import time
 import requests
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,8 +56,8 @@ class RAGService:
         self.knowledge_add = f"{self.base_url}/knowledge/add"
         self.knowledge_health = f"{self.base_url}/knowledge/health"
 
-        self.fix_cases_import = f"{self.base_url}/fix-cases/import"
-        self.fix_cases_health = f"{self.base_url}/fix-cases/health"
+        self.fix_cases_import = f"{self.base_url}/fixer-rag/import"
+        self.fix_cases_health = f"{self.base_url}/fixer-rag/health"
 
         self.headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -93,6 +93,8 @@ class RAGService:
             if not resp.ok:
                 return RAGSearchResult(answer="", sources=[], query=str(payload.get("query","")), success=False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
+            logger.debug(f"RAG search query: {payload.get('query','')[:100]} | hits: {len(data.get('sources', []))}")
+            
         except requests.exceptions.RequestException as e:
             return RAGSearchResult(answer="", sources=[], query=str(payload.get("query","")), success=False, error_message=f"Request error: {e}")
         except ValueError:
@@ -148,7 +150,6 @@ class RAGService:
         report: List[Dict],
         source_snippet: str = "",
         project: Optional[str] = None,
-        component: Optional[str] = None,
         collection_name: Optional[str] = None,
     ) -> RAGAddResult:
         """
@@ -157,13 +158,11 @@ class RAGService:
         summary = self._summarize_report(report)
         content = (
             f"[ANALYSIS REPORT]\nCounts: {summary}\n"
-            f"[SOURCE_SNIPPET]\n{(source_snippet or '')[:4000]}"
+            f"[SOURCE_SNIPPET]\n{(source_snippet or '')[500]}"
         )
         metadata: Dict = {
             "agent": "analysis",
             "project": project,
-            "component": component,
-            "report_size": len(report or []),
             "kind": "analysis_context",
         }
         payload: Dict = {"content": content, "metadata": metadata}
@@ -174,11 +173,6 @@ class RAGService:
             resp = self._post_with_retry(self.knowledge_add, payload)
         except requests.exceptions.RequestException as e:
             msg = f"Knowledge add (analysis) request error: {e}"
-            logger.error(msg)
-            return RAGAddResult(success=False, error_message=msg)
-
-        if not resp.ok:
-            msg = f"Knowledge add (analysis) failed ({resp.status_code}): {resp.text[:200]}"
             logger.error(msg)
             return RAGAddResult(success=False, error_message=msg)
 
@@ -299,6 +293,7 @@ class RAGService:
         try:
             k_ok = requests.get(self.knowledge_health, headers=self.headers, timeout=5).ok
             f_ok = requests.get(self.fix_cases_health, headers=self.headers, timeout=5).ok
+            logger.info(f"RAG Health - Knowledge: {'OK' if k_ok else 'FAIL'}, Fix Cases: {'OK' if f_ok else 'FAIL'}")
             return bool(k_ok and f_ok)
         except Exception:
             return False
@@ -504,7 +499,7 @@ class RAGService:
 if __name__ == "__main__":
     svc = RAGService()
     healthy = svc.health_check()
-    print(f"Knowledge health: {'OK' if healthy else 'FAIL'}")
+    logger.info(f"Knowledge health: {'OK' if healthy else 'FAIL'}")
 
     sample_issues = [{
         "classification": "True Bug",
@@ -519,12 +514,12 @@ if __name__ == "__main__":
     }]
 
     sr = svc.search_rag_knowledge(sample_issues)
-    print("Search OK:", sr.success, "hits:", len(sr.sources))
+    logger.info("Search OK:", sr.success, "hits:", len(sr.sources))
 
     # Example add to Knowledge (legacy behavior)
     add_res = svc.add_fix_to_rag({"file_path": "src/main/java/Example.java"}, sample_issues, fixed_code="safeQuery(...)")
-    print("Add to knowledge OK:", add_res.success)
+    logger.info("Add to knowledge OK:", add_res.success)
 
     # Example add to Fix Cases
     add_case = svc.add_fix_case({"file_path": "src/main/java/Example.java"}, sample_issues, fixed_code="safeQuery(...)")
-    print("Add fix case OK:", add_case.success)
+    logger.info("Add fix case OK:", add_case.success)

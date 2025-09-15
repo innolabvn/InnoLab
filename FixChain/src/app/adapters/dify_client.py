@@ -37,7 +37,7 @@ def _make_session() -> requests.Session:
 
 def _headers(api_key: str) -> Dict[str, str]:
     if not api_key or not api_key.strip():
-        raise ValueError("Missing Dify API key")
+        logger.error("Missing Dify API key")
     return {
         "Authorization": f"Bearer {api_key.strip()}",
         "Content-Type": "application/json",

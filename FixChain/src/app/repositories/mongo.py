@@ -27,34 +27,27 @@ class MongoDBManager:
     - Giữ tương thích ngược: vẫn có `embeddings_collection` nếu dữ liệu cũ còn đó.
     """
     def __init__(self):
-        self.client: Optional[MongoClient] = None
+        self.client: MongoClient
         self.db = None
-        self.documents_collection: Optional[Collection] = None
-        self.embeddings_collection: Optional[Collection] = None
+        self.documents_collection: Collection
+        self.embeddings_collection: Collection
         self.connect()
 
     # -------------- Connection --------------
     def connect(self):
         """Connect to MongoDB & prepare collections/indexes"""
         try:
-            default_url = "mongodb://localhost:27017/"
-            if os.getenv("DOCKER_ENV") == "true":
-                # giữ tương thích docker-compose hiện tại
-                default_url = "mongodb://admin:password123@mongodb:27017/"
-
-            mongo_url = os.getenv("MONGODB_URI") or default_url
-            db_name = os.getenv("MONGODB_DATABASE") or "rag_db"
-
-            self.client = MongoClient(mongo_url)
-            self.db = self.client[db_name]
+            self.client = MongoClient(os.getenv("MONGODB_URI") or "mongodb://mongodb:27017")
+            self.db = self.client[os.getenv("MONGODB_DATABASE") or "fixchain"]
 
             # Collections mặc định
             self.documents_collection = self.db["documents"]
-            self.embeddings_collection = self.db["embeddings"]  # legacy
+            self.embeddings_collection = self.db["embeddings"]
 
             # Ping
-            self.client.admin.command("ping")
-            logger.info("Connected to MongoDB successfully")
+            ping = self.client.admin.command("ping")
+            if ping.get("ok") == 1.0:
+                logger.info("Connected to MongoDB successfully")
 
             # Indexes cơ bản (an toàn khi tạo nhiều lần)
             # 1) Text index cho content (fallback search)
@@ -85,29 +78,27 @@ class MongoDBManager:
         """Add document; lưu embedding ngay trong document (ưu tiên mới), vẫn tương thích dữ liệu cũ."""
         try:
             metadata = metadata or {}
-
-            # Generate document ID (giữ kiểu cũ để không phá controller khác)
             doc_id = f"doc_{datetime.now().timestamp()}"
-
             document = {
                 "doc_id": doc_id,
                 "content": content,
                 "metadata": {
                     **metadata,
                     "timestamp": now_utc().isoformat(),
-                    "created_at": now_utc(),
                 },
                 "created_at": now_utc(),
-                "updated_at": now_utc(),
             }
-
-            # Lưu embedding trong document (mới)
+            # Lưu embedding trong document
             if embedding:
+                logger.debug(f"Adding document with embedding of dimension {len(embedding)}")
                 document["embedding"] = embedding
                 document["embedding_dimension"] = len(embedding)
 
-            # Insert document
-            self.documents_collection.insert_one(document)
+                # Insert document
+                try:
+                    self.documents_collection.insert_one(document)
+                except Exception as e:
+                    logger.error(f"Insert document failed: {e}")
 
             # Viết legacy sang embeddings_collection (nếu embedding có) để không hỏng code cũ dùng cosine
             if embedding:
@@ -159,7 +150,7 @@ class MongoDBManager:
         content: str,
         metadata: Dict[str, Any],
         embedding: List[float],
-        collection_name: str = "rag_documents",
+        collection_name: str = "",
     ) -> str:
         """Insert RAG document vào collection xác định (dùng cho fix_cases/knowledge)."""
         try:
@@ -172,10 +163,8 @@ class MongoDBManager:
                 "metadata": {
                     **metadata,
                     "timestamp": now_utc().isoformat(),
-                    "created_at": now_utc(),
                 },
                 "created_at": now_utc(),
-                "updated_at": now_utc(),
             }
             if embedding:
                 doc["embedding"] = embedding
@@ -206,8 +195,17 @@ class MongoDBManager:
         except Exception as e:
             raise Exception(f"Error searching documents: {str(e)}")
 
-    def search_by_embedding(self, query_embedding: List[float], top_k: int = 5) -> List[Dict]:
-        return self.search_by_embedding_v2(query_embedding=query_embedding, top_k=top_k)
+    def search_by_embedding(
+            self, 
+            query_embedding: List[float], 
+            top_k: int = 5, 
+            collection_name: Optional[str] = None,
+            filters: Optional[Dict[str, Any]] = None,
+        ) -> List[Dict]:
+        return self.search_by_embedding_v2(
+            query_embedding=query_embedding, top_k=top_k,
+            collection_name=collection_name, filters=filters
+        )
     
     def search_by_embedding_v2(
         self,
@@ -217,51 +215,9 @@ class MongoDBManager:
         filters: Optional[Dict[str, Any]] = None,
     ) -> List[Dict]:
         """
-        Vector search qua $vectorSearch trên collection chỉ định (mặc định: documents).
-        - Yêu cầu Atlas Vector Index 'vector_index' (path: 'embedding', numDimensions: 768, similarity: cosine)
-        - Trả về 'similarity_score' (lấy từ $meta: 'searchScore')
-        - Có thể lọc theo metadata.* qua 'filters'
-        Fallback: cosine trên embedding local nếu $vectorSearch không khả dụng.
+        Cosine trên embedding local.
         """
         col = self.get_collection(collection_name) if collection_name else self.documents_collection
-
-        # 1) Thử $vectorSearch
-        try:
-            pipeline = [
-                {
-                    "$vectorSearch": {
-                        "index": "vector_index",
-                        "path": "embedding",
-                        "queryVector": query_embedding,
-                        "numCandidates": max(top_k * 20, 100),
-                        "limit": top_k,
-                    }
-                },
-                { "$set": { "similarity_score": { "$meta": "searchScore" } } }
-            ]
-            if filters:
-                match = {}
-                for k, v in (filters or {}).items():
-                    match[f"metadata.{k}"] = v
-                pipeline.append({ "$match": match })
-
-            results = list(col.aggregate(pipeline))
-            if results:
-                out = []
-                for r in results:
-                    out.append({
-                        "doc_id": r.get("doc_id"),
-                        "content": r.get("content", ""),
-                        "metadata": r.get("metadata", {}),
-                        "similarity_score": r.get("similarity_score", r.get("score", 0)),
-                    })
-                return out
-        except OperationFailure as ofe:
-            logger.warning(f"$vectorSearch not available on '{col.name}', fallback to cosine. Detail: {getattr(ofe, 'details', str(ofe))}")
-        except Exception as e:
-            logger.warning(f"$vectorSearch error on '{col.name}', fallback to cosine: {e}")
-
-        # 2) Fallback: cosine
         try:
             # Load docs có embedding
             docs = list(col.find({"embedding": {"$exists": True}}))
@@ -309,7 +265,7 @@ class MongoDBManager:
             } for t in top]
 
         except Exception as e:
-            raise Exception(f"Error searching by embedding (fallback): {str(e)}")
+            raise Exception(f"Error searching by embedding: {str(e)}")
 
     @staticmethod
     def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
@@ -370,7 +326,7 @@ class MongoDBService:
         except Exception as e:
             raise Exception(f"Error inserting RAG dataset: {str(e)}")
 
-    def get_execution_logs(self, project_key: str = None, limit: int = 100) -> List[Dict]:
+    def get_execution_logs(self, project_key: str = "", limit: int = 100) -> List[Dict]:
         try:
             col = self.manager.get_collection("execution_logs")
             q = {}
@@ -384,7 +340,7 @@ class MongoDBService:
         except Exception as e:
             raise Exception(f"Error getting execution logs: {str(e)}")
 
-    def get_rag_datasets(self, project_key: str = None) -> List[Dict]:
+    def get_rag_datasets(self, project_key: str = "") -> List[Dict]:
         try:
             col = self.manager.get_collection("rag_datasets")
             q = {}

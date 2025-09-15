@@ -1,5 +1,6 @@
 # src\app\services\analysis_service.py
 from __future__ import annotations
+from collections import Counter
 import json
 import os
 from typing import Dict, List, Any, TypedDict, Optional, Union, cast
@@ -29,24 +30,19 @@ class AnalysisService:
         self.rag = RAGService()
 
     def count_bug_types(self, bugs: List[Dict[str, Any]]) -> Dict[str, int]:
-        counts: Dict[str, int] = {"VULNERABILITY": 0}
-        for bug in bugs:
-            bug_type = str(bug.get("type", "UNKNOWN"))
-            counts[bug_type] = counts.get(bug_type, 0) + 1
+        counts = Counter(bug.get("severity", "") for bug in bugs)
         counts["TOTAL"] = len(bugs)
-        return counts
+        return dict(counts)
 
     def analyze_bugs_with_dify(
         self,
         bugs: List[Dict[str, Any]],
-        use_rag: bool = False,
         source_code: str = "",
     ) -> AnalysisResult:
         """
         Gửi báo cáo bugs sang Dify workflow và rút ra số lượng bugs cần FIX.
         Optionally:
            - Lưu context phân tích vào RAG (agent=analysis)
-           - Truy vấn RAG để lấy retrieved_context truyền cho workflow khi use_rag=True
         Returns:
             {
               "success": bool,
@@ -68,11 +64,11 @@ class AnalysisService:
             # ---- (A) Lưu context vào RAG ----
             # 1) Tóm tắt ngắn report + snapshot source (tránh quá dài)
             try:
-                collection = (os.getenv("SCANNER_RAG_COLLECTION", "kb_scanner_signals").strip() or None)
+                collection = os.getenv("SCANNER_RAG_COLLECTION", "kb_scanner_signals").strip()
                 self.rag.add_analysis_context(
                     report=bugs or [],
                     source_snippet=source_code[:4000],
-                    project=os.getenv("PROJECT_NAME", None),
+                    project=os.getenv("PROJECT_NAME", "unknown").strip(),
                     collection_name=collection,
                 )
             except Exception as e:
@@ -80,37 +76,37 @@ class AnalysisService:
 
             # ---- (B) Truy vấn RAG để lấy retrieved_context ----
             retrieved_context = ""
-            if use_rag:
-                try:
-                    # Tạo query gọn gàng từ report
-                    rule_descriptions = {str(b.get("rule_description", "")).strip() for b in (bugs or []) if b.get("rule_description")}
-                    q = " ".join(list(rule_descriptions))[:1000] or json.dumps(bugs, ensure_ascii=False)[:1000]
-                    collection = (os.getenv("SCANNER_RAG_COLLECTION", "").strip() or None)
-                    result = self.rag.search_text(
-                        text=q,
-                        limit=5,
-                        collection_name=collection,
-                        filters={"metadata.agent": "analysis"},
-                    )
-                    if result.success and result.sources:
-                        retrieved_context = "\n\n---\n".join([str(s.get("content", "")) for s in result.sources])
-                except Exception as e:
-                    logger.warning("RAG (analysis) search failed: %s", e)
+            try:
+                # Tạo query gọn gàng từ report
+                title = {str(b.get("title", "")).strip() for b in (bugs or []) if b.get("title")}
+                q = " ".join(list(title))[:1000] or json.dumps(bugs, ensure_ascii=False)[:1000]
+                collection = (os.getenv("SCANNER_RAG_COLLECTION", "").strip() or None)
+                result = self.rag.search_text(
+                    text=q,
+                    limit=5,
+                    collection_name=collection,
+                    filters={"metadata.agent": "analysis"},
+                )
+                if result.success and result.sources:
+                    retrieved_context = "".join([str(s.get("content", "")) for s in result.sources])
+                    logger.debug("RAG retrieved %d context pieces.", len(result.sources))
+            except Exception as e:
+                logger.warning("RAG (analysis) search failed: %s", e)
 
             # ---- (C) Gọi Dify ----
             inputs = {
-                "is_use_rag": "True" if use_rag else "False",
+                "is_use_rag": "True",
                 "src": source_code,
                 "report": json.dumps(bugs, ensure_ascii=False),
                 "retrieved_context": retrieved_context,
             }
-            logger.info("Sending %d bug(s) to Dify workflow (use_rag=%s).", len(bugs), use_rag)
+            logger.info("Sending %d bug(s) to Dify workflow.", len(bugs))
 
             response: DifyRunResponse = run_workflow_with_dify(
                 api_key=api_key,
                 inputs=inputs,
-                response_mode="blocking",
             )
+            logger.debug("Dify raw response: %s", response)
 
             # Defensive parsing trên cấu trúc Dify
             outputs = self._safe_get_outputs(response)
@@ -187,7 +183,7 @@ class AnalysisService:
                 try:
                     return int(direct)
                 except (TypeError, ValueError):
-                    pass  # fallback bên dưới
+                    pass
 
         # 2) Nếu là dict và có mảng "bugs"
         if isinstance(list_bugs, dict) and isinstance(list_bugs.get("bugs"), list):

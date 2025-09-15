@@ -22,24 +22,19 @@ def _find_repo_root(start: Path) -> Path:
 class BearerScanner(Scanner):
     """Scanner for loading Bearer scan results from Dockerized bearer/bearer."""
 
-    def __init__(self, project_key: str, scan_directory: str):
-        self.project_key = project_key
+    def __init__(self, scan_directory: str):
         self.scan_directory = scan_directory
 
     def scan(self) -> List[Dict]:
         try:
-            logger.info("Starting Bearer scan for project_key=%s", self.project_key)
+            logger.info("Scan directory: %s", self.scan_directory)
 
             repo_root = _find_repo_root(Path(__file__).parent)
             projects_root = Path(os.getenv("PROJECTS_ROOT", repo_root / "projects")).resolve()
 
             # Resolve project_dir
             sd = Path(self.scan_directory)
-            if sd.is_absolute():
-                project_dir = sd
-            else:
-                # ưu tiên dưới projects_root
-                project_dir = (projects_root / self.scan_directory).resolve()
+            project_dir = sd if sd.is_absolute() else (projects_root / self.scan_directory).resolve()
 
             if not project_dir.exists():
                 msg = f"Project directory not found: {project_dir}"
@@ -49,7 +44,7 @@ class BearerScanner(Scanner):
             # Output file in <projects_root>/bearer_results/
             bearer_results_dir = (projects_root / "bearer_results").resolve()
             bearer_results_dir.mkdir(parents=True, exist_ok=True)
-            output_file = bearer_results_dir / f"bearer_results_{self.project_key}.json"
+            output_file = bearer_results_dir / f"bearer_results_{self.scan_directory}.json"
             try:
                 if output_file.exists():
                     output_file.unlink()
@@ -81,7 +76,7 @@ class BearerScanner(Scanner):
                     clean = re.sub(r'\x1b\[[0-9;]*m', '', bearer_output)
                 except Exception:
                     clean = bearer_output
-                logger.error("Bearer scan output: %s", clean[:1000])
+                logger.debug("Bearer scan output: %s", clean[:1000])
                 return []
 
             if not output_file.exists():
@@ -91,6 +86,7 @@ class BearerScanner(Scanner):
             logger.info("Reading Bearer results from: %s", output_file)
             with output_file.open("r", encoding="utf-8") as f:
                 bearer_data = json.load(f)
+                logger.debug(f"Raw bearer response: {bearer_data}")
 
             bugs = self._convert_bearer_to_bugs_format(bearer_data)
             logger.info("Found %d Bearer security issues", len(bugs))
@@ -136,48 +132,30 @@ class BearerScanner(Scanner):
 
                 rule_id = finding.get("id", finding.get("rule_id", "bearer_security_issue"))
                 fingerprint = finding.get("fingerprint", hash(str(finding)) & 0x7FFFFFFF)
-                unique_key = f"bearer_{rule_id}_{fingerprint}"
-
-                title = finding.get("title", finding.get("rule_title", "Security vulnerability"))
+                title = finding.get("title", finding.get("rule_title", ""))
                 desc = finding.get("description", finding.get("rule_description", ""))
-
-                if desc:
-                    msg = f"{title}. {desc[:200]}..." if len(desc) > 200 else f"{title}. {desc}"
-                else:
-                    msg = title
-
-                severity = (finding.get("severity", "medium") or "medium").lower()
+                severity = finding.get("severity", "medium").upper()
                 cwe_ids = finding.get("cwe_ids", finding.get("cwe", []))
                 if isinstance(cwe_ids, str):
                     cwe_ids = [cwe_ids]
 
-                rule_type = finding.get("type", "security")
-                confidence = finding.get("confidence", "medium")
+                rule_type = finding.get("type", "")
+                confidence = finding.get("confidence", "")
 
                 bug = {
-                    "key": unique_key,
+                    "key": fingerprint,
                     "rule": rule_id,
-                    "severity": self._map_bearer_severity(severity),
+                    "severity": severity,
                     "component": filename,
                     "line": line_number,
-                    "message": msg.strip(),
-                    "status": "OPEN",
-                    "type": "VULNERABILITY",
-                    "effort": "15min" if severity in ["critical", "high"] else "10min",
-                    "debt": "15min" if severity in ["critical", "high"] else "10min",
+                    "title": title,
+                    "description": desc,
                     "tags": [
-                        "security",
-                        "bearer",
-                        severity,
                         rule_type,
                         confidence,
                         *[f"cwe-{cwe}" for cwe in cwe_ids],
                     ],
-                    "creationDate": datetime.now().isoformat(),
-                    "updateDate": datetime.now().isoformat(),
                     "textRange": {
-                        "startLine": line_number,
-                        "endLine": line_number,
                         "startOffset": self._extract_column_start(finding),
                         "endOffset": self._extract_column_end(finding),
                     },
@@ -211,22 +189,3 @@ class BearerScanner(Scanner):
                 return col + 1
             return int(src.get("end_column", src.get("column_end", 0)))
         return 0
-
-    def _map_bearer_severity(self, s: str) -> str:
-        m = {
-            "critical": "BLOCKER",
-            "high": "CRITICAL",
-            "medium": "MAJOR",
-            "low": "MINOR",
-            "info": "INFO",
-            "warning": "MINOR",
-            "error": "CRITICAL",
-            "CRITICAL": "BLOCKER",
-            "HIGH": "CRITICAL",
-            "MEDIUM": "MAJOR",
-            "LOW": "MINOR",
-            "INFO": "INFO",
-            "WARNING": "MINOR",
-            "ERROR": "CRITICAL",
-        }
-        return m.get(s, "MAJOR")

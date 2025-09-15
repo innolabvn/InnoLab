@@ -11,100 +11,113 @@ from dotenv import load_dotenv
 from bson import ObjectId
 from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL, GENERATION_MODEL
 from src.app.repositories.mongo import get_mongo_manager
+from src.app.services.log_service import logger
 
 root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))), '.env')
 load_dotenv(root_env_path)
 
-router = APIRouter()
+class BugType(str):
+    BUG = "BUG"
+    CODE_SMELL = "CODE_SMELL"
 
-class BugRAGItem(BaseModel):
+class BugSeverity(str):
+    INFO = "INFO"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+class BugItem(BaseModel):
     name: str
     description: str
-    type: str = "BUG"
-    severity: str = "MEDIUM"
-    status: str = "OPEN"
+    type: BugType
+    severity: BugSeverity
     file_path: Optional[str] = None
     line_number: Optional[int] = None
     code_snippet: Optional[str] = None
     labels: List[str] = Field(default_factory=list)
     project: Optional[str] = None
-    component: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any]
 
-class BugRAGImportRequest(BaseModel):
-    bugs: List[BugRAGItem]
-    collection_name: str = "bug_rag_documents"
+class BugImportRequest(BaseModel):
+    bugs: List[BugItem]
+    collection_name: str = "fixer_rag_colletion"
     generate_embeddings: bool = True
 
 class BugFixRequest(BaseModel):
     bug_id: str
     fix_description: str
     fixed_code: Optional[str] = None
-    fix_type: str = "MANUAL"
-    fixed_by: Optional[str] = None
     fix_notes: Optional[str] = None
 
 class BugSearchRequest(BaseModel):
     query: str
-    collection_name: str = "bug_rag_documents"
+    collection_name: str = "fixer_rag_colletion"
     top_k: int = 5
-    filters: Dict[str, Any] = Field(default_factory=dict)
+    filters: Dict[str, Any]
 
 class BugFixSuggestionRequest(BaseModel):
     bug_id: str
-    collection_name: str = "bug_rag_documents"
+    collection_name: str = "fixer_rag_colletion"
     include_similar_fixes: bool = True
 
 def generate_gemini_embedding(text: str) -> List[float]:
     try:
-        r = client.models.embed_content(model=EMBEDDING_MODEL, contents=text)
-        return r.embeddings[0].values
+        res = client.models.embed_content(model=EMBEDDING_MODEL, contents=text)
+        res_embeddings = getattr(res, "embeddings", None)
+        if not res_embeddings or not res_embeddings[0]:
+            embedding = [0.0] * 768
+            logger.warning("Empty embedding received, returning zero vector")
+        else:
+            embedding = res_embeddings[0].values
+            logger.debug(f"Generated embedding of length {len(embedding)}")
+        return embedding
     except Exception as e:
-        print(f"Error generating embedding: {e}")
-        return [0.0] * 768  # 768-dim embedding
+        logger.error(f"Error generating embedding: {str(e)}")
+        raise
 
-def format_bug_for_rag(bug: BugRAGItem) -> str:
+def format_bug_for_rag(bug: BugItem) -> str:
     parts = [
         f"Bug Name: {bug.name}",
         f"Description: {bug.description}",
         f"Type: {bug.type}",
         f"Severity: {bug.severity}",
-        f"Status: {bug.status}",
     ]
     if bug.file_path: parts.append(f"File: {bug.file_path}")
     if bug.line_number: parts.append(f"Line: {bug.line_number}")
-    if bug.code_snippet: parts.append(f"Code Snippet:\n{bug.code_snippet}")
+    if bug.code_snippet: parts.append(f"Code Snippet:{bug.code_snippet}")
     if bug.labels: parts.append(f"Labels: {', '.join(bug.labels)}")
     if bug.project: parts.append(f"Project: {bug.project}")
-    if bug.component: parts.append(f"Component: {bug.component}")
-    return "\n".join(parts)
+    return "".join(parts)
 
-def create_bug_rag_metadata(bug: BugRAGItem) -> Dict[str, Any]:
+def create_bug_rag_metadata(bug: BugItem) -> Dict[str, Any]:
     md = {
       "bug_name": bug.name,
       "bug_type": bug.type,
       "severity": bug.severity,
-      "status": bug.status,
       "labels": bug.labels,
       "created_at": datetime.utcnow(),
-      "document_type": "bug_rag",
     }
     if bug.file_path: md["file_path"] = bug.file_path
     if bug.line_number: md["line_number"] = bug.line_number
     if bug.project: md["project"] = bug.project
-    if bug.component: md["component"] = bug.component
     md.update(bug.metadata)
     return md
 
-def convert_objectid_to_str(obj):
-    if isinstance(obj, ObjectId): return str(obj)
-    if isinstance(obj, datetime): return obj.isoformat()
-    if isinstance(obj, dict): return {k: convert_objectid_to_str(v) for k, v in obj.items()}
-    if isinstance(obj, list): return [convert_objectid_to_str(i) for i in obj]
-    return obj
+router = APIRouter()
+@router.get("/health")
+async def health_check():
+    mongo_manager = get_mongo_manager()
+    try:
+        stat = mongo_manager.client.admin.command("ping")
+        if stat.get("ok") != 1:
+            raise RuntimeError("MongoDB ping failed")
+        return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 @router.post("/import")
-async def import_bugs_as_rag(request: BugRAGImportRequest):
+async def import_bugs_as_rag(request: BugImportRequest):
     try:
         mongo_manager = get_mongo_manager()
         collection = mongo_manager.get_collection(request.collection_name)
@@ -131,67 +144,17 @@ async def import_bugs_as_rag(request: BugRAGImportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error importing bugs: {str(e)}")
 
-@router.post("/search")
-async def search_bugs_in_rag(request: BugSearchRequest):
-    try:
-        mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection(request.collection_name)
-        query_embedding = generate_gemini_embedding(request.query)
-        pipeline = [
-            {
-                "$vectorSearch": {
-                    "index": "vector_index",
-                    "path": "embedding",
-                    "queryVector": query_embedding,
-                    "numCandidates": request.top_k * 20,
-                    "limit": request.top_k
-                }
-            },
-            { "$set": { "similarity_score": { "$meta": "searchScore" } } }
-        ]
-        if request.filters:
-            match_stage = {"$match": {}}
-            for k, v in request.filters.items():
-                match_stage["$match"][f"metadata.{k}"] = v
-            pipeline.append(match_stage)
-        docs = list(collection.aggregate(pipeline))
-        # Chuẩn hoá field 'similarity_score' để các router khác dùng chung
-        for d in docs:
-            if "similarity" in d and "similarity_score" not in d:
-                d["similarity_score"] = d["similarity"]
-        results = convert_objectid_to_str(docs)
-        return {"query": request.query, "results": results, "total_found": len(results), "collection": request.collection_name}
-    except Exception:
-        # fallback text search
-        try:
-            mongo_manager = get_mongo_manager()
-            collection = mongo_manager.get_collection(request.collection_name)
-            search_filter = {"$or": [
-                {"content": {"$regex": request.query, "$options": "i"}},
-                {"metadata.bug_name": {"$regex": request.query, "$options": "i"}},
-                {"metadata.description": {"$regex": request.query, "$options": "i"}},
-            ]}
-            for k, v in request.filters.items():
-                search_filter[f"metadata.{k}"] = v
-            results = list(collection.find(search_filter).limit(request.top_k))
-            results = convert_objectid_to_str(results)
-            return {"query": request.query, "results": results, "total_found": len(results), "collection": request.collection_name, "search_type": "text_fallback"}
-        except Exception as fallback_error:
-            raise HTTPException(status_code=500, detail=f"Error searching bugs: {str(fallback_error)}")
-
 @router.post("/fix")
 async def fix_bug(request: BugFixRequest):
     try:
         mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection("bug_rag_documents")
+        collection = mongo_manager.get_collection("fixer_rag_colletion")
         bug_doc = collection.find_one({"_id": ObjectId(request.bug_id)})
         if not bug_doc:
             raise HTTPException(status_code=404, detail="Bug not found")
         fix_record = {
             "fix_description": request.fix_description,
             "fixed_code": request.fixed_code,
-            "fix_type": request.fix_type,
-            "fixed_by": request.fixed_by,
             "fix_notes": request.fix_notes,
             "fixed_at": datetime.utcnow(),
         }
@@ -203,7 +166,7 @@ async def fix_bug(request: BugFixRequest):
             }
         }
         if request.fixed_code:
-            fix_content = f"\n\nFIX APPLIED:\nDescription: {request.fix_description}\nFixed Code:\n{request.fixed_code}"
+            fix_content = f"FIX APPLIED:\nDescription: {request.fix_description}\nFixed Code: {request.fixed_code}"
             update_data["$set"]["content"] = bug_doc["content"] + fix_content
             new_embedding = generate_gemini_embedding(update_data["$set"]["content"])
             update_data["$set"]["embedding"] = new_embedding
@@ -243,7 +206,7 @@ BUG INFORMATION:
 {bug_content}
 """
         if similar_fixes:
-            prompt += "\nSIMILAR FIXES FOR REFERENCE:\n"
+            prompt += "\nSIMILAR FIXES FOR REFERENCE: "
             for i, fx in enumerate(similar_fixes, 1):
                 prompt += f"\n{i}. {fx['bug_name']}\n   Fix: {fx['fix_description']}\n"
                 if fx['fixed_code']:
@@ -268,31 +231,3 @@ Please provide:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=500, detail=f"Error generating fix suggestion: {str(e)}")
-
-@router.get("/stats")
-async def get_rag_bug_stats():
-    try:
-        mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection("bug_rag_documents")
-        total_bugs = collection.count_documents({})
-        status_stats = list(collection.aggregate([{"$group": {"_id": "$metadata.status", "count": {"$sum": 1}}}]))
-        type_stats = list(collection.aggregate([{"$group": {"_id": "$metadata.bug_type", "count": {"$sum": 1}}}]))
-        severity_stats = list(collection.aggregate([{"$group": {"_id": "$metadata.severity", "count": {"$sum": 1}}}]))
-        return {
-            "total_bugs": total_bugs,
-            "by_status": {s["_id"]: s["count"] for s in status_stats},
-            "by_type": {s["_id"]: s["count"] for s in type_stats},
-            "by_severity": {s["_id"]: s["count"] for s in severity_stats},
-            "collection": "bug_rag_documents",
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting stats: {str(e)}")
-
-@router.get("/health")
-async def health_check():
-    try:
-        mongo_manager = get_mongo_manager()
-        mongo_manager.client.admin.command("ping")
-        return {"status": "healthy", "mongodb": "connected", "gemini": "configured", "timestamp": datetime.utcnow().isoformat()}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}

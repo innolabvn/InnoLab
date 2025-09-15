@@ -12,7 +12,7 @@ class Fixer(ABC):
         self.scan_directory = scan_directory
 
     @abstractmethod
-    def fix_bugs(self, list_real_bugs: List[Dict], use_rag: bool = False) -> Dict:
+    def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int) -> Dict:
         """
         Apply fixes to bugs and return result summary.
 
@@ -20,8 +20,9 @@ class Fixer(ABC):
         -------
         list_real_bugs: List[Dict]
             A list of issue dicts produced by Scanner (or curated).
-        use_rag: bool
-            If True, enable RAG enrichment inside batch fix script (if supported).
+        bugs_count: int
+            Total number of bugs to fix (for logging).
+
 
         Returns
         -------

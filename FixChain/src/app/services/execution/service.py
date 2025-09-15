@@ -16,10 +16,8 @@ from src.app.domains.fix import LLMFixer
 @dataclass
 class ExecutionConfig:
     max_iterations: int
-    project_key: str
     scan_directory: str
     scan_modes: List[str]
-    fix_modes: List[str]
     dify_cloud_api_key: Optional[str] = None
 
 
@@ -33,60 +31,28 @@ class ExecutionServiceNoMongo:
         self.cfg = config
 
         logger.info("Max iterations: %s", self.cfg.max_iterations)
-        logger.info("Project key: %s", self.cfg.project_key)
         logger.info("Scan directory: %s", self.cfg.scan_directory)
-        logger.info("Scan modes: %s", self.cfg.scan_modes)
-        logger.info("Fix modes: %s", self.cfg.fix_modes)
 
-        # Services
+        # Analyzer
         self.analysis_service = AnalysisService(dify_cloud_api_key=self.cfg.dify_cloud_api_key)
-
-        # Scanners
-        self.scanners: List[Any] = []
-        scanner_args: Dict[str, Dict[str, Any]] = {
-            "bearer": {
-                "project_key": self.cfg.project_key,
-                "scan_directory": self.cfg.scan_directory,
-            }
-        }
-        for mode in self.cfg.scan_modes:
-            args = scanner_args.get(mode, {})
-            self.scanners.append(BearerScanner(**args))
-
-        # Fixers
-        self.fixers: List[Any] = [LLMFixer(self.cfg.scan_directory)]
-
-    # ---- Optional: mock-insert RAG dataset (no DB), giữ nguyên hành vi cũ
-    def insert_rag_default(self) -> bool:
-        logger.info("Validating default RAG dataset file...")
-        dataset_path = os.getenv("RAG_DATASET_PATH")
-        if not dataset_path:
-            logger.error("RAG_DATASET_PATH must be set in environment")
-            return False
-        if not os.path.exists(dataset_path):
-            logger.error("Dataset file not found: %s", dataset_path)
-            return False
-        logger.info("Dataset file validated: %s", dataset_path)
-        return True
+        # Scanner: Bearer
+        self.scanner = BearerScanner(scan_directory=self.cfg.scan_directory)
+        # Fixer: Gemini/LLM
+        self.fixer = LLMFixer(self.cfg.scan_directory)
 
     def _resolve_scan_root(self) -> str:
         """Chuẩn hoá đường dẫn scan, không phụ thuộc sys.path hack."""
         scan_dir = self.cfg.scan_directory
         if os.path.isabs(scan_dir):
             return scan_dir
-        # Nếu bạn muốn anchor vào repo root, có thể thay bằng logic khác:
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
         project_root = os.getenv("PROJECT_ROOT") or os.path.abspath(os.path.join(repo_root, "projects"))
         return os.path.abspath(os.path.join(project_root, scan_dir))
 
-    def read_source_code(self, file_path: Optional[str] = None) -> str:
+    def read_source_code(self) -> str:
         """Đọc source code (gộp) để gửi kèm cho Dify (nếu cần)."""
         try:
             base = self._resolve_scan_root()
-            if file_path:
-                full_path = os.path.join(base, file_path)
-                return open(full_path, "r", encoding="utf-8").read()
-
             if not os.path.isdir(base):
                 logger.error("Scan directory not found: %s", base)
                 return ""
@@ -103,23 +69,24 @@ class ExecutionServiceNoMongo:
                             collected.append(f"// File: {rel}\n{content}\n\n")
                         except Exception as e:
                             logger.warning("Could not read %s: %s", fp, e)
-            return "".join(collected)
+            full_code = "".join(collected)
+            logger.debug(full_code[:100])  # Log first 100 chars
+            return full_code
         except Exception as e:
             logger.error("Error reading source code: %s", e)
             return ""
 
     @staticmethod
-    def _count_bug_types(bugs: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _count_bug_types(bugs: List[Dict[str, str]]) -> Dict[str, int]:
         counts: Dict[str, int] = {}
         for b in bugs:
-            bug_type = str(b.get("type", "UNKNOWN")).upper()
+            bug_type = str(b.get("severity", "")).upper()
             counts[bug_type] = counts.get(bug_type, 0) + 1
         counts["TOTAL"] = sum(v for k, v in counts.items() if k != "TOTAL")
         return counts
 
     def _log_execution_result(self, result: Dict[str, Any]) -> None:
-        logger.info("=== EXECUTION RESULT ===")
-        logger.info("Project: %s", result.get("project_key"))
+        logger.info("===== EXECUTION RESULT =====")
         logger.info("Total bugs fixed: %s", result.get("total_bugs_fixed"))
         logger.info("Total iterations: %s", len(result.get("iterations", [])))
         logger.info("Start time: %s", result.get("start_time"))
@@ -131,7 +98,7 @@ class ExecutionServiceNoMongo:
                 i, it.get("bugs_found"), it.get("fix_result", {}).get("fixed_count", 0)
             )
 
-    def run(self, use_rag: bool = False) -> Dict[str, Any]:
+    def run(self) -> Dict[str, Any]:
         start = datetime.now()
         iterations: List[Dict[str, Any]] = []
         total_fixed = 0
@@ -141,20 +108,14 @@ class ExecutionServiceNoMongo:
 
             # Scan
             all_bugs: List[Dict[str, Any]] = []
-            for mode, scanner in zip(self.cfg.scan_modes, self.scanners):
-                sb = scanner.scan()
-                logger.info("%s scanner found %s bugs", mode.upper(), len(sb))
-                all_bugs.extend(sb)
-                logger.info(all_bugs)
+            sb = self.scanner.scan()
+            all_bugs.extend(sb)
+            logger.debug(all_bugs)
 
             counts = self._count_bug_types(all_bugs)
-            bugs_total = counts.get("VULNERABILITY", 0)
-
-
-            logger.info(
-                "Iteration %s: %s bugs total",
-                it, bugs_total
-            )
+            logger.debug("Scan found bugs: %s", counts)
+            bugs_total = counts.get("CRITICAL", 0) + counts.get("HIGH", 0) + counts.get("MEDIUM", 0) + counts.get("LOW", 0)
+            logger.info("Bearer found: %s bugs total", bugs_total)
 
             it_result: Dict[str, Any] = {
                 "iteration": it,
@@ -177,56 +138,49 @@ class ExecutionServiceNoMongo:
             source_code = self.read_source_code()
 
             # Phân tích với Dify
-            analysis = self.analysis_service.analyze_bugs_with_dify(
-                all_bugs, use_rag=use_rag, source_code=source_code
-            )
-            logger.info("Dify analysis result: %s", analysis)
+            analysis = self.analysis_service.analyze_bugs_with_dify(all_bugs, source_code=source_code)
+            logger.debug("Dify analysis result: %s", analysis)
             it_result["analysis_result"] = analysis
 
             list_real_bugs = analysis.get("list_bugs")
             bugs_count = analysis.get("bugs_to_fix", 0)
             logger.info("Dify identified %s real bugs to fix", bugs_count)
-            if isinstance(list_real_bugs, str):
-                try:
-                    list_real_bugs = json.loads(list_real_bugs)
-                except Exception as e:
-                    logger.error("Failed to parse list_bugs JSON: %s", e)
-                    list_real_bugs = []
-            if list_real_bugs is None:
+
+            if isinstance(list_real_bugs, dict):
+                list_real_bugs = [list_real_bugs]
+            elif not isinstance(list_real_bugs, list):
                 list_real_bugs = []
 
             # Không có bug thực sự để fix
             if not list_real_bugs or bugs_count == 0:
-                msg = "No real bugs identified for fixing after analysis" if not list_real_bugs else "Dify analysis reports no bugs to fix"
                 it_result["fix_result"] = {
                     "success": True,
                     "fixed_count": 0,
                     "failed_count": 0,
                     "bug": 0,
                     "code_smell": bugs_total,
-                    "message": msg,
+                    "message": "No real bugs identified for fixing after analysis",
                 }
                 iterations.append(it_result)
                 break
 
             # Fix
             fix_results: List[Dict[str, Any]] = []
-            for fixer in self.fixers:
-                raw = fixer.fix_bugs(list_real_bugs, use_rag=use_rag, bugs_count=bugs_count)
-                if isinstance(raw, str):
-                    try:
-                        fix_result = json.loads(raw.splitlines()[-1])
-                    except json.JSONDecodeError:
-                        logger.error("Failed to parse fix result JSON")
-                        fix_result = {"success": False, "fixed_count": 0, "error": "Invalid JSON output"}
-                else:
-                    fix_result = raw
+            raw = self.fixer.fix_bugs(list_real_bugs, bugs_count=bugs_count)
+            if isinstance(raw, str):
+                try:
+                    fix_result = json.loads(raw.splitlines()[-1])
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse fix result JSON")
+                    fix_result = {"success": False, "fixed_count": 0, "error": "Invalid JSON output"}
+            else:
+                fix_result = raw
 
-                fix_results.append(fix_result)
-                if fix_result.get("success"):
-                    total_fixed += fix_result.get("fixed_count", 0)
-                else:
-                    logger.error("Fix failed: %s", fix_result.get("error", "Unknown error"))
+            fix_results.append(fix_result)
+            if fix_result.get("success"):
+                total_fixed += fix_result.get("fixed_count", 0)
+            else:
+                logger.error("Fix failed: %s", fix_result.get("error", "Unknown error"))
 
             it_result["fix_results"] = fix_results
             if fix_results:
@@ -234,31 +188,24 @@ class ExecutionServiceNoMongo:
 
             # Re-scan xác thực
             rescan: List[Dict[str, Any]] = []
-            for scanner in self.scanners:
-                rescan.extend(scanner.scan())
+            rescan.extend(self.scanner.scan())
             r_counts = self._count_bug_types(rescan)
-            it_result["rescan_bugs_found"] = r_counts.get("TOTAL", 0)
-            it_result["rescan_bugs"] = r_counts.get("VULNERABILITY", 0)
-            logger.info(
-                "Rescan found %s open bugs",
-                it_result["rescan_bugs_found"],
-            )
-
+            it_result["rescan_bugs_found"] = r_counts.get("CRITICAL", 0) + r_counts.get("HIGH", 0) + r_counts.get("MEDIUM", 0) + r_counts.get("LOW", 0)
             iterations.append(it_result)
 
             if it_result["rescan_bugs_found"] == 0:
                 logger.info("All bugs resolved after rescan")
-                break    
+                break
+            else:
+                logger.info("Rescan found %s open bugs", it_result["rescan_bugs_found"])
 
         end = datetime.now()
         result: Dict[str, Any] = {
-            "project_key": self.cfg.project_key,
-            "total_bugs_fixed": total_fixed,
             "iterations": iterations,
+            "total_bugs_fixed": total_fixed,
             "start_time": start.isoformat(),
             "end_time": end.isoformat(),
             "duration_seconds": (end - start).total_seconds(),
-            "rag_enabled": bool(use_rag),
         }
         self._log_execution_result(result)
         return result
