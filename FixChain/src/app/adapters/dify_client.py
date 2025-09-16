@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 from typing import Any, Dict, Optional, TypedDict
+from pydantic import BaseModel
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
@@ -12,13 +13,15 @@ DEFAULT_BASE_URL = "https://api.dify.ai/v1"
 def _get_base_url() -> str:
     return os.getenv("DIFY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
 
-class DifyRunResponse(TypedDict, total=False):
-    # cấu trúc phổ biến; cho phép linh hoạt vì Dify có thể thay đổi
-    data: Dict[str, Any]
-    outputs: Dict[str, Any]
-    task_id: str
-    error: str
-    message: str
+class DifyRunResponse(BaseModel):
+    # Những field phổ biến của Dify workflow/text generation; tuỳ app có thể dư/thiếu   
+    id: Optional[str] = None
+    status: Optional[str] = None               # e.g. "succeeded", "failed", "processing"
+    data: Optional[Dict[str, Any]] = None      # payload chính (output, variables, files, ...)
+    message: Optional[str] = None              # thông điệp lỗi/diag
+    usage: Optional[float] = None              # tokens, latency, ...
+    time: Optional[float] = None               # thời gian thực thi (giây)
+    raw: Dict[str, Any]                        # giữ bản gốc JSON để debug
 
 def _make_session() -> requests.Session:
     """Session với retry hợp lý cho lỗi mạng/tạm thời."""
@@ -87,7 +90,7 @@ def run_workflow_with_dify(
         # cố lấy message/json
         text = resp.text[:300] if resp.text else ""
         logger.error("Dify API HTTP %s: %s", resp.status_code, text)
-        resp.raise_for_status()  # vẫn raise để upstream biết failed
+        resp.raise_for_status()  # raise để upstream biết failed
 
     try:
         data = resp.json()
@@ -98,8 +101,15 @@ def run_workflow_with_dify(
         logger.error("Dify API trả về không phải JSON: %r", resp.text[:200])
         raise
 
-    # Log nhẹ nhàng
     if isinstance(data, dict) and "error" in data:
         logger.warning("Dify response contains error: %s", data.get("error"))
 
-    return data
+    return DifyRunResponse(
+            id=data.get("task_id"),
+            status=data.get("status") or data.get("data", {}).get("status"),
+            data=data.get("data") or data.get("output"),
+            message=data.get("message") or data.get("error"),
+            usage=data.get("total_tokens"),
+            time=data.get("elapsed_time"),
+            raw=data,
+        )

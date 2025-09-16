@@ -13,7 +13,7 @@ def setup_logger() -> logging.Logger:
         return logger  # tránh thêm handler lặp lại
 
     # Lấy level từ env, mặc định INFO
-    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level_name = os.getenv("LOG_LEVEL", "DEBUG").upper()
     level = getattr(logging, level_name, logging.INFO)
     logger.setLevel(level)
 

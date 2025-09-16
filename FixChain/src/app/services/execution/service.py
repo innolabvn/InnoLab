@@ -58,7 +58,7 @@ class ExecutionServiceNoMongo:
                 return ""
 
             collected: List[str] = []
-            logger.info("Reading source code from directory: %s", base)
+            logger.debug("Reading source code from directory: %s", base)
             for root, _dirs, files in os.walk(base):
                 for name in files:
                     if name.endswith((".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".cpp", ".c", ".h")):
@@ -110,10 +110,9 @@ class ExecutionServiceNoMongo:
             all_bugs: List[Dict[str, Any]] = []
             sb = self.scanner.scan()
             all_bugs.extend(sb)
-            logger.debug(all_bugs)
 
             counts = self._count_bug_types(all_bugs)
-            logger.debug("Scan found bugs: %s", counts)
+            logger.debug("Bearer found: %s", counts)
             bugs_total = counts.get("CRITICAL", 0) + counts.get("HIGH", 0) + counts.get("MEDIUM", 0) + counts.get("LOW", 0)
             logger.info("Bearer found: %s bugs total", bugs_total)
 

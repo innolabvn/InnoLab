@@ -2,8 +2,8 @@
 import os
 import math
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Dict, Any, Optional
-
 from pymongo import MongoClient, ASCENDING, TEXT
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure
@@ -11,9 +11,8 @@ from dotenv import load_dotenv
 from src.app.services.log_service import logger
 
 # Load environment variables from root directory
-root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), '.env')
+root_env_path = Path(__file__).resolve().parents[4] / '.env'
 load_dotenv(root_env_path)
-
 
 def now_utc():
     return datetime.now(timezone.utc)

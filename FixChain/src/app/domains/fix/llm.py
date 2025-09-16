@@ -109,7 +109,7 @@ class LLMFixer(Fixer):
         try:
             logger.info("Starting fix_bugs for %d bugs", bugs_count)
             ok_src, source_dir, err_src = self._resolve_source_dir()
-            logger.info("Source_dir = %s", source_dir)
+            logger.debug("Source_dir = %s", source_dir)
 
             if not ok_src:
                 logger.error(err_src)
@@ -133,7 +133,7 @@ class LLMFixer(Fixer):
                 json.dump(list_real_bugs, tf, indent=2, ensure_ascii=False)
                 issues_file_path = Path(tf.name)
 
-            logger.info("Created issues file: %s", issues_file_path)
+            logger.debug("Created issues file: %s", issues_file_path)
 
             # Chuẩn bị lệnh chạy batch_fix
             fix_cmd = [

@@ -1,47 +1,45 @@
 # src/app/api/routers/fix_cases.py
 """
-Import case, vector search, mark FIXED, suggest-fix, stats
+Fixer RAG router
+- /health
+- /import
+- /search
+- /fix
+- /suggest-fix
 """
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from pathlib import Path
+from typing import List, Dict, Any, Literal, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from bson import ObjectId
 from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL, GENERATION_MODEL
 from src.app.repositories.mongo import get_mongo_manager
+from src.app.repositories.mongo_utlis import ensure_collection
 from src.app.services.log_service import logger
 
-root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))), '.env')
+root_env_path = Path(__file__).resolve().parents[5] / '.env'
 load_dotenv(root_env_path)
 
-class BugType(str):
-    BUG = "BUG"
-    CODE_SMELL = "CODE_SMELL"
-
-class BugSeverity(str):
-    INFO = "INFO"
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    CRITICAL = "CRITICAL"
+FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")
 
 class BugItem(BaseModel):
     name: str
     description: str
-    type: BugType
-    severity: BugSeverity
+    type: Literal["BUG", "CODE_SMELL"]
+    severity: Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
     file_path: Optional[str] = None
     line_number: Optional[int] = None
     code_snippet: Optional[str] = None
-    labels: List[str] = Field(default_factory=list)
+    labels: List[str]
     project: Optional[str] = None
     metadata: Dict[str, Any]
 
 class BugImportRequest(BaseModel):
     bugs: List[BugItem]
-    collection_name: str = "fixer_rag_colletion"
+    collection_name: str = FIXER_COLLECTION
     generate_embeddings: bool = True
 
 class BugFixRequest(BaseModel):
@@ -52,29 +50,26 @@ class BugFixRequest(BaseModel):
 
 class BugSearchRequest(BaseModel):
     query: str
-    collection_name: str = "fixer_rag_colletion"
     top_k: int = 5
-    filters: Dict[str, Any]
+    filters: Dict[str, Any] = {}
+
+class SearchResponse(BaseModel):
+    query: str
+    sources: List[Dict[str, Any]]
 
 class BugFixSuggestionRequest(BaseModel):
     bug_id: str
-    collection_name: str = "fixer_rag_colletion"
+    collection_name: str = FIXER_COLLECTION
     include_similar_fixes: bool = True
 
 def generate_gemini_embedding(text: str) -> List[float]:
-    try:
-        res = client.models.embed_content(model=EMBEDDING_MODEL, contents=text)
-        res_embeddings = getattr(res, "embeddings", None)
-        if not res_embeddings or not res_embeddings[0]:
-            embedding = [0.0] * 768
-            logger.warning("Empty embedding received, returning zero vector")
-        else:
-            embedding = res_embeddings[0].values
-            logger.debug(f"Generated embedding of length {len(embedding)}")
-        return embedding
-    except Exception as e:
-        logger.error(f"Error generating embedding: {str(e)}")
-        raise
+    res = client.models.embed_content(model=EMBEDDING_MODEL, contents=text)
+    res_embeddings = getattr(res, "embeddings", None)
+    if not res_embeddings or not res_embeddings[0]:
+        logger.warning("Empty embedding received, returning zero vector")
+        return [0.0] * 768
+    else:
+        return res_embeddings[0].values
 
 def format_bug_for_rag(bug: BugItem) -> str:
     parts = [
@@ -101,20 +96,24 @@ def create_bug_rag_metadata(bug: BugItem) -> Dict[str, Any]:
     if bug.file_path: md["file_path"] = bug.file_path
     if bug.line_number: md["line_number"] = bug.line_number
     if bug.project: md["project"] = bug.project
-    md.update(bug.metadata)
+    md.update(bug.metadata or {})
     return md
 
 router = APIRouter()
 @router.get("/health")
 async def health_check():
-    mongo_manager = get_mongo_manager()
-    try:
-        stat = mongo_manager.client.admin.command("ping")
-        if stat.get("ok") != 1:
-            raise RuntimeError("MongoDB ping failed")
-        return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
+    """
+    Kiểm tra & tự tạo collection cho Fixer RAG nếu chưa có.
+    """
+    result = ensure_collection(
+            FIXER_COLLECTION,
+            # Có thể bổ sung index đặc thù cho Fixer ở đây
+            indexes=[
+                {"keys": [("bug_id", 1)], "name": "idx_bug_id", "unique": False},
+                {"keys": [("file_path", 1), ("line", 1)], "name": "idx_file_line", "unique": False},
+            ],
+        )
+    return {"service": "fixer_rag_router", **result}
 
 @router.post("/import")
 async def import_bugs_as_rag(request: BugImportRequest):
@@ -131,10 +130,10 @@ async def import_bugs_as_rag(request: BugImportRequest):
                 "metadata": metadata,
                 "embedding": embedding,
                 "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
             }
             result = collection.insert_one(doc)
             imported.append({"bug_id": str(result.inserted_id), "bug_name": bug.name, "status": "imported"})
+            logger.debug(f"Imported bug '{bug.name}' with ID {result.inserted_id}")
         return {
             "message": f"Successfully imported {len(imported)} bugs as RAG documents",
             "collection": request.collection_name,
@@ -144,11 +143,26 @@ async def import_bugs_as_rag(request: BugImportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error importing bugs: {str(e)}")
 
+router.post("/search", response_model=SearchResponse)
+async def search_fixers(req: BugSearchRequest):
+    try:
+        mongo_manager = get_mongo_manager()
+        emb = generate_gemini_embedding(req.query)
+        results = mongo_manager.search_by_embedding(
+            query_embedding=emb,
+            top_k=int(req.top_k),
+            collection_name=FIXER_COLLECTION,
+            filters=req.filters or {},
+        )
+        return {"query": req.query, "sources": results or []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during fixer search: {str(e)}")
+
 @router.post("/fix")
 async def fix_bug(request: BugFixRequest):
     try:
         mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection("fixer_rag_colletion")
+        collection = mongo_manager.get_collection(FIXER_COLLECTION)
         bug_doc = collection.find_one({"_id": ObjectId(request.bug_id)})
         if not bug_doc:
             raise HTTPException(status_code=404, detail="Bug not found")
@@ -190,7 +204,11 @@ async def suggest_bug_fix(request: BugFixSuggestionRequest):
         bug_content = bug_doc["content"]
         similar_fixes = []
         if request.include_similar_fixes:
-            search_filter = {"metadata.status": "FIXED", "metadata.bug_type": bug_doc["metadata"].get("bug_type"), "_id": {"$ne": ObjectId(request.bug_id)}}
+            search_filter = {
+                "metadata.status": "FIXED",
+                "metadata.bug_type": bug_doc.get("metadata", {}).get("bug_type"),
+                "_id": {"$ne": ObjectId(request.bug_id)},
+            }
             similar_bugs = list(collection.find(search_filter).limit(3))
             for sb in similar_bugs:
                 if "fix_record" in sb.get("metadata", {}):

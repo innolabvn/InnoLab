@@ -22,11 +22,7 @@ class AnalysisService:
     """Service for analyzing bugs and interacting with Dify."""
 
     def __init__(self, dify_cloud_api_key: Optional[str] = None) -> None:
-        # Fallback to env if not provided explicitly
-        self.dify_cloud_api_key: str = (
-            dify_cloud_api_key
-            or os.getenv("DIFY_CLOUD_API_KEY", "").strip()
-        )
+        self.dify_cloud_api_key: str = dify_cloud_api_key or os.getenv("DIFY_CLOUD_API_KEY", "").strip()
         self.rag = RAGService()
 
     def count_bug_types(self, bugs: List[Dict[str, Any]]) -> Dict[str, int]:
@@ -36,21 +32,12 @@ class AnalysisService:
 
     def analyze_bugs_with_dify(
         self,
-        bugs: List[Dict[str, Any]],
+        bearer_report: List[Dict[str, Any]],
         source_code: str = "",
     ) -> AnalysisResult:
         """
-        Gửi báo cáo bugs sang Dify workflow và rút ra số lượng bugs cần FIX.
-        Optionally:
-           - Lưu context phân tích vào RAG (agent=analysis)
-        Returns:
-            {
-              "success": bool,
-              "message": str,
-              "list_bugs": list|dict|str,   # tuỳ Dify trả
-              "bugs_to_fix": int,
-              "error": str                   # khi thất bại
-            }
+        Gửi kết quả scan từ Bearer sang Dify workflow.
+        Đồng thời: ghi nhanh signals vào Scanner RAG và search lại để lấy retrieved_context.
         """
         list_bugs: Union[List[Dict[str, Any]], Dict[str, Any], str] = []
         bugs_to_fix: int = 0
@@ -58,79 +45,59 @@ class AnalysisService:
         try:
             api_key = self.dify_cloud_api_key
             if not api_key:
-                logger.error("Dify API key is missing. Set DIFY_CLOUD_API_KEY.")
+                logger.error("Dify API key is missing.")
                 return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
 
-            # ---- (A) Lưu context vào RAG ----
-            # 1) Tóm tắt ngắn report + snapshot source (tránh quá dài)
+            # ---------------------------------------------------------
+            # (A) ONLY RETRIEVE from Scanner RAG for historical labels
+            #     DO NOT WRITE ANYTHING before Dify labeling
+            # ---------------------------------------------------------
+            retrieved_context = "" # Không dùng context cũ
             try:
-                collection = os.getenv("SCANNER_RAG_COLLECTION", "kb_scanner_signals").strip()
-                self.rag.add_analysis_context(
-                    report=bugs or [],
-                    source_snippet=source_code[:4000],
-                    project=os.getenv("PROJECT_NAME", "unknown").strip(),
-                    collection_name=collection,
-                )
+                q = self._build_scanner_query(bearer_report)  # compact query from rule/message/component
+                res = self.rag.search_scanner(q, limit=8, filters={})
+                if res.success and res.sources:
+                    retrieved_context = "\n".join(
+                        f"- {str(s.get('content',''))}" for s in res.sources
+                    )[:8000]
+                    logger.debug("Scanner RAG retrieved %d context docs for Dify.", len(res.sources))
             except Exception as e:
-                logger.warning("RAG (analysis) insert failed: %s", e)
+                logger.warning("Scanner RAG retrieval failed (non-fatal): %s", e)
 
-            # ---- (B) Truy vấn RAG để lấy retrieved_context ----
-            retrieved_context = ""
-            try:
-                # Tạo query gọn gàng từ report
-                title = {str(b.get("title", "")).strip() for b in (bugs or []) if b.get("title")}
-                q = " ".join(list(title))[:1000] or json.dumps(bugs, ensure_ascii=False)[:1000]
-                collection = (os.getenv("SCANNER_RAG_COLLECTION", "").strip() or None)
-                result = self.rag.search_text(
-                    text=q,
-                    limit=5,
-                    collection_name=collection,
-                    filters={"metadata.agent": "analysis"},
-                )
-                if result.success and result.sources:
-                    retrieved_context = "".join([str(s.get("content", "")) for s in result.sources])
-                    logger.debug("RAG retrieved %d context pieces.", len(result.sources))
-            except Exception as e:
-                logger.warning("RAG (analysis) search failed: %s", e)
-
-            # ---- (C) Gọi Dify ----
+            # ---------------------------------------------------------
+            # (B) Call Dify with Bearer report + retrieved_context
+            # ---------------------------------------------------------
             inputs = {
                 "is_use_rag": "True",
-                "src": source_code,
-                "report": json.dumps(bugs, ensure_ascii=False),
+                "src": source_code or "",
+                "report": json.dumps(bearer_report, ensure_ascii=False),
                 "retrieved_context": retrieved_context,
             }
-            logger.info("Sending %d bug(s) to Dify workflow.", len(bugs))
 
-            response: DifyRunResponse = run_workflow_with_dify(
-                api_key=api_key,
-                inputs=inputs,
-            )
-            logger.debug("Dify raw response: %s", response)
+            logger.info("Sending %d bug(s) to Dify workflow.", len(bearer_report))
+            response: DifyRunResponse = run_workflow_with_dify(api_key=api_key, inputs=inputs)
+            logger.debug("Dify raw response: %s", response.raw)
 
             # Defensive parsing trên cấu trúc Dify
             outputs = self._safe_get_outputs(response)
             list_bugs = outputs.get("list_bugs", [])
 
-            logger.debug("Dify outputs keys: %s", list(outputs.keys()))
-            logger.debug("list_bugs type: %s", type(list_bugs).__name__)
+            # ---------------------------------------------------------
+            # (C) Post-process: count bugs to FIX & persist labeled items to Scanner RAG
+            # ---------------------------------------------------------
 
             bugs_to_fix = self._count_fix_bugs(list_bugs)
 
-            if bugs_to_fix == 0:
-                return {
-                    "success": True,
-                    "bugs_to_fix": 0,
-                    "list_bugs": list_bugs,
-                    "message": "No bugs to fix",
-                }
+            try:
+                labeled_signals = self._normalize_labeled_signals(list_bugs)
+                if labeled_signals:
+                    self.rag.add_scanner_signals(labeled_signals)
+                    logger.info("Persisted %d labeled scanner signals to RAG.", len(labeled_signals))
+            except Exception as e:
+                logger.warning("Persist labeled signals failed (non-fatal): %s", e)
 
-            return {
-                "success": True,
-                "list_bugs": list_bugs,
-                "bugs_to_fix": bugs_to_fix,
-                "message": f"Need to fix {bugs_to_fix} bugs",
-            }
+            msg = "No bugs to fix" if bugs_to_fix == 0 else f"Need to fix {bugs_to_fix} bugs"
+            return {"success": True, "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix, "message": msg}
 
         except Exception as e:
             logger.error("Dify analysis error: %s", str(e))
@@ -142,6 +109,20 @@ class AnalysisService:
             }
 
     # ---------------- Internal helpers ----------------
+    def _build_scanner_query(self, report: List[Dict[str, Any]]) -> str:
+        """
+        Build concise OR-like query string from Bearer report.
+        Prefer rule / description / message / component.
+        """
+        terms: List[str] = []
+        for it in report or []:
+            for k in ("rule", "description", "message", "component"):
+                v = str(it.get(k, "")).strip()
+                if v and v not in terms:
+                    terms.append(v)
+        # keep it short for embedding
+        q = " | ".join(terms)[:1000]
+        return q or "code quality issues"
 
     @staticmethod
     def _safe_get_outputs(response: DifyRunResponse) -> Dict[str, Any]:
@@ -151,32 +132,75 @@ class AnalysisService:
         {"data": {"outputs": {...}}}
         hoặc {"outputs": {...}}
         """
-        if not isinstance(response, dict):
+        if not response:
             return {}
 
-        data = response.get("data")
+        data = response.raw.get("data")  # raw để chắc chắn lấy dict gốc
         if isinstance(data, dict):
             outputs = data.get("outputs")
             if isinstance(outputs, dict):
                 return cast(Dict[str, Any], outputs)
 
-        outputs = response.get("outputs")
+        outputs = response.raw.get("outputs")
         if isinstance(outputs, dict):
             return cast(Dict[str, Any], outputs)
 
         return {}
+    
+    @staticmethod
+    def _infer_label(item: Dict[str, Any]) -> str:
+        """
+        Infer BUG vs CODE_SMELL from Dify output fields.
+        Accepts keys like: action ('FIX'/'IGNORE'), label ('BUG'/'CODE_SMELL'), or boolean flags.
+        """
+        # Highest priority: explicit label
+        label = str(item.get("label", "")).upper()
+        if label in ("BUG", "CODE_SMELL"):
+            return label
+        # Next: action implies bug-to-fix
+        action = str(item.get("action", "")).upper()
+        if "FIX" in action:
+            return "BUG"
+        if "IGNORE" in action or "SKIP" in action:
+            return "CODE_SMELL"
+        # Fallback: severity heuristic (MEDIUM+ => BUG)
+        sev = str(item.get("severity", "")).upper()
+        if sev in ("CRITICAL", "HIGH", "MEDIUM"):
+            return "BUG"
+        return "CODE_SMELL"
 
+    def _normalize_labeled_signals(self, list_bugs: Union[List[Any], Dict[str, Any], str]) -> List[Dict[str, Any]]:
+        """
+        Convert Dify labeled result to ScannerRAG import items:
+          { text, label: BUG|CODE_SMELL, id?, lang?, source='dify' }
+        """
+        items: List[Dict[str, Any]] = []
+
+        # Dict variant: {"bugs": [...]}
+        if isinstance(list_bugs, dict) and isinstance(list_bugs.get("bugs"), list):
+            records = cast(List[Dict[str, Any]], list_bugs["bugs"])
+        elif isinstance(list_bugs, list):
+            records = cast(List[Dict[str, Any]], list_bugs)
+        else:
+            return items
+
+        for r in records:
+            if not isinstance(r, dict):
+                continue
+            description = str(r.get("description"))[:1000]
+            if not description:
+                continue
+            items.append({
+                "description": description,
+                "label": self._infer_label(r),
+                "id": str(r.get("bug_id") or ""),
+                "source": "dify",
+            })
+        return items
 
     @staticmethod
     def _count_fix_bugs(list_bugs: Union[List[Any], Dict[str, Any], str]) -> int:
-        """
-        Đếm số bug có action chứa 'FIX' (không phân biệt hoa thường).
-        Chấp nhận ba biến thể:
-          - dict có key 'bugs_to_fix' → dùng trực tiếp
-          - dict có key 'bugs' → duyệt list
-          - list các bug → duyệt list
-        """
-        # 1) Nếu Dify đã trả thẳng "bugs_to_fix"
+        # Support {"bugs_to_fix": N}
         if isinstance(list_bugs, dict):
             direct = list_bugs.get("bugs_to_fix")
             if isinstance(direct, (int, str)):
@@ -184,27 +208,12 @@ class AnalysisService:
                     return int(direct)
                 except (TypeError, ValueError):
                     pass
-
-        # 2) Nếu là dict và có mảng "bugs"
+        # Support {"bugs": [...]}
         if isinstance(list_bugs, dict) and isinstance(list_bugs.get("bugs"), list):
-            bugs_arr = list_bugs["bugs"]
-            return sum(
-                1
-                for bug in bugs_arr
-                if isinstance(bug, dict)
-                and "action" in bug
-                and "FIX" in str(bug.get("action", "")).upper()
-            )
-
-        # 3) Nếu là mảng các bug
+            return sum(1 for bug in list_bugs["bugs"]
+                       if isinstance(bug, dict) and "FIX" in str(bug.get("action", "")).upper())
+        # Support simple list
         if isinstance(list_bugs, list):
-            return sum(
-                1
-                for bug in list_bugs
-                if isinstance(bug, dict)
-                and "action" in bug
-                and "FIX" in str(bug.get("action", "")).upper()
-            )
-
-        # 4) Không match định dạng nào
+            return sum(1 for bug in list_bugs
+                       if isinstance(bug, dict) and "FIX" in str(bug.get("action", "")).upper())
         return 0

@@ -61,7 +61,7 @@ def run():
     if not code_files:
         logger.error(f"No code files found in: {directory}"); return
 
-    logger.info(f"Directory: {directory}")
+    logger.debug(f"Directory: {directory}")
     logger.info(f"Found {len(code_files)} code files")
     logger.info("Files to process:")
     for i, p in enumerate(code_files[:10], 1):
@@ -93,16 +93,15 @@ def run():
     avg_time = sum(r.processing_time for r in results)/max(len(results),1)
 
     logger.info("="*70)
-    logger.info("BATCH_FIX_RESULT: SUCCESS")
-    logger.info(f"FIXED_FILES: {success}")
-    logger.info(f"FAILED_FILES: {errors}")
-    logger.info(f"TOTAL_INPUT_TOKENS: {total_in}")
-    logger.info(f"TOTAL_OUTPUT_TOKENS: {total_out}")
-    logger.info(f"TOTAL_TOKENS: {total_tok}")
-    logger.info(f"AVERAGE_SIMILARITY: {avg_sim:.3f}")
-    logger.info(f"THRESHOLD_MET_COUNT: {thr_met}")
-    logger.info(f"SIMILARITY_THRESHOLD: {processor.similarity_threshold}")
-    logger.info(f"AVERAGE_PROCESSING_TIME: {avg_time:.1f}")
+    logger.info("FIX RESULT: SUCCESS")
+    logger.info(f"FIXED FILES: {success}")
+    logger.info(f"FAILED FILES: {errors}")
+    logger.info(f"TOTAL INPUT TOKENS: {total_in}")
+    logger.info(f"TOTAL OUTPUT TOKENS: {total_out}")
+    logger.info(f"TOTAL TOKENS: {total_tok}")
+    logger.info(f"AVERAGE SIMILARITY: {avg_sim:.3f}")
+    logger.info(f"THRESHOLD MET COUNT: {thr_met}")
+    logger.info(f"AVERAGE PROCESSING TIME: {avg_time:.1f}")
 
     summary = {
         "success": True,
@@ -113,7 +112,6 @@ def run():
         "total_tokens": total_tok,
         "average_similarity": avg_sim,
         "threshold_met_count": thr_met,
-        "similarity_threshold": processor.similarity_threshold,
         "average_processing_time": avg_time,
     }
     logger.info("END_BATCH_RESULT")

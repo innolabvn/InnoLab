@@ -27,7 +27,7 @@ class BearerScanner(Scanner):
 
     def scan(self) -> List[Dict]:
         try:
-            logger.info("Scan directory: %s", self.scan_directory)
+            logger.debug("Scan directory: %s", self.scan_directory)
 
             repo_root = _find_repo_root(Path(__file__).parent)
             projects_root = Path(os.getenv("PROJECTS_ROOT", repo_root / "projects")).resolve()
@@ -83,7 +83,7 @@ class BearerScanner(Scanner):
                 logger.error("Bearer scan did not produce an output file")
                 return []
 
-            logger.info("Reading Bearer results from: %s", output_file)
+            logger.debug("Reading Bearer results from: %s", output_file)
             with output_file.open("r", encoding="utf-8") as f:
                 bearer_data = json.load(f)
                 logger.debug(f"Raw bearer response: {bearer_data}")
@@ -105,15 +105,13 @@ class BearerScanner(Scanner):
     def _convert_bearer_to_bugs_format(self, bearer_data: Dict) -> List[Dict]:
         bugs: List[Dict] = []
         findings = []
-
-        if "findings" in bearer_data:
-            findings = bearer_data.get("findings", [])
-        else:
-            severity_levels = ["critical", "high", "medium", "low", "info"]
-            for severity in severity_levels:
-                for finding in bearer_data.get(severity, []):
-                    finding["severity"] = severity
-                    findings.append(finding)
+        severity_levels = ["critical", "high", "medium", "low", "info"]
+        
+        for severity in severity_levels:
+            for finding in bearer_data.get(severity, []):
+                finding["severity"] = severity
+                findings.append(finding)
+        logger.debug(f"Total findings collected: {findings}")
 
         for finding in findings:
             try:
@@ -124,41 +122,25 @@ class BearerScanner(Scanner):
                     filename = filename[1:] if len(filename) > 1 else "unknown"
 
                 line_number = finding.get("line_number", 1)
-                src = finding.get("source")
-                if isinstance(src, dict):
-                    line_number = src.get("start", src.get("line", line_number))
-                elif isinstance(src, int):
-                    line_number = src
 
-                rule_id = finding.get("id", finding.get("rule_id", "bearer_security_issue"))
-                fingerprint = finding.get("fingerprint", hash(str(finding)) & 0x7FFFFFFF)
-                title = finding.get("title", finding.get("rule_title", ""))
-                desc = finding.get("description", finding.get("rule_description", ""))
-                severity = finding.get("severity", "medium").upper()
-                cwe_ids = finding.get("cwe_ids", finding.get("cwe", []))
-                if isinstance(cwe_ids, str):
-                    cwe_ids = [cwe_ids]
-
-                rule_type = finding.get("type", "")
-                confidence = finding.get("confidence", "")
+                id = finding.get("id")
+                fingerprint = finding.get("fingerprint")
+                title = finding.get("title", "No title")
+                desc = finding.get("description", "")
+                severity = finding.get("severity").upper()
+                cwe_ids = finding.get("cwe_ids", [])
+                code_extract = finding.get("code_extract", "")
 
                 bug = {
                     "key": fingerprint,
-                    "rule": rule_id,
+                    "id": id,
                     "severity": severity,
-                    "component": filename,
-                    "line": line_number,
                     "title": title,
                     "description": desc,
-                    "tags": [
-                        rule_type,
-                        confidence,
-                        *[f"cwe-{cwe}" for cwe in cwe_ids],
-                    ],
-                    "textRange": {
-                        "startOffset": self._extract_column_start(finding),
-                        "endOffset": self._extract_column_end(finding),
-                    },
+                    "file_name": filename,
+                    "line_number": line_number,
+                    "tags": cwe_ids,
+                    "code_snippet": code_extract,
                 }
                 bugs.append(bug)
             except Exception as e:
@@ -167,25 +149,3 @@ class BearerScanner(Scanner):
                 continue
 
         return bugs
-
-    def _extract_column_start(self, finding: Dict) -> int:
-        src = finding.get("source")
-        if isinstance(src, dict):
-            col = src.get("column")
-            if isinstance(col, dict):
-                return int(col.get("start", 0))
-            if isinstance(col, int):
-                return col
-            return int(src.get("start_column", src.get("column_start", 0)))
-        return 0
-
-    def _extract_column_end(self, finding: Dict) -> int:
-        src = finding.get("source")
-        if isinstance(src, dict):
-            col = src.get("column")
-            if isinstance(col, dict):
-                return int(col.get("end", 0))
-            if isinstance(col, int):
-                return col + 1
-            return int(src.get("end_column", src.get("column_end", 0)))
-        return 0
