@@ -12,7 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git tini \
  && rm -rf /var/lib/apt/lists/*
  
 # Copy requirements first for better caching
@@ -21,8 +22,12 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install --no-cache-dir "git+https://github.com/oraios/serena@main"
+
 # Copy application code
 COPY . .
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 EXPOSE 8000
 # Start the FastAPI server

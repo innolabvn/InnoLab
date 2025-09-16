@@ -6,10 +6,10 @@ services:
       - "27018:27017"
     volumes:
       - mongo_data:/data/db
-    networks:
-      - fcnet
+    networks: [fcnet]
   api:
     build: .
+    env_file: .env
     ports:
       - "8000:8000"
     environment:
@@ -19,14 +19,18 @@ services:
       FIXER_RAG_COLLECTION: "fixer_rag_collection"
       SCANNER_RAG_COLLECTION: "scanner_rag_collection"
       LOG_LEVEL: "DEBUG"
+      SERENA_ENABLED: "true"
+      SERENA_TIMEOUT_S: "45"
+    volumes:
+      - ./.mcp.json:/app/.mcp.json
     depends_on:
       - mongodb
     restart: unless-stopped
-    networks:
-      - fcnet
+    networks: [fcnet]
 
 volumes:
   mongo_data:
+  
 networks:
   fcnet:
     driver: bridge
