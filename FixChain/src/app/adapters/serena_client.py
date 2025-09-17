@@ -1,11 +1,13 @@
 """Serena MCP Client for direct communication with Serena AI assistant"""
 
+import importlib.util
 import os
 import re
 import shutil
 import logging
 from typing import List, Optional
 from dataclasses import dataclass
+from src.app.services.log_service import logger
 
 @dataclass
 class SerenaResponse:
@@ -30,9 +32,13 @@ class SerenaMCPClient:
     def check_availability(self) -> bool:
         # Serena không bắt buộc cho bản local-fallback, nhưng nếu có thì good-to-know
         try:
-            has_serena = shutil.which("serena") is not None
             has_cfg = os.path.exists(self.mcp_config_path)
-            return bool(has_serena and has_cfg)
+            has_cli = shutil.which("serena") is not None
+            has_uvx = shutil.which("uvx") is not None
+            has_mod = importlib.util.find_spec("serena") is not None
+            ok = bool(has_cfg and (has_cli or has_uvx or has_mod))
+            logger.debug(f"Serena MCP availability - Config: {has_cfg}, CLI: {has_cli}, UVX: {has_uvx}, Module: {has_mod} => Available: {ok}")
+            return ok
         except Exception as e:
             self.logger.warning(f"Serena availability check failed: {e}")
             return False
@@ -41,7 +47,7 @@ class SerenaMCPClient:
         """Apply fix instructions to code using Serena MCP"""
         try:
             # Write original code to temp file in project directory
-            temp_dir = os.path.join(self.project_path, 'test_files')
+            temp_dir = os.path.join(self.project_path, 'temp_files')
             os.makedirs(temp_dir, exist_ok=True)
             tmp = os.path.join(temp_dir, os.path.basename(file_path) or "temp.py")
 

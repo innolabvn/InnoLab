@@ -27,6 +27,8 @@ def run():
     parser.add_argument("--prompt", type=str)
     parser.add_argument("--issues-file", type=str)
     parser.add_argument("--enable-rag", action="store_true")
+    parser.add_argument('--enable-serena', action='store_true')
+    parser.add_argument('--serena-mcp', action='store_true')
     args = parser.parse_args()
 
     # .env (for GOOGLE_API_KEY used by adapters.llm.google_genai)

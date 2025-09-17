@@ -1,13 +1,11 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "serena",
-      "args": ["mcp"],
+      "command": "python",
+      "args": ["-m", "serena", "mcp"],
       "autoStart": true,
       "transport": "stdio",
-      "env": {
-        "SERENA_LOG_LEVEL": "info"
-      }
+      "env": { "SERENA_LOG_LEVEL": "info" }
     }
   }
 }

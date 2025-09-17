@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
 from src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
+from src.app.adapters.serena_client import SerenaMCPClient
 from .base import Fixer
 
 def _extract_json_objects(blob: str):
@@ -50,6 +50,8 @@ class LLMFixer(Fixer):
 
     def __init__(self, scan_directory: str):
         super().__init__(scan_directory)
+        self.serena_client = SerenaMCPClient()
+        self.serena_available = self.serena_client.check_availability()
 
     def _resolve_source_dir(self) -> Tuple[bool, Path, str]:
         """
@@ -144,6 +146,10 @@ class LLMFixer(Fixer):
                 str(issues_file_path),
             ]
 
+            if self.serena_available:
+                fix_cmd.extend(["--enable-serena", "--serena-mcp"])
+                logger.info("Serena enabled")
+
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
 
@@ -174,8 +180,7 @@ class LLMFixer(Fixer):
             success_flag = bool(summary.get("success", True))
 
             logger.info(
-                "Batch fix completed. Fixed=%d | Tokens: in=%d out=%d total=%d | "
-                "AvgSim=%.3f | ThresholdMet=%d",
+                "Batch fix completed. Fixed=%d | Tokens: in=%d out=%d total=%d | AvgSim=%.3f | ThresholdMet=%d",
                 fixed_count,
                 total_input_tokens,
                 total_output_tokens,

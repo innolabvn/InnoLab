@@ -17,21 +17,13 @@ class TemplateManager:
         self._log_file = os.path.join(os.getenv("LOG_DIR","var/logs"), f"template_usage_{ts}.log")
         os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
 
-    def load(self, template_type: str, custom_prompt: Optional[str]) -> Tuple[Optional[str], Dict[str, Any]]:
-        files = {"fix":"fix.j2","analyze":"analyze.j2","custom":"custom.j2"}
-        if custom_prompt:
-            # inline template
-            content = f"""{custom_prompt}
+    def load(self, template_type: str):
+        files = {"fix":"fix_with_serena.j2","analyze":"analyze.j2","custom":"custom.j2"}
 
-Code cần sửa:
-{{{{ original_code }}}}
-Chỉ trả về code đã sửa, không cần markdown formatting hay giải thích.
-"""
-            return content, {"custom_prompt": custom_prompt}
-
-        fname = files.get(template_type, "fix.j2")
+        fname = files.get(template_type, "fix_with_serena.j2")
         path = os.path.join(self.prompt_dir, fname)
-        if not os.path.exists(path): return None, {}
+        if not os.path.exists(path): 
+            return None, {}
         template = self.env.get_template(fname)
         return template.render, {}
 

@@ -92,6 +92,7 @@ class RAGService:
             if not resp.ok:
                 return RAGAddResult(False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
+            logger.debug("Scanner import response: %s", data)
             first_id = (data.get("ids") or [None])[0]
             return RAGAddResult(True, document_id=str(first_id or ""))
         except Exception as e:
@@ -102,9 +103,13 @@ class RAGService:
         try:
             resp = self._post_with_retry(self.scanner_search, payload)
             if not resp.ok:
-                return RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
+                ret = RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
+                logger.debug("Scanner search failed response: %s", ret)
+                return ret
             data = resp.json()
-            return RAGSearchResult(list(data.get("sources", [])), data.get("query", query), True)
+            ret = RAGSearchResult(list(data.get("sources", [])), data.get("query", query), True)
+            logger.debug("Scanner search success response: %s", ret)
+            return ret
         except Exception as e:
             return RAGSearchResult([], query, False, str(e))
         
@@ -120,8 +125,11 @@ class RAGService:
         try:
             resp = self._post_with_retry(self.fixer_import, payload)
             if not resp.ok:
-                return RAGAddResult(False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
+                ret = RAGAddResult(False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
+                logger.debug("Fixer import failed response: %s", ret)
+                return ret
             data = resp.json()
+            logger.debug("Fixer import response: %s", data)
             first = (data.get("imported_bugs") or [{}])[0]
             return RAGAddResult(True, document_id=str(first.get("bug_id", "")))
         except Exception as e:
@@ -132,8 +140,11 @@ class RAGService:
         try:
             resp = self._post_with_retry(self.fixer_search, payload)
             if not resp.ok:
-                return RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
+                ret = RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
+                logger.debug("Fixer search failed response: %s", ret)
+                return ret
             data = resp.json()
+            logger.debug("Fixer search success response: %s", data)
             return RAGSearchResult(list(data.get("sources", [])), data.get("query", query), True)
         except Exception as e:
             return RAGSearchResult([], query, False, str(e))
@@ -147,7 +158,9 @@ class RAGService:
             "fix_notes": fix_notes,
         }
         resp = self._post_with_retry(self.fixer_fix, payload)
-        return resp.json()
+        data = resp.json()
+        logger.debug("Fix bug response: %s", data)
+        return data
 
     def suggest_fix(self, bug_id: str, include_similar_fixes: bool = True,
                     collection_name: Optional[str] = None) -> Dict:
