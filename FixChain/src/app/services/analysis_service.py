@@ -355,6 +355,6 @@ class AnalysisService:
                     except Exception as e:
                         logger.warning("Failed to insert missing Dify-updated doc into RAG: %s", e)
 
-                logger.debug("Dify update applied for key=%s id=%s updated=%s", key, updated)
+                logger.debug("Dify update applied for key=%s, updated=%s", key, updated)
             except Exception as e:
                 logger.warning("Exception while applying Dify update to doc: %s ; doc=%s", e, doc)
