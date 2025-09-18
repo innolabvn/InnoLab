@@ -61,7 +61,7 @@ def _build_bug_items_payload(
 
     # Lấy thêm metadata từ issues_data cho khớp schema
     if issues_data:
-        logger.debug("Building bug item payload from issues data: %s", issues_data)
+        logger.debug("Building bug item payload from issues data: %s", str(issues_data)[:100])
         for it in issues_data:
             key = it.get("key", str(uuid.uuid4()))
             file_name = fixed_file or it.get("file_name", "")
@@ -131,6 +131,6 @@ class RAGAdapter:
         Import kết quả fix vào Fixer RAG qua hàm có sẵn: import_fix_cases(...).
         """
         bugs_payload = _build_bug_items_payload(fix_result, issues_data, fixed_code)
-        logger.debug("Importing fix case to RAG with payload: %s", bugs_payload)
+        logger.debug("Importing fix case to RAG with payload: %s", str(bugs_payload)[:100])
         res = self.svc.import_fix_cases(bugs_payload)
         return bool(getattr(res, "success", False))

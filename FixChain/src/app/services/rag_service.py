@@ -206,6 +206,7 @@ class RAGService:
         try:
             resp = self._post_with_retry(self.fixer_import, payload)
             if not resp.ok:
+                logger.debug(f"Error_message: {resp.status_code}: {resp.text}")
                 return RAGAddResult(False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
             logger.debug("Fixer import response: %s", data)

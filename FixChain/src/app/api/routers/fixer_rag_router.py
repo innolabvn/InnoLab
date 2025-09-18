@@ -118,7 +118,6 @@ async def import_bugs_as_rag(request: BugImportRequest):
                 "content": content,
                 "metadata": metadata,
                 "embedding": embedding,
-                "created_at": datetime.utcnow(),
             }
             result = collection.update_one(
                 {"doc_id": bug.doc_id},
