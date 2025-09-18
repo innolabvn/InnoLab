@@ -119,7 +119,7 @@ async def health_check():
 async def import_bugs_as_rag(request: BugImportRequest):
     try:
         mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection(request.collection_name)
+        collection = mongo_manager.collection(FIXER_COLLECTION)
         imported = []
         for bug in request.bugs:
             content = format_bug_for_rag(bug)[:4000]
@@ -136,7 +136,7 @@ async def import_bugs_as_rag(request: BugImportRequest):
             logger.debug(f"Imported bug '{bug.name}' with ID {result.inserted_id}")
         return {
             "message": f"Successfully imported {len(imported)} bugs as RAG documents",
-            "collection": request.collection_name,
+            "collection": FIXER_COLLECTION,
             "imported_bugs": imported,
             "total_imported": len(imported),
         }
@@ -162,7 +162,7 @@ async def search_fixers(req: BugSearchRequest):
 async def fix_bug(request: BugFixRequest):
     try:
         mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection(FIXER_COLLECTION)
+        collection = mongo_manager.collection(FIXER_COLLECTION)
         bug_doc = collection.find_one({"_id": ObjectId(request.bug_id)})
         if not bug_doc:
             raise HTTPException(status_code=404, detail="Bug not found")
@@ -197,7 +197,7 @@ async def fix_bug(request: BugFixRequest):
 async def suggest_bug_fix(request: BugFixSuggestionRequest):
     try:
         mongo_manager = get_mongo_manager()
-        collection = mongo_manager.get_collection(request.collection_name)
+        collection = mongo_manager.collection(FIXER_COLLECTION)
         bug_doc = collection.find_one({"_id": ObjectId(request.bug_id)})
         if not bug_doc:
             raise HTTPException(status_code=404, detail="Bug not found")

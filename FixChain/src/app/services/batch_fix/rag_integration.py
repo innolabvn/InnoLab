@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from pathlib import Path
 from src.app.services.rag_service import RAGService
 from src.app.services.batch_fix.models import FixResult
+from src.app.services.log_service import logger
 
 def _build_query_from_issues(issues_data: Optional[List[Dict]]) -> str:
     """
@@ -40,6 +41,7 @@ def _build_bug_items_payload(
 
     # Lấy thêm metadata từ issues_data cho khớp schema
     if issues_data:
+        logger.debug("Building bug item payload from issues data: %s", issues_data)
         for it in issues_data:
             if str(it.get("component", "")).endswith(file_name):
                 severity = str(it.get("severity", severity)).upper() or "MEDIUM"
@@ -100,6 +102,7 @@ class RAGAdapter:
         if not issues_data:
             return None
         query = _build_query_from_issues(issues_data)
+        logger.debug("RAG search query: %s", query)
         if not query:
             return None
 
@@ -133,5 +136,6 @@ class RAGAdapter:
         (Không thêm hàm mới ở RAGService.)
         """
         bugs_payload = _build_bug_items_payload(fix_result, issues_data, fixed_code)
-        res = self.svc.import_fix_cases(bugs_payload=bugs_payload, collection_name=None, generate_embeddings=True)
+        logger.debug("Importing fix case to RAG with payload: %s", bugs_payload)
+        res = self.svc.import_fix_cases(bugs_payload=bugs_payload, generate_embeddings=True)
         return bool(res.success)

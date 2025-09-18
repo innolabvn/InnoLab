@@ -111,7 +111,7 @@ class BearerScanner(Scanner):
             for finding in bearer_data.get(severity, []):
                 finding["severity"] = severity
                 findings.append(finding)
-        logger.debug(f"Total findings collected: {findings}")
+        logger.debug(f"Total findings collected: {findings[:200]}")
 
         for finding in findings:
             try:

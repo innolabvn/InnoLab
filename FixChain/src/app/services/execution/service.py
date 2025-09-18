@@ -70,7 +70,7 @@ class ExecutionServiceNoMongo:
                         except Exception as e:
                             logger.warning("Could not read %s: %s", fp, e)
             full_code = "".join(collected)
-            logger.debug(full_code[:100])  # Log first 100 chars
+            logger.debug(full_code[:50])
             return full_code
         except Exception as e:
             logger.error("Error reading source code: %s", e)
@@ -113,8 +113,7 @@ class ExecutionServiceNoMongo:
 
             counts = self._count_bug_types(all_bugs)
             logger.debug("Bearer found: %s", counts)
-            bugs_total = counts.get("CRITICAL", 0) + counts.get("HIGH", 0) + counts.get("MEDIUM", 0) + counts.get("LOW", 0)
-            logger.info("Bearer found: %s bugs total", bugs_total)
+            bugs_total = counts.get("TOTAL", 0)
 
             it_result: Dict[str, Any] = {
                 "iteration": it,

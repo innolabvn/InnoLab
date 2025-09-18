@@ -51,7 +51,7 @@ class LLMFixer(Fixer):
     def __init__(self, scan_directory: str):
         super().__init__(scan_directory)
         self.serena_client = SerenaMCPClient()
-        self.serena_available = self.serena_client.check_availability()
+        self.serena_available = self.serena_client.available
 
     def _resolve_source_dir(self) -> Tuple[bool, Path, str]:
         """

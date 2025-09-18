@@ -251,7 +251,7 @@ class SecureFixProcessor:
             
             # Check if Serena is available
             logger.info("🔍 Checking Serena MCP availability...")
-            if not self.serena_client.check_availability():
+            if not self.serena_client.available:
                 logger.error("❌ Serena MCP is not available")
                 return None
             
