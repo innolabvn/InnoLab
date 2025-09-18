@@ -86,7 +86,7 @@ class AnalysisService:
 
             logger.info("Sending %d bug(s) to Dify workflow.", len(bearer_report))
             response: DifyRunResponse = run_workflow_with_dify(api_key=api_key, inputs=inputs)
-            logger.debug("Dify raw response: %s", response.raw)
+            logger.debug("Dify raw response: %s", str(response.raw)[:100])
 
             # Defensive parsing trên cấu trúc Dify
             outputs = self._safe_get_outputs(response)
@@ -107,7 +107,7 @@ class AnalysisService:
                     logger.warning("Applying Dify updates failed (non-fatal): %s", e)
 
             msg = "No bugs to fix" if bugs_to_fix == 0 else f"Need to fix {bugs_to_fix} bugs"
-            return {"success": True, "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix, "message": msg}
+            return {"success": True, "list_bugs": labeled_signals, "bugs_to_fix": bugs_to_fix, "message": msg}
 
         except Exception as e:
             logger.error("Dify analysis error: %s", str(e))
@@ -125,14 +125,14 @@ class AnalysisService:
         """
         terms: List[str] = []
         for it in report or []:
-            logger.debug("Processing Bearer report item for query: %s", str(it)[:200])
+            logger.debug("Processing Bearer report item for query: %s...", str(it)[:100])
             for k in ("key", "file_name", "tags", "code_snippet"):
                 v = str(it.get(k, "")).strip()
                 if v and v not in terms:
                     terms.append(v)
         # keep it short for embedding
         q = " | ".join(terms)[:1000]
-        logger.debug("Built scanner query: %s", q)
+        logger.debug("Built scanner query: %s...", q[:100])
         return q or "code quality issues"
 
     @staticmethod
@@ -182,19 +182,20 @@ class AnalysisService:
             return items
 
         for r in records:
-            logger.debug("Processing Dify bug item: %s", r)
             if not isinstance(r, dict):
                 continue
 
+            logger.debug("Processing Dify bug item: %s", r.get("bug_id", ""))
             try:
                 action = r.get("action", "")
                 bug_id = r.get("bug_id", "")
                 classification = r.get("classification", "")
                 reason = r.get("reason", "")
                 rule_description = r.get("rule_description", "")
-                rule_key = r.get("rule_key", ""),
+                rule_key = r.get("rule_key", "")
                 label = self._get_label(action.upper())
                 key = bug_id or rule_key or ""
+                file_name = r.get("file_name", "")
                 scan_res = {
                     "key": key,
                     "label": label,
@@ -202,12 +203,14 @@ class AnalysisService:
                     "classification": classification,
                     "reason": reason,
                     "rule_description": rule_description,
-                    "title": rule_key if rule_key else (rule_description[:120] if rule_description else ""),
+                    "title": rule_key if rule_key else rule_description[:120],
+                    "file_name": file_name
                 }
                 items.append(scan_res)
             except Exception as e:
                 logger.warning("Failed to normalize Dify item: %s ; item=%s", e, r)
-            logger.debug("Normalized labeled signals from Dify: %s", items)
+                
+        logger.debug("Normalized labeled signals from Dify: %s...", items)
         return items
 
     @staticmethod

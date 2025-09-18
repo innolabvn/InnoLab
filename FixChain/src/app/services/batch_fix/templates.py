@@ -14,30 +14,31 @@ class TemplateManager:
 
     def _setup_file_logger(self) -> None:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._log_file = os.path.join(os.getenv("LOG_DIR","var/logs"), f"template_usage_{ts}.log")
+        self._log_file = os.path.join(os.getenv("LOG_DIR","fixer/logs"), f"template_usage_{ts}.log")
         os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
 
     def load(self, template_type: str):
-        files = {"fix":"fix_with_serena.j2","analyze":"analyze.j2","custom":"custom.j2"}
+        files = {"fix":"fix.j2", "fix_with_serena":"fix_with_serena.j2"}
 
-        fname = files.get(template_type, "fix_with_serena.j2")
+        fname = files.get(template_type, "fix.j2")
         path = os.path.join(self.prompt_dir, fname)
         if not os.path.exists(path): 
             return None, {}
         template = self.env.get_template(fname)
         return template.render, {}
 
-    def log_template_usage(self, file_path: str, template_type: str, custom_prompt: Optional[str], rendered_prompt: str) -> None:
+    def log_template_usage(self, file_path: str, template_type: str, rendered_prompt: str) -> None:
         data = {
             "file_path": file_path,
             "template_type": template_type,
-            "custom_prompt": bool(custom_prompt),
             "prompt_length": len(rendered_prompt),
-            "prompt_preview": rendered_prompt[:200] + ("..." if len(rendered_prompt)>200 else "")
+            "prompt_preview": rendered_prompt[:100]
         }
+        logger.debug(f"Template usage: {data}")
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:
                 f.write("TEMPLATE_USAGE " + json.dumps(data, ensure_ascii=False) + "\n")
+                logger.debug("Writing template usage")
         except Exception as e:
             logger.warning("Failed to write template usage log: %s", e)
 
@@ -51,6 +52,7 @@ class TemplateManager:
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:
                 f.write("AI_RESPONSE " + json.dumps(data, ensure_ascii=False) + "\n")
+                logger.debug(f"AI response: {data}")
         except Exception as e:
             logger.warning("Failed to write AI response log: %s", e)
 
@@ -65,4 +67,5 @@ def strip_markdown_code(text: str) -> str:
         lines = lines[1:] if lines and lines[0].startswith("```") else lines
         if lines and lines[-1].strip()=="```": lines = lines[:-1]
         s = "\n".join(lines)
+    logger.debug(f"strip_markdown_code return: {s.strip()[:20]}...")
     return s.strip()

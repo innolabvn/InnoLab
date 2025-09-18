@@ -76,7 +76,7 @@ class BearerScanner(Scanner):
                     clean = re.sub(r'\x1b\[[0-9;]*m', '', bearer_output)
                 except Exception:
                     clean = bearer_output
-                logger.debug("Bearer scan output: %s", clean[:1000])
+                logger.debug("Bearer scan output: %s", clean[:100])
                 return []
 
             if not output_file.exists():
@@ -111,7 +111,7 @@ class BearerScanner(Scanner):
             for finding in bearer_data.get(severity, []):
                 finding["severity"] = severity
                 findings.append(finding)
-        logger.debug(f"Total findings collected: {findings[:200]}")
+        logger.debug(f"Total findings collected: {str(findings)[:100]}")
 
         for finding in findings:
             try:

@@ -1,26 +1,50 @@
 # src/app/services/batch_fix/rag_integration.py
 from __future__ import annotations
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 from src.app.services.rag_service import RAGService
 from src.app.services.batch_fix.models import FixResult
 from src.app.services.log_service import logger
 
-def _build_query_from_issues(issues_data: Optional[List[Dict]]) -> str:
+def build_query_and_filters_from_issues(issues_data: Optional[List[Dict]]) -> Tuple[str, Dict[str, str]]:
     """
-    Tạo query ngắn gọn từ issues để search Fixer RAG.
-    Ưu tiên: description, message, title, component.
+    Tạo query và filters từ issues để search Fixer RAG.
+    Issue format:
+    {
+        "key": str,
+        "label": "BUG" | "CODE_SMELL",
+        "id": str,
+        "classification": str,
+        "reason": str,
+        "rule_description": str,
+        "title": str,
+        "file_name": str
+    }
+    Returns:
+        query (str): chuỗi query ngắn gọn
+        filters (dict): bộ lọc phù hợp (label, classification, file_name)
     """
     if not issues_data:
-        return ""
+        return "", {}
     seen, terms = set(), []
+    filters: Dict[str, str] = {}
+    
     for it in issues_data:
-        for k in ("description", "message", "title"):
+        for k in ("title", "rule_description", "reason"):
             v = str(it.get(k, "")).strip()
             if v and v not in seen:
                 seen.add(v)
                 terms.append(v)
-    return " | ".join(terms)[:1000]
+        
+        if it.get("label") == "BUG":
+            filters["label"] = "BUG"
+        if str(it.get("classification", "")).lower() in ("true positive", "tp"):
+            filters["classification"] = "True Positive"
+        if it.get("file_name"):
+            filters["file_name"] = str(it["file_name"]).strip()
+
+    query = " | ".join(terms)[:1000]
+    return query, filters
 
 def _build_bug_items_payload(
     fix_result: FixResult,
@@ -101,14 +125,15 @@ class RAGAdapter:
     def search_context(self, issues_data: Optional[List[Dict]]) -> Optional[str]:
         if not issues_data:
             return None
-        query = _build_query_from_issues(issues_data)
-        logger.debug("RAG search query: %s", query)
+        query, filters = build_query_and_filters_from_issues(issues_data)
+        logger.debug("RAG search query: %s with filters: %s", query[:100], filters)
         if not query:
             return None
 
         # Gọi đúng endpoint /fixer-rag/search
-        res = self.svc.search_fixer(query=query, limit=3, filters=None)
+        res = self.svc.search_fixer(query=query, limit=8, filters=filters)
         if not (res.success and res.sources):
+            logger.debug(f"Search fixer RAG failed, return: {res}")
             return None
 
         # Ghép thành đoạn context ngắn gọn cho prompt
@@ -117,11 +142,12 @@ class RAGAdapter:
             content = str(src.get("content", ""))[:400]
             sim = float(src.get("similarity_score", src.get("similarity", 0.0)) or 0.0)
             parts.append(f"\n{i}. Similar Item (Similarity: {sim:.2f}):")
-            parts.append(f"   {content}...")
+            parts.append(f"{content}")
             md = src.get("metadata", {}) or {}
             if md.get("code_language"):
-                parts.append(f"   Language: {md['code_language']}")
+                parts.append(f"Language: {md['code_language']}")
         parts.append("\n=== END OF RAG CONTEXT ===\n")
+        logger.debug(f"Retrieved context for prompt: {parts}")
         return "\n".join(parts)
 
     def add_fix(

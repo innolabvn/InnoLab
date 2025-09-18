@@ -49,34 +49,20 @@ class SecureFixProcessor:
             if fnmatch.fnmatch(rel, p) or fnmatch.fnmatch(os.path.basename(path), p): return True
         return False
 
-    def scan_file_only(self, file_path: str) -> FixResult:
-        start = datetime.now()
-        try:
-            code = Path(file_path).read_text(encoding="utf-8")
-            issues: List[str] = []
-            if len(code) > 10_000: issues.append("Large file (>10KB)")
-            ok, errs = V.validate_by_ext(file_path, code)
-            if not ok: issues += errs
-            return FixResult(True, file_path, len(code), len(code), issues or ["No issues found"], [])
-        except Exception as e:
-            elapsed = (datetime.now()-start).total_seconds()
-            return FixResult(False, file_path, 0, 0, [f"Scan error: {e}"], [], processing_time=elapsed)
-
     def fix_file_with_validation(
         self,
         file_path: str,
-        template_type: str = "fix",
-        custom_prompt: Optional[str] = None,
+        template_type: str,
         max_retries: int = 2,
         issues_data: Optional[List[Dict]] = None,
-        enable_rag: bool = False,
     ) -> FixResult:
         start = datetime.now()
         input_tokens = output_tokens = total_tokens = 0
         original = ""
         try:
             original = Path(file_path).read_text(encoding="utf-8")
-            rag_context = self.rag.search_context(issues_data) if enable_rag else None
+            rag_context = self.rag.search_context(issues_data) or ""
+            logger.debug(f"Fixer RAG retrieved context: {rag_context[:50]}")
 
             fixed_code = ""
             text = ""
@@ -84,6 +70,7 @@ class SecureFixProcessor:
             for attempt in range(max_retries + 1):
                 # load template
                 tpl, tpl_vars = self.tm.load(template_type)
+                logger.debug(f"Template loaded: {tpl}, {tpl_vars}")
                 if tpl is None:
                     raise RuntimeError("Template not found. Put templates in src/app/prompts/")
                 issues_log = json.dumps(issues_data or [], ensure_ascii=False, indent=2)
@@ -96,7 +83,7 @@ class SecureFixProcessor:
                     **tpl_vars,
                 ) if callable(tpl) else str(tpl)
 
-                self.tm.log_template_usage(file_path, template_type, custom_prompt, rendered)
+                self.tm.log_template_usage(file_path, template_type, rendered)
 
                 # === google-genai call ===
                 resp = client.models.generate_content(
@@ -104,6 +91,7 @@ class SecureFixProcessor:
                     contents=rendered
                 )
                 text = getattr(resp, "text", "") or ""
+                logger.debug(f"Gemini response: {resp}")
                 fixed_candidate = strip_markdown_code(text)
 
                 usage = getattr(resp, "usage_metadata", None)
@@ -115,7 +103,6 @@ class SecureFixProcessor:
                 self.tm.log_ai_response(file_path, text, fixed_candidate)
 
                 # Handle Serena MCP integration if enabled
-                    
                 if "=== SERENA FIX INSTRUCTIONS START ===" in text:
                     
                     # Extract Serena instructions from LLM response
@@ -189,23 +176,21 @@ class SecureFixProcessor:
             result = FixResult(
                 True, file_path, len(original), len(fixed_code),
                 [f"Size change: {len(fixed_code)-len(original)} bytes", f"Similarity: {sim:.1%}"],
-                validation_errors, None, elapsed, sim,
+                validation_errors, elapsed, sim,
                 input_tokens, output_tokens, total_tokens, meets
             )
 
-            if enable_rag:
-                try:
-                    self.rag.add_fix(result, issues_data, text, fixed_code)
-                except Exception as e:
-                    logger.warning("Failed to add fix to RAG: %s", e)
+            try:
+                self.rag.add_fix(result, issues_data, text, fixed_code)
+            except Exception as e:
+                logger.warning("Failed to add fix to RAG: %s", e)
 
             return result
 
         except Exception as e:
             elapsed = (datetime.now()-start).total_seconds()
-            return FixResult(False, file_path, len(original) if "original" in locals() else 0, 0, [str(e)], [], None, elapsed, 0.0, 0,0,0, False)
+            return FixResult(False, file_path, len(original) if "original" in locals() else 0, 0, [str(e)], [], elapsed, 0.0, 0,0,0, False)
         
-
     def _extract_serena_instructions(self, llm_response: str) -> Optional[str]:
         """Extract Serena fix instructions from LLM response"""
         try:
@@ -237,6 +222,7 @@ class SecureFixProcessor:
         except Exception as e:
             logger.error(f"Error extracting Serena instructions: {str(e)}")
             return None
+        
     def _apply_serena_fixes(self, original_code: str, instructions: str, file_path: str) -> Optional[str]:
         """Apply fixes using Serena MCP based on LLM instructions"""
         try:

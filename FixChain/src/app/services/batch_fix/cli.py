@@ -11,22 +11,18 @@ def load_issues_group_by_file(path):
     issues_by_file = defaultdict(list)
 
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    # data chắc chắn là list, và trong đó mỗi phần tử có field "bugs"
-    for block in data:
-        for it in block.get("bugs", []):
-            # vì file không có file_path -> gom vào 1 group chung
-            fp = it.get("file_path")
-            key = os.path.normpath(fp) if fp else "<unknown>"
-            issues_by_file[key].append(it)
+    logger.debug(f"Fixer received data: {data[:100]}")
+    for d in data:
+        fn = d.get("file_name")
+        key = os.path.normpath(fn) if fn else "UNKNOWN"
+        issues_by_file[key].append(d)
 
     return issues_by_file
 
 def run():
     parser = argparse.ArgumentParser(description="Secure Batch Fix (AI-powered)")
     parser.add_argument("destination", type=str, nargs="?", help="Directory to scan/fix")
-    parser.add_argument("--prompt", type=str)
     parser.add_argument("--issues-file", type=str)
-    parser.add_argument("--enable-rag", action="store_true")
     parser.add_argument('--enable-serena', action='store_true')
     parser.add_argument('--serena-mcp', action='store_true')
     args = parser.parse_args()
@@ -74,15 +70,17 @@ def run():
         rel = os.path.relpath(p, directory)
         logger.info(f"[{i}/{len(code_files)}] {'Fixing'}: {rel}")
         file_issues = issues_by_file.get(rel, [])
+        logger.debug(f"File issue to be fixed: {file_issues}")
         r = processor.fix_file_with_validation(
-            p, template_type="fix", custom_prompt=args.prompt,
-            issues_data=file_issues, enable_rag=True
+            p, template_type="fix",
+            issues_data=file_issues
         )
+        logger.debug("Fixed file %s with result: %s", rel, r)
         results.append(r)
         if r.success:
-            logger.info(f"  {'Success'} ({r.processing_time:.1f}s)")
+            logger.info(f"Success: {r.processing_time:.1f}s")
         else:
-            logger.info(f"  Failed: {'; '.join(r.issues_found)}")
+            logger.info(f"Failed: {';'.join(r.issues_found)}")
 
     # summary
     success = sum(1 for r in results if r.success)

@@ -98,7 +98,7 @@ def run_workflow_with_dify(
         logger.debug("Dify task_id: %s", data.get("task_id"))
         logger.debug("Dify outputs keys: %s", list(data.get("data", {}).get("outputs", {}).keys()))
     except ValueError:
-        logger.error("Dify API trả về không phải JSON: %r", resp.text[:200])
+        logger.error("Dify API trả về không phải JSON: %r", resp.text[:100])
         raise
 
     if isinstance(data, dict) and "error" in data:

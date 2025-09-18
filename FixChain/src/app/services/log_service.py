@@ -19,7 +19,7 @@ def setup_logger() -> logging.Logger:
 
     # Format log có timestamp, level, module
     log_format = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(module)s:%(lineno)d | %(message)s",
+        "%(asctime)s | %(levelname)-8s | %(module)s:%(lineno)d | %(message)s",
         "%Y-%m-%d %H:%M:%S",
     )
 
@@ -29,7 +29,7 @@ def setup_logger() -> logging.Logger:
     logger.addHandler(console_handler)
 
     # File handler (optional, xoay file theo ngày)
-    log_file = os.path.join(log_dir, f"fixchain_{datetime.now().strftime('%Y%m%d')}.log")
+    log_file = os.path.join(log_dir, f"fixchain_{datetime.now().strftime('%m%d%H%M')}.log")
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(log_format)
     logger.addHandler(file_handler)

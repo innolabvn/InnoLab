@@ -11,7 +11,6 @@ class FixResult:
     fixed_size: int
     issues_found: List[str]
     validation_errors: Optional[List[str]] = None
-    backup_path: Optional[str] = None
     processing_time: float = 0.0
     similarity_ratio: float = 0.0
     input_tokens: int = 0

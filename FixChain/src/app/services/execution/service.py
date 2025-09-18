@@ -168,6 +168,7 @@ class ExecutionServiceNoMongo:
             if isinstance(raw, str):
                 try:
                     fix_result = json.loads(raw.splitlines()[-1])
+                    logger.debug(f"Fix result: {fix_result}")
                 except json.JSONDecodeError:
                     logger.error("Failed to parse fix result JSON")
                     fix_result = {"success": False, "fixed_count": 0, "error": "Invalid JSON output"}

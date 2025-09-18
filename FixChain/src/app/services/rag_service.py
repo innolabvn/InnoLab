@@ -155,7 +155,7 @@ class RAGService:
             if not resp.ok:
                 return RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
-            logger.debug("Scanner search success response: %s", str(data)[:200])
+            logger.debug("Scanner search success response: %s", str(data)[:100])
             return RAGSearchResult(list(data.get("sources", [])), data.get("query", query), True)
         except Exception as e:
             return RAGSearchResult([], query, False, str(e))

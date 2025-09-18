@@ -42,10 +42,8 @@ class ScannerUpdatePatch(BaseModel):
     # Dify fields
     dify_bug_id: Optional[str] = None
     dify_classification: Optional[str] = None
-    dify_action: Optional[str] = None
+    dify_label: Optional[str] = None
     dify_reason: Optional[str] = None
-    dify_rule_key: Optional[str] = None
-    dify_raw: Optional[Dict[str, Any]] = None
 
 class ScannerSearchRequest(BaseModel):
     query: str
@@ -198,7 +196,7 @@ def update_scanner_signal(req: ScannerUpdateRequest):
         update_set["metadata.tags"] = req.patch.tags
 
     # Dify fields
-    for f in ["dify_bug_id", "dify_classification", "dify_action", "dify_reason", "dify_rule_key", "dify_raw"]:
+    for f in ["dify_bug_id", "dify_label", "dify_classification", "dify_reason"]:
         val = getattr(req.patch, f, None)
         if val is not None:
             update_set[f"{f}"] = val
