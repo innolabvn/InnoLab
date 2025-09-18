@@ -26,21 +26,16 @@ load_dotenv(root_env_path)
 FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")
 
 class BugItem(BaseModel):
-    name: str
+    doc_id: str
     description: str
+    rule: str
     type: Literal["BUG", "CODE_SMELL"]
-    severity: Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
     file_path: Optional[str] = None
-    line_number: Optional[int] = None
     code_snippet: Optional[str] = None
-    labels: List[str]
-    project: Optional[str] = None
     metadata: Dict[str, Any]
 
 class BugImportRequest(BaseModel):
     bugs: List[BugItem]
-    collection_name: str = FIXER_COLLECTION
-    generate_embeddings: bool = True
 
 class BugFixRequest(BaseModel):
     bug_id: str
@@ -73,29 +68,18 @@ def generate_gemini_embedding(text: str) -> List[float]:
 
 def format_bug_for_rag(bug: BugItem) -> str:
     parts = [
-        f"Bug Name: {bug.name}",
         f"Description: {bug.description}",
         f"Type: {bug.type}",
-        f"Severity: {bug.severity}",
+        f"Rule: {bug.rule}",
+        f"File_path: {bug.file_path}",
+        f"Code snippet: {bug.code_snippet}",
     ]
-    if bug.file_path: parts.append(f"File: {bug.file_path}")
-    if bug.line_number: parts.append(f"Line: {bug.line_number}")
-    if bug.code_snippet: parts.append(f"Code Snippet:{bug.code_snippet}")
-    if bug.labels: parts.append(f"Labels: {', '.join(bug.labels)}")
-    if bug.project: parts.append(f"Project: {bug.project}")
     return "".join(parts)
 
 def create_bug_rag_metadata(bug: BugItem) -> Dict[str, Any]:
     md = {
-      "bug_name": bug.name,
-      "bug_type": bug.type,
-      "severity": bug.severity,
-      "labels": bug.labels,
-      "created_at": datetime.utcnow(),
+        "agent": "fixer",
     }
-    if bug.file_path: md["file_path"] = bug.file_path
-    if bug.line_number: md["line_number"] = bug.line_number
-    if bug.project: md["project"] = bug.project
     md.update(bug.metadata or {})
     return md
 
@@ -120,10 +104,15 @@ async def import_bugs_as_rag(request: BugImportRequest):
     try:
         mongo_manager = get_mongo_manager()
         collection = mongo_manager.collection(FIXER_COLLECTION)
+        try:
+            collection.create_index("doc_id", unique=True)
+        except Exception:
+            pass
+
         imported = []
         for bug in request.bugs:
             content = format_bug_for_rag(bug)[:4000]
-            embedding = generate_gemini_embedding(content) if request.generate_embeddings else None
+            embedding = generate_gemini_embedding(content)
             metadata = create_bug_rag_metadata(bug)
             doc = {
                 "content": content,
@@ -131,14 +120,20 @@ async def import_bugs_as_rag(request: BugImportRequest):
                 "embedding": embedding,
                 "created_at": datetime.utcnow(),
             }
-            result = collection.insert_one(doc)
-            imported.append({"bug_id": str(result.inserted_id), "bug_name": bug.name, "status": "imported"})
-            logger.debug(f"Imported bug '{bug.name}' with ID {result.inserted_id}")
+            result = collection.update_one(
+                {"doc_id": bug.doc_id},
+                {
+                    "$set": doc,
+                    "$setOnInsert": {"created_at": datetime.utcnow()},
+                },
+                upsert=True,
+            )
+            status = "inserted" if result.upserted_id is not None else ("updated" if result.modified_count else "unchanged")
+            imported.append({"bug_id": bug.doc_id, "status": status})
+            logger.debug(f"Imported bug: {imported}")
         return {
-            "message": f"Successfully imported {len(imported)} bugs as RAG documents",
-            "collection": FIXER_COLLECTION,
             "imported_bugs": imported,
-            "total_imported": len(imported),
+            "message": f"Successfully imported {len(imported)} bugs as RAG documents",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error importing bugs: {str(e)}")

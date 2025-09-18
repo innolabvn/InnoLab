@@ -152,6 +152,8 @@ class LLMFixer(Fixer):
 
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
+            output_text = "".join(output_lines)
+            logger.debug("Batch fix output:\n%s", output_text)
 
             # Luôn cố gắng xoá file tạm
             try:
@@ -159,9 +161,6 @@ class LLMFixer(Fixer):
                 logger.info("Cleaned up temporary issues file: %s", issues_file_path)
             except Exception as e:
                 logger.warning("Could not cleanup issues file: %s", e)
-
-            output_text = "".join(output_lines)
-            logger.debug("Batch fix output:\n%s", output_text)
 
             if not success:
                 logger.error("Batch fix failed")

@@ -9,7 +9,7 @@ class FixResult:
     file_path: str
     original_size: int
     fixed_size: int
-    issues_found: List[str]
+    message: str
     validation_errors: Optional[List[str]] = None
     processing_time: float = 0.0
     similarity_ratio: float = 0.0

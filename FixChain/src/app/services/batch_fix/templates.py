@@ -10,21 +10,22 @@ class TemplateManager:
     def __init__(self, prompt_dir: Optional[str] = None) -> None:
         self.prompt_dir = prompt_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "prompts")
         self.env = Environment(loader=FileSystemLoader(self.prompt_dir))
-        self._setup_file_logger()
-
-    def _setup_file_logger(self) -> None:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._log_file = os.path.join(os.getenv("LOG_DIR","fixer/logs"), f"template_usage_{ts}.log")
+        self._log_file = os.path.join(os.getenv("LOG_DIR","logs"), f"template_usage_{ts}.log")
         os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
 
     def load(self, template_type: str):
-        files = {"fix":"fix.j2", "fix_with_serena":"fix_with_serena.j2"}
+        files = {
+            "fix":"fix.j2", 
+            "fix_with_serena":"fix_with_serena.j2"
+        }
 
         fname = files.get(template_type, "fix.j2")
         path = os.path.join(self.prompt_dir, fname)
         if not os.path.exists(path): 
             return None, {}
         template = self.env.get_template(fname)
+        logger.debug(f"Get template: {template}")
         return template.render, {}
 
     def log_template_usage(self, file_path: str, template_type: str, rendered_prompt: str) -> None:
@@ -34,7 +35,7 @@ class TemplateManager:
             "prompt_length": len(rendered_prompt),
             "prompt_preview": rendered_prompt[:100]
         }
-        logger.debug(f"Template usage: {data}")
+        logger.debug(f"Template data: {data}")
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:
                 f.write("TEMPLATE_USAGE " + json.dumps(data, ensure_ascii=False) + "\n")
@@ -42,12 +43,12 @@ class TemplateManager:
         except Exception as e:
             logger.warning("Failed to write template usage log: %s", e)
 
-    def log_ai_response(self, file_path: str, raw: str, cleaned: str) -> None:
+    def log_ai_response(self, file_path: str, text: str, fixed_candidate: str) -> None:
         data = {
             "file_path": file_path,
-            "raw_response_length": len(raw),
-            "cleaned_response_length": len(cleaned),
-            "response_preview": cleaned[:200] + ("..." if len(cleaned)>200 else "")
+            "raw_response_length": len(text),
+            "cleaned_response_length": len(fixed_candidate),
+            "response_preview": fixed_candidate[:200]
         }
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:
@@ -67,5 +68,5 @@ def strip_markdown_code(text: str) -> str:
         lines = lines[1:] if lines and lines[0].startswith("```") else lines
         if lines and lines[-1].strip()=="```": lines = lines[:-1]
         s = "\n".join(lines)
-    logger.debug(f"strip_markdown_code return: {s.strip()[:20]}...")
+    logger.debug(f"strip_markdown_code return: {s.strip()[:200]}...")
     return s.strip()

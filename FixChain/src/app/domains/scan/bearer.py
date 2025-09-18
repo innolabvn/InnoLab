@@ -86,7 +86,7 @@ class BearerScanner(Scanner):
             logger.debug("Reading Bearer results from: %s", output_file)
             with output_file.open("r", encoding="utf-8") as f:
                 bearer_data = json.load(f)
-                logger.debug(f"Raw bearer response: {bearer_data}")
+                logger.debug(f"Raw bearer response: {str(bearer_data)[:100]}")
 
             bugs = self._convert_bearer_to_bugs_format(bearer_data)
             logger.info("Found %d Bearer security issues", len(bugs))

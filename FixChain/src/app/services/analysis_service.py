@@ -71,7 +71,7 @@ class AnalysisService:
                     retrieved_context = "\n".join(
                         f"- {str(s.get('description') or s.get('reason') or s.get('content',''))}" for s in res.sources
                     )[:8000]
-                    logger.debug("Scanner RAG retrieved %s context docs for Dify.", res.sources)
+                    logger.debug("Scanner RAG retrieved %s context docs for Dify.", str(res.sources)[:100])
             except Exception as e:
                 logger.warning("Scanner RAG retrieval failed (non-fatal): %s", e)
 
@@ -210,7 +210,7 @@ class AnalysisService:
             except Exception as e:
                 logger.warning("Failed to normalize Dify item: %s ; item=%s", e, r)
                 
-        logger.debug("Normalized labeled signals from Dify: %s...", items)
+        logger.debug("Normalized labeled signals from Dify: %s...", str(items)[:100])
         return items
 
     @staticmethod

@@ -201,14 +201,8 @@ class RAGService:
             return RAGAddResult(False, "", str(e))
 
  # ---------- Fixer ----------
-    def import_fix_cases(self, bugs_payload: List[Dict], collection_name: str = FIXER_COLLECTION,
-                         generate_embeddings: bool = True) -> RAGAddResult:
-        payload = {
-            "bugs": bugs_payload,
-            "generate_embeddings": bool(generate_embeddings),
-        }
-        if collection_name:
-            payload["collection_name"] = collection_name
+    def import_fix_cases(self, bugs_payload: List[Dict[str, Any]]) -> RAGAddResult:
+        payload = {"bugs": bugs_payload}
         try:
             resp = self._post_with_retry(self.fixer_import, payload)
             if not resp.ok:

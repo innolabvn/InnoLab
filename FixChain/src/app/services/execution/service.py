@@ -137,7 +137,7 @@ class ExecutionServiceNoMongo:
 
             # Phân tích với Dify
             analysis = self.analysis_service.analyze_bugs_with_dify(all_bugs, source_code=source_code)
-            logger.debug("Dify analysis result: %s", analysis)
+            logger.debug("Dify analysis result: %s", str(analysis)[:100])
             it_result["analysis_result"] = analysis
 
             list_real_bugs = analysis.get("list_bugs")

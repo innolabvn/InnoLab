@@ -11,7 +11,7 @@ def load_issues_group_by_file(path):
     issues_by_file = defaultdict(list)
 
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    logger.debug(f"Fixer received data: {data[:100]}")
+    logger.debug(f"Fixer received data: {str(data)[:100]}")
     for d in data:
         fn = d.get("file_name")
         key = os.path.normpath(fn) if fn else "UNKNOWN"
@@ -43,7 +43,7 @@ def run():
         except Exception as e:
             logger.warning("Cannot load issues file: %s", e)
 
-    processor = SecureFixProcessor(directory, None)
+    processor = SecureFixProcessor(directory)
     processor.load_ignore_patterns(directory)
 
     # collect files
@@ -71,8 +71,8 @@ def run():
         logger.info(f"[{i}/{len(code_files)}] {'Fixing'}: {rel}")
         file_issues = issues_by_file.get(rel, [])
         logger.debug(f"File issue to be fixed: {file_issues}")
-        r = processor.fix_file_with_validation(
-            p, template_type="fix",
+        r = processor.fix_buggy_file(
+            file_path=p, template_type="fix",
             issues_data=file_issues
         )
         logger.debug("Fixed file %s with result: %s", rel, r)
@@ -80,7 +80,7 @@ def run():
         if r.success:
             logger.info(f"Success: {r.processing_time:.1f}s")
         else:
-            logger.info(f"Failed: {';'.join(r.issues_found)}")
+            logger.info(f"Failed: {r.message}, Validation errors: {r.validation_errors}")
 
     # summary
     success = sum(1 for r in results if r.success)

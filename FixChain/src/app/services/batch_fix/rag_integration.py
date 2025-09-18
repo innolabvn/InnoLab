@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
+import uuid
 from src.app.services.rag_service import RAGService
 from src.app.services.batch_fix.models import FixResult
 from src.app.services.log_service import logger
@@ -54,62 +55,37 @@ def _build_bug_items_payload(
     """
     Map FixResult + issues_data -> payload 'bugs' theo schema BugItem của Fixer router.
     """
+    bug_items: List[Dict] = []
     file_path = fix_result.file_path or ""
-    file_name = Path(file_path).name if file_path else "unknown file"
-
-    # Mặc định
-    severity = "MEDIUM"
-    bug_type = "BUG"
-    line_number = None
-    labels: List[str] = []
+    fixed_file = Path(file_path).name if file_path else ""
 
     # Lấy thêm metadata từ issues_data cho khớp schema
     if issues_data:
         logger.debug("Building bug item payload from issues data: %s", issues_data)
         for it in issues_data:
-            if str(it.get("component", "")).endswith(file_name):
-                severity = str(it.get("severity", severity)).upper() or "MEDIUM"
-                bug_type = str(it.get("type", bug_type)).upper() or "BUG"
-                try:
-                    if it.get("line") is not None:
-                        line = it.get("line")
-                        if line:
-                            line_number = int(line)
-                except Exception:
-                    pass
-                rule = str(it.get("rule") or "").strip()
-                if rule and rule not in labels:
-                    labels.append(rule)
-
-    description = f"Fix applied to {file_name}. See metadata.fix_context and code_snippet."
-    bug_item = {
-        "name": f"Fix: {file_name}",
-        "description": description,
-        "type": bug_type,                 # "BUG" hoặc "CODE_SMELL"
-        "severity": severity,             # INFO|LOW|MEDIUM|HIGH|CRITICAL (router yêu cầu)
-        "file_path": file_path or None,
-        "line_number": line_number,
-        "code_snippet": fixed_code or None,
-        "labels": labels,
-        "project": None,
-        "metadata": {
-            "source": "FixChain",
-            "agent": "fixer",
-            "fix_context": {
-                "original_size": fix_result.original_size,
-                "fixed_size": fix_result.fixed_size,
-                "similarity_ratio": fix_result.similarity_ratio,
-                "input_tokens": fix_result.input_tokens,
-                "output_tokens": fix_result.output_tokens,
-                "total_tokens": fix_result.total_tokens,
-                "processing_time": fix_result.processing_time,
-                "meets_threshold": fix_result.meets_threshold,
-                "validation_errors": fix_result.validation_errors,
-                "issues_found": fix_result.issues_found,
-            },
-        },
-    }
-    return [bug_item]
+            key = it.get("key", str(uuid.uuid4()))
+            file_name = fixed_file or it.get("file_name", "")
+            description = f"Fix applied to {file_name}."
+            bug_item: Dict = {
+                "doc_id": key,
+                "type": it.get("label", ""),
+                "description": description,
+                "rule": it.get("rule_description", ""),
+                "file_path": file_path,
+                "code_snippet": fixed_code,
+                "metadata": {
+                    "agent": "fixer",
+                    "fix_context": {
+                        "original_size": fix_result.original_size,
+                        "fixed_size": fix_result.fixed_size,
+                        "similarity_ratio": fix_result.similarity_ratio,
+                    },
+                },
+            }
+            bug_items.append(bug_item)
+    else:
+        return []
+    return bug_items
 
 
 class RAGAdapter:
@@ -133,7 +109,7 @@ class RAGAdapter:
         # Gọi đúng endpoint /fixer-rag/search
         res = self.svc.search_fixer(query=query, limit=8, filters=filters)
         if not (res.success and res.sources):
-            logger.debug(f"Search fixer RAG failed, return: {res}")
+            logger.debug(f"Search fixer RAG failed, return: {res.error_message}")
             return None
 
         # Ghép thành đoạn context ngắn gọn cho prompt
@@ -150,18 +126,11 @@ class RAGAdapter:
         logger.debug(f"Retrieved context for prompt: {parts}")
         return "\n".join(parts)
 
-    def add_fix(
-        self,
-        fix_result: FixResult,
-        issues_data: Optional[List[Dict]],
-        raw_response: str,   # giữ nguyên chữ ký hàm (không dùng ở đây)
-        fixed_code: str,
-    ) -> bool:
+    def add_fix(self, fix_result: FixResult, issues_data: Optional[List[Dict]], fixed_code: str) -> bool:
         """
         Import kết quả fix vào Fixer RAG qua hàm có sẵn: import_fix_cases(...).
-        (Không thêm hàm mới ở RAGService.)
         """
         bugs_payload = _build_bug_items_payload(fix_result, issues_data, fixed_code)
         logger.debug("Importing fix case to RAG with payload: %s", bugs_payload)
-        res = self.svc.import_fix_cases(bugs_payload=bugs_payload, generate_embeddings=True)
-        return bool(res.success)
+        res = self.svc.import_fix_cases(bugs_payload)
+        return bool(getattr(res, "success", False))

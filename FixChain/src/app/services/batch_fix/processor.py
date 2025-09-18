@@ -14,10 +14,9 @@ from src.app.services.batch_fix.rag_integration import RAGAdapter
 from src.app.adapters.llm.google_genai import client, GENERATION_MODEL
 
 class SecureFixProcessor:
-    def __init__(self, source_dir: str, backup_dir: Optional[str] = None, similarity_threshold: float = 0.85) -> None:
+    def __init__(self, source_dir: str) -> None:
         self.source_dir = os.path.abspath(source_dir)
-        self.backup_dir = backup_dir or ""
-        self.similarity_threshold = similarity_threshold
+        self.similarity_threshold = 0.85
         self.ignore_patterns: List[str] = []
         self.tm = TemplateManager()
         self.rag = RAGAdapter()
@@ -42,105 +41,91 @@ class SecureFixProcessor:
     def should_ignore_file(self, path: str, base_dir: str) -> bool:
         abs_path = os.path.abspath(path)
         if not abs_path.startswith(os.path.abspath(base_dir)): return True
-        if self.backup_dir and abs_path.startswith(os.path.abspath(self.backup_dir)): return True
         rel = os.path.relpath(abs_path, os.path.abspath(base_dir)).replace("\\","/")
         for p in self.ignore_patterns:
             if p.endswith("/") and (rel.startswith(p) or f"/{p}" in f"/{rel}/"): return True
             if fnmatch.fnmatch(rel, p) or fnmatch.fnmatch(os.path.basename(path), p): return True
         return False
 
-    def fix_file_with_validation(
-        self,
-        file_path: str,
-        template_type: str,
-        max_retries: int = 2,
-        issues_data: Optional[List[Dict]] = None,
-    ) -> FixResult:
+    def fix_buggy_file(self, file_path: str, template_type: str, issues_data: Optional[List[Dict]] = None) -> FixResult:
         start = datetime.now()
         input_tokens = output_tokens = total_tokens = 0
+        rag_context = self.rag.search_context(issues_data) or ""
+        logger.debug(f"Fixer RAG retrieved context: {rag_context[:50]}")
         original = ""
+        fixed_candidate = ""
+        validation_errors = []
         try:
-            original = Path(file_path).read_text(encoding="utf-8")
-            rag_context = self.rag.search_context(issues_data) or ""
-            logger.debug(f"Fixer RAG retrieved context: {rag_context[:50]}")
 
-            fixed_code = ""
-            text = ""
-            validation_errors: List[str] = []
-            for attempt in range(max_retries + 1):
-                # load template
-                tpl, tpl_vars = self.tm.load(template_type)
-                logger.debug(f"Template loaded: {tpl}, {tpl_vars}")
-                if tpl is None:
-                    raise RuntimeError("Template not found. Put templates in src/app/prompts/")
-                issues_log = json.dumps(issues_data or [], ensure_ascii=False, indent=2)
-                rendered = tpl(
-                    original_code=original,
-                    validation_rules=V.get_rules_for(file_path),
-                    issues_log=issues_log,
-                    rag_suggestion=rag_context or "",
-                    has_rag_suggestion=bool(rag_context),
-                    **tpl_vars,
-                ) if callable(tpl) else str(tpl)
+            original = Path(file_path).read_text(encoding="utf-8") 
+            # load template
+            tpl, tpl_vars = self.tm.load(template_type)
+            if tpl is None:
+                raise RuntimeError("Template not found. Put templates in src/app/prompts/")
+            
+            ok, errs = V.validate_by_ext(file_path, fixed_candidate)
+            if not ok:
+                validation_errors += errs
 
-                self.tm.log_template_usage(file_path, template_type, rendered)
+            safe, s_issues = V.validate_safety(original, fixed_candidate)
+            if not safe:
+                validation_errors += s_issues
+            
+            rendered = tpl(
+                original_code=original,
+                validation_rules=V.get_rules_for(file_path),
+                validation_errors=validation_errors,
+                issues_log=json.dumps(issues_data or [], ensure_ascii=False, indent=2),
+                rag_suggestion=rag_context,
+                has_rag_suggestion=bool(rag_context),
+                **tpl_vars,
+            ) if callable(tpl) else str(tpl)
 
-                # === google-genai call ===
-                resp = client.models.generate_content(
-                    model=GENERATION_MODEL,
-                    contents=rendered
-                )
-                text = getattr(resp, "text", "") or ""
-                logger.debug(f"Gemini response: {resp}")
-                fixed_candidate = strip_markdown_code(text)
+            self.tm.log_template_usage(file_path, template_type, rendered)
 
-                usage = getattr(resp, "usage_metadata", None)
-                if usage:
-                    input_tokens = getattr(usage, "prompt_token_count", 0)
-                    output_tokens = getattr(usage, "candidates_token_count", 0)
-                    total_tokens = getattr(usage, "total_token_count", 0)
+            # === google-genai call ===
+            resp = client.models.generate_content(model=GENERATION_MODEL, contents=rendered)
+            text = getattr(resp, "text", "") or ""
+            logger.debug(f"Gemini response: {text[:100]}")
+            fixed_candidate = strip_markdown_code(text)
+            usage = getattr(resp, "usage_metadata", None)
+            if usage:
+                input_tokens = getattr(usage, "prompt_token_count", 0)
+                output_tokens = getattr(usage, "candidates_token_count", 0)
+                total_tokens = getattr(usage, "total_token_count", 0)
 
-                self.tm.log_ai_response(file_path, text, fixed_candidate)
+            self.tm.log_ai_response(file_path, text, fixed_candidate)
 
-                # Handle Serena MCP integration if enabled
-                if "=== SERENA FIX INSTRUCTIONS START ===" in text:
+            # Handle Serena MCP integration if enabled
+            if "=== SERENA FIX INSTRUCTIONS START ===" in text:
+                
+                # Extract Serena instructions from LLM response
+                serena_instructions = self._extract_serena_instructions(text)
+                
+                if serena_instructions:
+                    logger.info(f"📋 Extracted Serena instructions ({len(serena_instructions)} chars):")
+                    # Log preview of instructions
+                    instruction_lines = serena_instructions.split('\n')[:3]
+                    for i, line in enumerate(instruction_lines, 1):
+                        logger.info(f"   Instruction {i}: {line.strip()[:80]}{'...' if len(line.strip()) > 80 else ''}")
+                    if len(serena_instructions.split('\n')) > 3:
+                        lines = serena_instructions.split('\n')
+                        logger.info(f"   ... and {len(lines) - 3} more instruction lines")
                     
-                    # Extract Serena instructions from LLM response
-                    serena_instructions = self._extract_serena_instructions(text)
+                    logger.info("🤖 Serena MCP: Executing fix instructions...")
                     
-                    if serena_instructions:
-                        logger.info(f"📋 Extracted Serena instructions ({len(serena_instructions)} chars):")
-                        # Log preview of instructions
-                        instruction_lines = serena_instructions.split('\n')[:3]
-                        for i, line in enumerate(instruction_lines, 1):
-                            logger.info(f"   Instruction {i}: {line.strip()[:80]}{'...' if len(line.strip()) > 80 else ''}")
-                        if len(serena_instructions.split('\n')) > 3:
-                            lines = serena_instructions.split('\n')
-                            logger.info(f"   ... and {len(lines) - 3} more instruction lines")
-                        
-                        logger.info("🤖 Serena MCP: Executing fix instructions...")
-                        
-                        # Use Serena to apply the fixes
-                        serena_fixed_code = self._apply_serena_fixes(original, serena_instructions, file_path)
-                        
-                        if serena_fixed_code:
-                            candidate_fixed = serena_fixed_code
-                            logger.info(f"✅ Serena MCP: Successfully applied fixes!")
-                            logger.info(f"   📊 Original code: {len(original)} chars")
-                            logger.info(f"   📊 Fixed code: {len(candidate_fixed)} chars")
-                            logger.info(f"   📊 Size change: {len(candidate_fixed) - len(original):+d} chars")
-                        else:
-                            # FALLBACK: Serena failed, extract fixed code from LLM response
-                            logger.warning("⚠️ Serena MCP: Failed to apply fixes, initiating fallback...")
-                            llm_fixed_code = self._extract_llm_fixed_code(text)
-                            if llm_fixed_code:
-                                candidate_fixed = llm_fixed_code
-                                logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(candidate_fixed)} chars)")
-                            else:
-                                logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
+                    # Use Serena to apply the fixes
+                    serena_fixed_code = self._apply_serena_fixes(original, serena_instructions, file_path)
+                    
+                    if serena_fixed_code:
+                        candidate_fixed = serena_fixed_code
+                        logger.info(f"✅ Serena MCP: Successfully applied fixes!")
+                        logger.info(f"   📊 Original code: {len(original)} chars")
+                        logger.info(f"   📊 Fixed code: {len(candidate_fixed)} chars")
+                        logger.info(f"   📊 Size change: {len(candidate_fixed) - len(original):+d} chars")
                     else:
-                        # FALLBACK: No Serena instructions, extract fixed code from LLM response
-                        logger.warning("⚠️ Serena MCP: Failed to extract valid instructions, initiating fallback...")
+                        # FALLBACK: Serena failed, extract fixed code from LLM response
+                        logger.warning("⚠️ Serena MCP: Failed to apply fixes, initiating fallback...")
                         llm_fixed_code = self._extract_llm_fixed_code(text)
                         if llm_fixed_code:
                             candidate_fixed = llm_fixed_code
@@ -148,48 +133,60 @@ class SecureFixProcessor:
                         else:
                             logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
                 else:
-                    # No Serena instructions section, this means LLM provided direct fix
-                    logger.info("ℹ️ No Serena Fix Instructions section found in LLM response")
-                    logger.info("🔄 Using LLM direct output (standard mode)")
-
-                ok, errs = V.validate_by_ext(file_path, fixed_candidate)
-                if not ok:
-                    validation_errors += errs
-                    if attempt < max_retries: continue
-                    raise RuntimeError("Syntax validation failed: " + "; ".join(errs))
-
-                safe, s_issues = V.validate_safety(original, fixed_candidate)
-                if not safe:
-                    validation_errors += s_issues
-                    if attempt < max_retries: continue
-                    raise RuntimeError("Safety validation failed: " + "; ".join(s_issues))
-
-                fixed_code = fixed_candidate
-                break
+                    # FALLBACK: No Serena instructions, extract fixed code from LLM response
+                    logger.warning("⚠️ Serena MCP: Failed to extract valid instructions, initiating fallback...")
+                    llm_fixed_code = self._extract_llm_fixed_code(text)
+                    if llm_fixed_code:
+                        candidate_fixed = llm_fixed_code
+                        logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(candidate_fixed)} chars)")
+                    else:
+                        logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
+            else:
+                logger.info("No Serena Fix Instructions section found in LLM response")
 
             # write back (overwrite original)
-            Path(file_path).write_text(fixed_code, encoding="utf-8")
+            Path(file_path).write_text(fixed_candidate, encoding="utf-8")
 
             elapsed = (datetime.now()-start).total_seconds()
-            sim = V.similarity(original, fixed_code)
-            meets = sim >= self.similarity_threshold
+            similar = V.similarity(original, fixed_candidate)
+            meet_similar = similar >= self.similarity_threshold
             result = FixResult(
-                True, file_path, len(original), len(fixed_code),
-                [f"Size change: {len(fixed_code)-len(original)} bytes", f"Similarity: {sim:.1%}"],
-                validation_errors, elapsed, sim,
-                input_tokens, output_tokens, total_tokens, meets
+                success=True, 
+                file_path=file_path, 
+                original_size=len(original), 
+                fixed_size=len(fixed_candidate),
+                message=f"Size change: {len(fixed_candidate)-len(original)} bytes",
+                validation_errors=validation_errors,
+                processing_time=elapsed, 
+                similarity_ratio=similar,
+                input_tokens=input_tokens, 
+                output_tokens=output_tokens, 
+                total_tokens=total_tokens, 
+                meets_threshold=meet_similar
             )
 
             try:
-                self.rag.add_fix(result, issues_data, text, fixed_code)
+                self.rag.add_fix(result, issues_data, fixed_candidate)
             except Exception as e:
                 logger.warning("Failed to add fix to RAG: %s", e)
 
-            return result
-
         except Exception as e:
-            elapsed = (datetime.now()-start).total_seconds()
-            return FixResult(False, file_path, len(original) if "original" in locals() else 0, 0, [str(e)], [], elapsed, 0.0, 0,0,0, False)
+            result = FixResult(
+                success=False, 
+                file_path=file_path, 
+                original_size=len(original), 
+                fixed_size=0,
+                message=f"{e}",
+                validation_errors=validation_errors,
+                processing_time=0, 
+                similarity_ratio=0,
+                input_tokens=0, 
+                output_tokens=0, 
+                total_tokens=0, 
+                meets_threshold=False
+            )
+
+        return result
         
     def _extract_serena_instructions(self, llm_response: str) -> Optional[str]:
         """Extract Serena fix instructions from LLM response"""

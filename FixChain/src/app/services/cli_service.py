@@ -33,18 +33,18 @@ class CLIService:
             assert process.stdout is not None
             for line in process.stdout:
                 output_lines.append(line)
-                try:
-                    # Clean ANSI escape sequences and handle Unicode characters
-                    clean_line = line.strip()
-                    # Remove ANSI escape sequences
-                    clean_line = re.sub(r'\x1b\[[0-9;]*m', '', clean_line)
-                    # Ensure safe logging by encoding to ASCII with error handling
-                    safe_line = clean_line.encode('ascii', errors='ignore').decode('ascii')
-                    if safe_line.strip():  # Only log non-empty lines
-                        logger.debug(f"stdout: {safe_line}")
-                except Exception as e:
-                    # Fallback for any encoding issues
-                    logger.warning("stdout decode error: %s", e)
+                # try:
+                #     # Clean ANSI escape sequences and handle Unicode characters
+                #     clean_line = line.strip()
+                #     # Remove ANSI escape sequences
+                #     clean_line = re.sub(r'\x1b\[[0-9;]*m', '', clean_line)
+                #     # Ensure safe logging by encoding to ASCII with error handling
+                #     safe_line = clean_line.encode('ascii', errors='ignore').decode('ascii')
+                #     if safe_line.strip():  # Only log non-empty lines
+                #         logger.debug(f"stdout: {safe_line}")
+                # except Exception as e:
+                #     # Fallback for any encoding issues
+                #     logger.warning("stdout decode error: %s", e)
             process.wait()
             return True, output_lines
         except FileNotFoundError:
