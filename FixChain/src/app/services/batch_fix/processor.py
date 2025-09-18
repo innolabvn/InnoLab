@@ -113,15 +113,16 @@ class SecureFixProcessor:
                         # Log preview of instructions
                         instruction_lines = serena_instructions.split('\n')[:3]
                         for i, line in enumerate(instruction_lines, 1):
-                            logger.info(f"   Instruction {i}: {line.strip()[:80]}{'...' if len(line.strip()) > 80 else ''}")
-                        if len(serena_instructions.split('\n')) > 3:
-                            lines = serena_instructions.split('\n')
-                            logger.info(f"   ... and {len(lines) - 3} more instruction lines")
+                            logger.info(f"   {i}. {line[:100]}{'...' if len(line) > 100 else ''}")
                         
-                        logger.info("🤖 Serena MCP: Executing fix instructions...")
-                        
-                        # Use Serena to apply the fixes
-                        serena_fixed_code = self._apply_serena_fixes(original, serena_instructions, file_path)
+                        # Apply fixes using Serena MCP with structured data
+                        logger.info("🔧 Applying fixes using Serena MCP with LSP...")
+                        serena_fixed_code = self._apply_serena_fixes_structured(
+                            original, 
+                            serena_instructions, 
+                            file_path,
+                            issues_data or []
+                        )
                         
                         if serena_fixed_code:
                             candidate_fixed = serena_fixed_code
@@ -223,17 +224,18 @@ class SecureFixProcessor:
             logger.error(f"Error extracting Serena instructions: {str(e)}")
             return None
         
-    def _apply_serena_fixes(self, original_code: str, instructions: str, file_path: str) -> Optional[str]:
-        """Apply fixes using Serena MCP based on LLM instructions"""
+    def _apply_serena_fixes_structured(self, original_code: str, instructions: str, file_path: str, issues_data: List[Dict]) -> Optional[str]:
+        """Apply fixes using Serena MCP with structured data and LSP integration"""
         try:
             if not self.serena_client:
                 logger.error("❌ Serena client not initialized")
                 return None
             
-            logger.info("🔧 Serena MCP: Preparing to send instructions...")
+            logger.info("🔧 Serena MCP: Preparing structured request...")
             logger.info(f"   📁 Target file: {os.path.basename(file_path)}")
             logger.info(f"   📝 Original code length: {len(original_code)} chars")
             logger.info(f"   📋 Instructions length: {len(instructions)} chars")
+            logger.info(f"   🐛 Issues count: {len(issues_data)}")
             
             # Check if Serena is available
             logger.info("🔍 Checking Serena MCP availability...")
@@ -241,40 +243,30 @@ class SecureFixProcessor:
                 logger.error("❌ Serena MCP is not available")
                 return None
             
-            logger.info("✅ Serena MCP is available, sending request...")
+            logger.info("✅ Serena MCP is available, sending structured request...")
             
-            # Prepare context for Serena
-            context = f"Apply the following fix instructions:\n{instructions}\n\nFile: {file_path}"
-            logger.info(f"📤 Sending context to Serena ({len(context)} chars)")
-            
-            # Use Serena to apply the fixes based on instructions
-            logger.info("⚡ Serena MCP: Executing apply_fix_instructions...")
+            # Use Serena to apply the fixes with structured data
+            logger.info("⚡ Serena MCP: Executing structured fix request...")
             serena_response = self.serena_client.apply_fix_instructions(
-                original_code=original_code,
-                instructions=instructions,
-                file_path=file_path
+                original_code,
+                instructions,
+                file_path,
+                issues_data
             )
             
-            logger.info("📥 Received response from Serena MCP")
-            
             if serena_response:
-                logger.info(f"   📊 Response success: {serena_response.success}")
+                logger.info(f"📨 Serena MCP response received:")
+                logger.info(f"   ✅ Success: {serena_response.success}")
+                logger.info(f"   📊 Confidence: {serena_response.confidence}")
+                logger.info(f"   💡 Suggestions: {len(serena_response.suggestions)}")
+                
                 if serena_response.success and serena_response.content:
-                    logger.info(f"✅ Serena MCP: Successfully received fixed code")
-                    logger.info(f"   📊 Fixed code length: {len(serena_response.content)} chars")
-                    logger.info(f"   📊 Size change: {len(serena_response.content) - len(original_code):+d} chars")
+                    logger.info(f"   📝 Fixed code length: {len(serena_response.content)} chars")
+                    logger.info(f"   🔄 Code change ratio: {len(serena_response.content)/len(original_code):.2f}")
                     
-                    # Log preview of fixed code
-                    if serena_response.content != original_code:
-                        logger.info("📊 Serena MCP: Code changes detected")
-                        fixed_lines = serena_response.content.split('\n')[:3]
-                        for i, line in enumerate(fixed_lines, 1):
-                            logger.info(f"   Preview line {i}: {line[:60]}{'...' if len(line) > 60 else ''}")
-                        if len(serena_response.content.split('\n')) > 3:
-                            lines = serena_response.content.split('\n')
-                            logger.info(f"   ... and {len(lines) - 3} more lines")
-                    else:
-                        logger.info("ℹ️ Serena MCP: No changes made to code")
+                    # Log suggestions if any
+                    for i, suggestion in enumerate(serena_response.suggestions[:3], 1):
+                        logger.info(f"   💡 Suggestion {i}: {suggestion[:80]}{'...' if len(suggestion) > 80 else ''}")
                     
                     return serena_response.content
                 else:
