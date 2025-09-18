@@ -109,6 +109,9 @@ class LLMFixer(Fixer):
 
     def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int = 0) -> Dict:
         try:
+            logger.info("[EXECUTION FLOW] 🚀 Starting LLMFixer.fix_bugs")
+            logger.info("[EXECUTION FLOW] 📊 Processing %d bugs", bugs_count)
+            logger.info("[EXECUTION FLOW] 🤖 Serena available: %s", self.serena_available)
             logger.info("Starting fix_bugs for %d bugs", bugs_count)
             ok_src, source_dir, err_src = self._resolve_source_dir()
             logger.debug("Source_dir = %s", source_dir)

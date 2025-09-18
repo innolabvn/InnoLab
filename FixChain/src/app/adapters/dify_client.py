@@ -71,39 +71,54 @@ def run_workflow_with_dify(
     url = f"{base_url}/workflows/run"
 
     # Log an toàn, không in key
-    logger.info("Dify run workflow: %s (mode=%s)", url, response_mode)
+    logger.info("[DIFY LLM] 🚀 Starting workflow call: %s (mode=%s)", url, response_mode)
+    logger.info("[DIFY LLM] 📝 Request payload - user: %s, inputs keys: %s", user_id, list(inputs.keys()))
+    logger.debug("[DIFY LLM] 📋 Full inputs content: %s", inputs)
 
     payload = {"inputs": inputs, "user": user_id, "response_mode": response_mode}
 
     session = _make_session()
+    logger.info("[DIFY LLM] ⏱️ Sending request with timeout: %s", timeout)
     try:
         resp = session.post(url, headers=_headers(api_key), json=payload, timeout=timeout)
+        logger.info("[DIFY LLM] ✅ Request completed with status: %s", resp.status_code)
     except requests.exceptions.Timeout:
-        logger.error("Dify API request timed out: %s", url)
+        logger.error("[DIFY LLM] ❌ Request timed out: %s", url)
         raise
     except requests.exceptions.RequestException as e:
-        logger.error("Dify API network error: %s", e)
+        logger.error("[DIFY LLM] ❌ Network error: %s", e)
         raise
 
     # Tự xử lý lỗi HTTP để trả message dễ hiểu hơn
     if not (200 <= resp.status_code < 300):
         # cố lấy message/json
         text = resp.text[:300] if resp.text else ""
-        logger.error("Dify API HTTP %s: %s", resp.status_code, text)
+        logger.error("[DIFY LLM] ❌ HTTP error %s: %s", resp.status_code, text)
         resp.raise_for_status()  # raise để upstream biết failed
 
     try:
         data = resp.json()
-        logger.debug("Dify keys: %s", list(data.keys()))
-        logger.debug("Dify task_id: %s", data.get("task_id"))
-        logger.debug("Dify outputs keys: %s", list(data.get("data", {}).get("outputs", {}).keys()))
+        logger.info("[DIFY LLM] 📊 Response keys: %s", list(data.keys()))
+        logger.info("[DIFY LLM] 🆔 Task ID: %s", data.get("task_id"))
+        logger.info("[DIFY LLM] 📤 Output keys: %s", list(data.get("data", {}).get("outputs", {}).keys()))
+        logger.debug("[DIFY LLM] 📋 Full response data: %s", data)
     except ValueError:
-        logger.error("Dify API trả về không phải JSON: %r", resp.text[:200])
+        logger.error("[DIFY LLM] ❌ Invalid JSON response: %r", resp.text[:200])
         raise
 
     if isinstance(data, dict) and "error" in data:
-        logger.warning("Dify response contains error: %s", data.get("error"))
+        logger.warning("[DIFY LLM] ⚠️ Response contains error: %s", data.get("error"))
 
+    # Log token usage and timing
+    total_tokens = data.get("total_tokens")
+    elapsed_time = data.get("elapsed_time")
+    if total_tokens:
+        logger.info("[DIFY LLM] 🔢 Token usage: %s tokens", total_tokens)
+    if elapsed_time:
+        logger.info("[DIFY LLM] ⏱️ Execution time: %s seconds", elapsed_time)
+    
+    logger.info("[DIFY LLM] ✅ Successfully created DifyRunResponse")
+    
     return DifyRunResponse(
             id=data.get("task_id"),
             status=data.get("status") or data.get("data", {}).get("status"),

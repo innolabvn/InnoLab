@@ -10,6 +10,31 @@ from pymongo import UpdateOne
 from src.app.repositories.mongo import get_mongo_manager
 from src.app.repositories.mongo_utlis import ensure_collection
 from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL
+from functools import wraps
+import time
+from src.app.services.log_service import logger
+
+# Execution Flow Logging Decorator
+def log_execution_flow(step_name: str):
+    """Decorator to log execution flow steps"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            start_time = time.time()
+            logger.info(f"[EXECUTION FLOW] 🚀 Starting step: {step_name}")
+            logger.info(f"[EXECUTION FLOW] 📋 Function: {func.__name__}")
+            
+            try:
+                result = await func(*args, **kwargs)
+                elapsed = time.time() - start_time
+                logger.info(f"[EXECUTION FLOW] ✅ Completed step: {step_name} ({elapsed:.2f}s)")
+                return result
+            except Exception as e:
+                elapsed = time.time() - start_time
+                logger.error(f"[EXECUTION FLOW] ❌ Failed step: {step_name} ({elapsed:.2f}s) - Error: {str(e)}")
+                raise
+        return wrapper
+    return decorator
 
 root_env_path = Path(__file__).resolve().parents[5] / '.env'
 load_dotenv(root_env_path)
@@ -91,6 +116,7 @@ def _embed_text(text: str) -> List[float]:
     return r_embeddings[0].values
 
 @router.get("/health")
+@log_execution_flow("SCANNER_RAG_HEALTH")
 async def health():
     """
     Kiểm tra & tự tạo collection cho Scanner RAG nếu chưa có.
@@ -109,6 +135,7 @@ async def health():
     }
 
 @router.post("/import")
+@log_execution_flow("SCANNER_RAG_IMPORT")
 def import_signals(items: List[ScannerSignalIn]):
     if not items:
         return {"success": True, "inserted": 0, "ids": []}
@@ -163,6 +190,7 @@ def import_signals(items: List[ScannerSignalIn]):
         return {"success": False, "error": "BulkWriteError", "details": e.details}
 
 @router.post("/update")
+@log_execution_flow("SCANNER_RAG_UPDATE")
 def update_scanner_signal(req: ScannerUpdateRequest):
     """
     Cập nhật 1 signal theo key. Nếu patch có 'text'/'content', sẽ re-embed tự động.
@@ -215,6 +243,7 @@ def update_scanner_signal(req: ScannerUpdateRequest):
     return {"success": True, "matched": res.matched_count, "modified": res.modified_count}
 
 @router.post("/upsert")
+@log_execution_flow("SCANNER_RAG_UPSERT")
 def upsert_scanner_signals(body: ScannerUpsertRequest):
     """
     Bulk upsert theo key. Idempotent.
@@ -272,6 +301,7 @@ def upsert_scanner_signals(body: ScannerUpsertRequest):
     }
 
 @router.post("/search", response_model=ScannerSearchResponse)
+@log_execution_flow("SCANNER_RAG_SEARCH")
 async def search_scanner(req: ScannerSearchRequest):
     try:
         mm = get_mongo_manager()

@@ -42,6 +42,9 @@ class AnalysisService:
          3) Normalize Dify results, then update existing scanner_rag records with Dify analysis (label, dify_* fields).
             If a Dify item cannot be matched to an existing record and upsert_missing_on_dify=True, create it.
         """
+        logger.info("[EXECUTION FLOW] 🚀 Starting Dify Analysis")
+        logger.info(f"[EXECUTION FLOW] 📊 Analyzing {len(bearer_report)} bugs")
+        
         list_bugs: Union[List[Dict[str, Any]], Dict[str, Any], str] = []
         bugs_to_fix: int = 0
 
@@ -84,33 +87,48 @@ class AnalysisService:
                 "retrieved_context": retrieved_context,
             }
 
-            logger.info("Sending %d bug(s) to Dify workflow.", len(bearer_report))
+            logger.info("[ANALYSIS] 🚀 Sending %d bug(s) to Dify workflow.", len(bearer_report))
+            logger.debug("[ANALYSIS] 📋 Dify inputs: src_length=%d, report_length=%d, context_length=%d", 
+                        len(source_code or ""), len(json.dumps(bearer_report)), len(retrieved_context))
+            
             response: DifyRunResponse = run_workflow_with_dify(api_key=api_key, inputs=inputs)
-            logger.debug("Dify raw response: %s", response.raw)
+            
+            logger.info("[ANALYSIS] ✅ Dify workflow completed - status: %s, id: %s", response.status, response.id)
+            logger.debug("[ANALYSIS] 📊 Dify raw response keys: %s", list(response.raw.keys()) if response.raw else [])
+            logger.debug("[ANALYSIS] 📋 Full Dify response: %s", response.raw)
 
             # Defensive parsing trên cấu trúc Dify
             outputs = self._safe_get_outputs(response)
             list_bugs = outputs.get("list_bugs", []) or []
+            
+            logger.info("[ANALYSIS] 📊 Dify outputs keys: %s", list(outputs.keys()))
+            logger.info("[ANALYSIS] 🐛 Received %d bugs from Dify analysis", len(list_bugs) if isinstance(list_bugs, list) else 0)
+            if isinstance(list_bugs, list) and list_bugs:
+                logger.debug("[ANALYSIS] 📋 Sample bug: %s", list_bugs[0])
 
             # ---------------------------------------------------------
             # (C) Post-process: count bugs to FIX & persist labeled items to Scanner RAG
             # ---------------------------------------------------------
 
             bugs_to_fix = self._count_fix_bugs(list_bugs)
+            logger.info("[ANALYSIS] 🔧 Bugs requiring fixes: %d", bugs_to_fix)
 
             labeled_signals = self._normalize_labeled_signals(list_bugs)
+            logger.info("[ANALYSIS] 🏷️ Normalized %d labeled signals for RAG update", len(labeled_signals))
+            
             if labeled_signals:
                 try:
                     self._apply_dify_updates(labeled_signals)
-                    logger.info("Applied Dify updates to scanner RAG for %d items.", len(labeled_signals))
+                    logger.info("[ANALYSIS] ✅ Applied Dify updates to scanner RAG for %d items.", len(labeled_signals))
                 except Exception as e:
-                    logger.warning("Applying Dify updates failed (non-fatal): %s", e)
+                    logger.warning("[ANALYSIS] ⚠️ Applying Dify updates failed (non-fatal): %s", e)
 
             msg = "No bugs to fix" if bugs_to_fix == 0 else f"Need to fix {bugs_to_fix} bugs"
+            logger.info("[ANALYSIS] 🎯 Analysis complete: %s", msg)
             return {"success": True, "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix, "message": msg}
 
         except Exception as e:
-            logger.error("Dify analysis error: %s", str(e))
+            logger.error("[ANALYSIS] ❌ Dify analysis error: %s", str(e))
             return {
                 "success": False,
                 "error": str(e),
@@ -193,6 +211,7 @@ class AnalysisService:
                 reason = r.get("reason", "")
                 rule_description = r.get("rule_description", "")
                 rule_key = r.get("rule_key", ""),
+                file_path = r.get("file_path", "") or r.get("file_name", "")
                 label = self._get_label(action.upper())
                 key = bug_id or rule_key or ""
                 scan_res = {
@@ -203,6 +222,8 @@ class AnalysisService:
                     "reason": reason,
                     "rule_description": rule_description,
                     "title": rule_key if rule_key else (rule_description[:120] if rule_description else ""),
+                    "file_path": file_path,
+                    "file_name": file_path,  # Ensure both fields are available for compatibility
                 }
                 items.append(scan_res)
             except Exception as e:

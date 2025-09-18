@@ -10,12 +10,30 @@ class TemplateManager:
     def __init__(self, prompt_dir: Optional[str] = None) -> None:
         self.prompt_dir = prompt_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "prompts")
         self.env = Environment(loader=FileSystemLoader(self.prompt_dir))
+        # Add custom filters
+        self.env.filters['from_json'] = json.loads
         self._setup_file_logger()
 
     def _setup_file_logger(self) -> None:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._log_file = os.path.join(os.getenv("LOG_DIR","var/logs"), f"template_usage_{ts}.log")
-        os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
+        log_dir = os.getenv("LOG_DIR", "logs")
+        
+        # Tạo đường dẫn tuyệt đối từ thư mục gốc của project
+        if not os.path.isabs(log_dir):
+            # Lấy thư mục gốc của project (4 level up từ file này)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+            log_dir = os.path.join(project_root, log_dir)
+        
+        self._log_file = os.path.join(log_dir, f"template_usage_{ts}.log")
+        
+        try:
+            os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
+        except OSError:
+            # Nếu không tạo được thư mục logs, sử dụng /tmp
+            log_dir = "/tmp/fixchain_logs"
+            os.makedirs(log_dir, exist_ok=True)
+            self._log_file = os.path.join(log_dir, f"template_usage_{ts}.log")
 
     def load(self, template_type: str):
         files = {"fix":"fix_with_serena.j2","analyze":"analyze.j2","custom":"custom.j2"}

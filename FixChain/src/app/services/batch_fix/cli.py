@@ -14,14 +14,17 @@ def load_issues_group_by_file(path):
     # data chắc chắn là list, và trong đó mỗi phần tử có field "bugs"
     for block in data:
         for it in block.get("bugs", []):
-            # vì file không có file_path -> gom vào 1 group chung
-            fp = it.get("file_path")
+            # Bearer scan sử dụng file_name, không phải file_path
+            fp = it.get("file_path") or it.get("file_name")
             key = os.path.normpath(fp) if fp else "<unknown>"
             issues_by_file[key].append(it)
 
     return issues_by_file
 
 def run():
+    logger.info("[EXECUTION FLOW] 🚀 Starting FixChain Batch Fix Process")
+    logger.info("[EXECUTION FLOW] 📋 Entry Point: CLI run() function")
+    
     parser = argparse.ArgumentParser(description="Secure Batch Fix (AI-powered)")
     parser.add_argument("destination", type=str, nargs="?", help="Directory to scan/fix")
     parser.add_argument("--prompt", type=str)
@@ -30,6 +33,11 @@ def run():
     parser.add_argument('--enable-serena', action='store_true')
     parser.add_argument('--serena-mcp', action='store_true')
     args = parser.parse_args()
+    
+    logger.info(f"[EXECUTION FLOW] 📁 Target directory: {args.destination}")
+    logger.info(f"[EXECUTION FLOW] 🔧 RAG enabled: {args.enable_rag}")
+    logger.info(f"[EXECUTION FLOW] 🤖 Serena enabled: {args.enable_serena or args.serena_mcp}")
+    logger.info(f"[EXECUTION FLOW] 📄 Issues file: {args.issues_file or 'None'}")
 
     # .env (for GOOGLE_API_KEY used by adapters.llm.google_genai)
     root_env = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env")
@@ -47,8 +55,21 @@ def run():
         except Exception as e:
             logger.warning("Cannot load issues file: %s", e)
 
-    processor = SecureFixProcessor(directory, None)
+    # Check if Serena is enabled
+    serena_enabled = args.enable_serena or args.serena_mcp
+    
+    logger.info("[EXECUTION FLOW] 🔧 Initializing SecureFixProcessor...")
+    processor = SecureFixProcessor(directory, None, enable_serena=serena_enabled)
     processor.load_ignore_patterns(directory)
+    logger.info("[EXECUTION FLOW] ✅ SecureFixProcessor initialized successfully")
+
+    # Log Serena configuration
+    if serena_enabled:
+        logger.info("🤖 Serena MCP enabled for this batch fix session")
+        logger.info(f"   --enable-serena: {args.enable_serena}")
+        logger.info(f"   --serena-mcp: {args.serena_mcp}")
+    else:
+        logger.info("ℹ️ Serena MCP disabled for this session")
 
     # collect files
     code_ext = (".py",".js",".ts",".jsx",".tsx",".java",".cpp",".c",".html",".css",".txt")
@@ -69,6 +90,9 @@ def run():
     for i, p in enumerate(code_files[:10], 1):
         logger.info(f"  {i:2d}. {os.path.relpath(p, directory)}")
 
+    logger.info("[EXECUTION FLOW] 🚀 Starting file processing phase...")
+    logger.info(f"[EXECUTION FLOW] 📊 Files to process: {len(code_files)}")
+    
     results = []
     for i, p in enumerate(code_files, 1):
         rel = os.path.relpath(p, directory)

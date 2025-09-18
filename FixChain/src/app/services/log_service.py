@@ -5,8 +5,21 @@ from datetime import datetime
 
 def setup_logger() -> logging.Logger:
     """Setup application logger with console + file handler."""
+    # Sử dụng đường dẫn tương đối từ thư mục hiện tại
     log_dir = os.getenv("LOG_DIR", "logs")
-    os.makedirs(log_dir, exist_ok=True)
+    # Tạo đường dẫn tuyệt đối từ thư mục gốc của project
+    if not os.path.isabs(log_dir):
+        # Lấy thư mục gốc của project (3 level up từ file này)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+        log_dir = os.path.join(project_root, log_dir)
+    
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+    except OSError:
+        # Nếu không tạo được thư mục logs, sử dụng /tmp
+        log_dir = "/tmp/fixchain_logs"
+        os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger("FixChain")
     if logger.handlers:

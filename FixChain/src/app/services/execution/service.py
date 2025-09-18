@@ -85,6 +85,46 @@ class ExecutionServiceNoMongo:
         counts["TOTAL"] = sum(v for k, v in counts.items() if k != "TOTAL")
         return counts
 
+    def _log_summary(self, iterations: List[Dict[str, Any]]) -> None:
+        """Log detailed summary of the execution process"""
+        logger.info("\n" + "="*80)
+        logger.info("🎯 FIXCHAIN EXECUTION SUMMARY")
+        logger.info("="*80)
+        
+        for i, iteration in enumerate(iterations, 1):
+            logger.info(f"\n📋 ITERATION {i}:")
+            
+            # 1. Bearer scan results
+            bugs_found = iteration.get("bugs_found", 0)
+            logger.info(f"   1. Bearer scan: {bugs_found} bugs")
+            
+            # 2. Dify analysis results
+            analysis = iteration.get("analysis_result", {})
+            bugs_to_fix = analysis.get("bugs_to_fix", 0)
+            logger.info(f"   2. Dify analysis: {bugs_to_fix} bugs")
+            
+            # 3. LLM fix with Serena results
+            fix_result = iteration.get("fix_result", {})
+            fix_success = fix_result.get("success", False)
+            if fix_success:
+                fixed_count = fix_result.get("fixed_count", 0)
+                logger.info(f"   3. LLM fix with Serena: SUCCESS - Fixed {fixed_count} bugs")
+            else:
+                error_msg = fix_result.get("error", "Unknown error")
+                logger.info(f"   3. LLM fix with Serena: FAILED - {error_msg}")
+            
+            # 4. Bugs after fix (rescan)
+            rescan_bugs = iteration.get("rescan_bugs_found", 0)
+            logger.info(f"   4. Bugs after fix: {rescan_bugs} bugs")
+            
+            # 5. Message
+            message = fix_result.get("message", "No message")
+            logger.info(f"   5. Message: {message}")
+        
+        logger.info("\n" + "="*80)
+        logger.info("✅ SUMMARY COMPLETE")
+        logger.info("="*80 + "\n")
+
     def _log_execution_result(self, result: Dict[str, Any]) -> None:
         logger.info("===== EXECUTION RESULT =====")
         logger.info("Total bugs fixed: %s", result.get("total_bugs_fixed"))
@@ -205,5 +245,9 @@ class ExecutionServiceNoMongo:
             "end_time": end.isoformat(),
             "duration_seconds": (end - start).total_seconds(),
         }
+        
+        # Summary log
+        self._log_summary(iterations)
+        
         self._log_execution_result(result)
         return result

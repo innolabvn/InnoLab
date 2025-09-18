@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "python",
-      "args": ["-m", "serena", "mcp"],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--project", ".", "--transport", "stdio"],
       "autoStart": true,
       "transport": "stdio",
       "env": { "SERENA_LOG_LEVEL": "info" }

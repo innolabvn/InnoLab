@@ -19,9 +19,33 @@ from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL, GENERATIO
 from src.app.repositories.mongo import get_mongo_manager
 from src.app.repositories.mongo_utlis import ensure_collection
 from src.app.services.log_service import logger
+from functools import wraps
+import time
 
 root_env_path = Path(__file__).resolve().parents[5] / '.env'
 load_dotenv(root_env_path)
+
+# Execution Flow Logging Decorator
+def log_execution_flow(step_name: str):
+    """Decorator to log execution flow steps"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            start_time = time.time()
+            logger.info(f"[EXECUTION FLOW] 🚀 Starting step: {step_name}")
+            logger.info(f"[EXECUTION FLOW] 📋 Function: {func.__name__}")
+            
+            try:
+                result = await func(*args, **kwargs)
+                elapsed = time.time() - start_time
+                logger.info(f"[EXECUTION FLOW] ✅ Completed step: {step_name} ({elapsed:.2f}s)")
+                return result
+            except Exception as e:
+                elapsed = time.time() - start_time
+                logger.error(f"[EXECUTION FLOW] ❌ Failed step: {step_name} ({elapsed:.2f}s) - Error: {str(e)}")
+                raise
+        return wrapper
+    return decorator
 
 FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")
 
@@ -116,6 +140,7 @@ async def health_check():
     return {"service": "fixer_rag_router", **result}
 
 @router.post("/import")
+@log_execution_flow("FIXER_RAG_IMPORT")
 async def import_bugs_as_rag(request: BugImportRequest):
     try:
         mongo_manager = get_mongo_manager()
@@ -143,7 +168,8 @@ async def import_bugs_as_rag(request: BugImportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error importing bugs: {str(e)}")
 
-router.post("/search", response_model=SearchResponse)
+@router.post("/search", response_model=SearchResponse)
+@log_execution_flow("FIXER_RAG_SEARCH")
 async def search_fixers(req: BugSearchRequest):
     try:
         mongo_manager = get_mongo_manager()
@@ -159,6 +185,7 @@ async def search_fixers(req: BugSearchRequest):
         raise HTTPException(status_code=500, detail=f"Error during fixer search: {str(e)}")
 
 @router.post("/fix")
+@log_execution_flow("FIXER_RAG_FIX")
 async def fix_bug(request: BugFixRequest):
     try:
         mongo_manager = get_mongo_manager()
@@ -194,6 +221,7 @@ async def fix_bug(request: BugFixRequest):
         raise HTTPException(status_code=500, detail=f"Error fixing bug: {str(e)}")
 
 @router.post("/suggest-fix")
+@log_execution_flow("FIXER_RAG_SUGGEST_FIX")
 async def suggest_bug_fix(request: BugFixSuggestionRequest):
     try:
         mongo_manager = get_mongo_manager()
