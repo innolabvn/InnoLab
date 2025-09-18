@@ -12,20 +12,6 @@ from src.app.services.cli_service import CLIService
 from src.app.adapters.serena_client import SerenaMCPClient
 from .base import Fixer
 
-def _extract_json_objects(blob: str):
-    objs, stack, start = [], [], None
-    for i, ch in enumerate(blob):
-        if ch == "{":
-            if not stack:
-                start = i
-            stack.append("{")
-        elif ch == "}":
-            stack.pop()
-            if not stack and start is not None:
-                objs.append(blob[start:i+1])
-                start = None
-    return objs
-
 
 def _find_repo_root(start: Path) -> Path:
     """
@@ -86,26 +72,48 @@ class LLMFixer(Fixer):
                 return True, c, ""
         return False, repo_root, "Cannot locate batch_fix under FixChain/src/app/services or services"
 
-    def _parse_summary_from_stdout(self, output_lines: List[str]) -> Dict:
-        """
-        Tìm object JSON đầu tiên trong stdout có key 'success'.
-        """
-        blob = "\n".join(output_lines)
-        for candidate in _extract_json_objects(blob):
-            if '"success"' in candidate:
-                try:
-                    return json.loads(candidate)
-                except Exception:
-                    pass
-        # Fallback: quét từng dòng từ dưới lên (tương thích code cũ)
-        for line in reversed(output_lines):
-            s = line.strip()
-            if s.startswith('{"success"'):
-                try:
-                    return json.loads(s)
-                except Exception:
+    def _parse_summary_from_stdout(self, output_lines: str):
+        s = output_lines.rstrip()
+        # Tìm dấu '}' cuối cùng
+        end = s.rfind('}')
+        if end == -1:
+            return None
+
+        in_string = False
+        escape = False
+        depth = 0
+        start = None
+
+        # Duyệt ngược từ end về đầu để tìm '{' khớp với '}' cuối
+        for i in range(end, -1, -1):
+            ch = s[i]
+
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == '\\':
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            else:
+                if ch == '"':
+                    in_string = True
                     continue
-        return {}
+                if ch == '}':
+                    depth += 1
+                elif ch == '{':
+                    depth -= 1
+                    if depth == 0:
+                        start = i
+                        break
+
+        if start is None:
+            return None
+
+        candidate = s[start:end+1]
+        return json.loads(candidate)
+
 
     def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int = 0) -> Dict:
         try:
@@ -153,7 +161,7 @@ class LLMFixer(Fixer):
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
             output_text = "".join(output_lines)
-            logger.debug("Batch fix output:\n%s", output_text)
+            # logger.debug("Batch fix output:\n%s", output_text)
 
             # Luôn cố gắng xoá file tạm
             try:
@@ -167,18 +175,18 @@ class LLMFixer(Fixer):
                 return {"success": False, "fixed_count": 0, "error": output_text}
 
             # Parse JSON summary từ stdout
-            summary = self._parse_summary_from_stdout(output_lines) or {}
+            summary = self._parse_summary_from_stdout(output_text) or {}
             logger.debug("Parsed summary: %s", summary)
             
+            success_flag = bool(summary.get("success", True))
             fixed_count = int(summary.get("fixed_count", 0))
             total_input_tokens = int(summary.get("total_input_tokens", 0))
             total_output_tokens = int(summary.get("total_output_tokens", 0))
             total_tokens = int(summary.get("total_tokens", 0))
             average_similarity = float(summary.get("average_similarity", 0.0))
             threshold_met_count = int(summary.get("threshold_met_count", 0))
-            success_flag = bool(summary.get("success", True))
 
-            logger.info(
+            logger.debug(
                 "Batch fix completed. Fixed=%d | Tokens: in=%d out=%d total=%d | AvgSim=%.3f | ThresholdMet=%d",
                 fixed_count,
                 total_input_tokens,

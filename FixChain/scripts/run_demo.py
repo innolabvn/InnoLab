@@ -49,23 +49,22 @@ def main() -> None:
         svc = ExecutionServiceNoMongo(cfg)
         result = svc.run()
 
-        logger.info("=" * 20)
-        logger.info("📊 EXECUTION RESULTS")
-        logger.info("=" * 20)
+        logger.info("=" * 16)
+        logger.info("EXECUTION RESULT")
+        logger.info("=" * 16)
         logger.info(f"Total iterations: {len(result.get('iterations', []))}")
-        logger.info(f"Total bugs fixed: {result.get('total_bugs_fixed')}")
+        logger.info(f"Total file fixed: {result.get('total_file_fixed')}")
         logger.info(f"Total duration: {result.get('duration_seconds'):.2f} seconds")
 
         for i, iteration in enumerate(result.get("iterations", []), 1):
             logger.info(f"Iteration {i}:")
             logger.info(f"Bugs found: {iteration.get('bugs_found')}")
-            logger.info(f"Bug: {iteration.get('bug')}")
-            logger.info(f"Code-smell: {iteration.get('code_smell')}")
 
             analysis_result = iteration.get("analysis_result", {})
             logger.info(f"Bugs to fix: {analysis_result.get('bugs_to_fix', 0)}")
             logger.info(f"Bugs after rescan: {iteration.get('rescan_bugs_found', 0)}")
-
+            
+            # fix_results from llm.py
             fix_results = iteration.get("fix_results", [])
             fix_result = fix_results[-1] if fix_results else iteration.get("fix_result", {})
             if fix_result.get("total_tokens", 0) > 0:
@@ -84,7 +83,7 @@ def main() -> None:
 
         # JSON cuối để machines parse
         logger.info("END_EXECUTION_RESULT_JSON")
-        logger.info(json.dumps(result, ensure_ascii=False))
+        logger.debug(json.dumps(result, ensure_ascii=False))
 
     except Exception as e:
         logger.info(f"Error during execution: {e}")

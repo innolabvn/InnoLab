@@ -20,7 +20,7 @@ from src.app.repositories.mongo import get_mongo_manager
 from src.app.repositories.mongo_utlis import ensure_collection
 from src.app.services.log_service import logger
 
-root_env_path = Path(__file__).resolve().parents[5] / '.env'
+root_env_path = Path(__file__).resolve().parents[4] / '.env'
 load_dotenv(root_env_path)
 
 FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")

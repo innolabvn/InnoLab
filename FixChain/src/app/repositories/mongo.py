@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from src.app.services.log_service import logger
 
 # Load environment variables from root directory
-root_env_path = Path(__file__).resolve().parents[4] / '.env'
+root_env_path = Path(__file__).resolve().parents[3] / '.env'
 load_dotenv(root_env_path)
 
 def now_utc():

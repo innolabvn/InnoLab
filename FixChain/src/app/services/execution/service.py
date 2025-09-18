@@ -85,19 +85,6 @@ class ExecutionServiceNoMongo:
         counts["TOTAL"] = sum(v for k, v in counts.items() if k != "TOTAL")
         return counts
 
-    def _log_execution_result(self, result: Dict[str, Any]) -> None:
-        logger.info("===== EXECUTION RESULT =====")
-        logger.info("Total bugs fixed: %s", result.get("total_bugs_fixed"))
-        logger.info("Total iterations: %s", len(result.get("iterations", [])))
-        logger.info("Start time: %s", result.get("start_time"))
-        logger.info("End time: %s", result.get("end_time"))
-
-        for i, it in enumerate(result.get("iterations", []), 1):
-            logger.info(
-                "Iteration %s: %s bugs found, %s file fixed",
-                i, it.get("bugs_found"), it.get("fix_result", {}).get("fixed_count", 0)
-            )
-
     def run(self) -> Dict[str, Any]:
         start = datetime.now()
         iterations: List[Dict[str, Any]] = []
@@ -201,10 +188,9 @@ class ExecutionServiceNoMongo:
         end = datetime.now()
         result: Dict[str, Any] = {
             "iterations": iterations,
-            "total_bugs_fixed": total_fixed,
+            "total_file_fixed": total_fixed,
             "start_time": start.isoformat(),
             "end_time": end.isoformat(),
             "duration_seconds": (end - start).total_seconds(),
         }
-        self._log_execution_result(result)
         return result

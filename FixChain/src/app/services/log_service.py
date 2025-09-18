@@ -2,9 +2,15 @@
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+root_env_path = Path(__file__).resolve().parents[3] / '.env'
+load_dotenv(root_env_path)
 
 def setup_logger() -> logging.Logger:
     """Setup application logger with console + file handler."""
+    
     log_dir = os.getenv("LOG_DIR", "logs")
     os.makedirs(log_dir, exist_ok=True)
 

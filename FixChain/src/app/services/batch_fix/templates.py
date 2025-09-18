@@ -2,9 +2,15 @@
 from __future__ import annotations
 import json, os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
+from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 from src.app.services.log_service import logger
+
+root_env_path = Path(__file__).resolve().parents[4]
+load_dotenv(root_env_path)
+
 
 class TemplateManager:
     def __init__(self, prompt_dir: Optional[str] = None) -> None:

@@ -1,8 +1,13 @@
 # src/app/repositories/mongo_utils.py
 import os
+from pathlib import Path
 from typing import Dict, Any, List, Optional
+from dotenv import load_dotenv
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import PyMongoError
+
+root_env_path = Path(__file__).resolve().parents[3]
+load_dotenv(root_env_path)
 
 MONGO_URI = os.getenv("MONGODB_URI", "")
 MONGO_DB_NAME = os.getenv("MONGODB_DATABASE", "fixchain")

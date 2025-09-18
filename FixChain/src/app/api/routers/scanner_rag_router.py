@@ -11,7 +11,7 @@ from src.app.repositories.mongo import get_mongo_manager
 from src.app.repositories.mongo_utlis import ensure_collection
 from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL
 
-root_env_path = Path(__file__).resolve().parents[5] / '.env'
+root_env_path = Path(__file__).resolve().parents[4] / '.env'
 load_dotenv(root_env_path)
 
 router = APIRouter()

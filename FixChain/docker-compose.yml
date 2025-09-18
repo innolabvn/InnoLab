@@ -18,7 +18,7 @@ services:
       MONGODB_DATABASE: "fixchain"
       FIXER_RAG_COLLECTION: "fixer_rag_collection"
       SCANNER_RAG_COLLECTION: "scanner_rag_collection"
-      LOG_LEVEL: "DEBUG"
+      LOG_LEVEL: "INFO"
       SERENA_ENABLED: "true"
       SERENA_TIMEOUT_S: "45"
     volumes:
