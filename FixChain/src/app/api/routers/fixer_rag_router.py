@@ -129,7 +129,6 @@ async def import_bugs_as_rag(request: BugImportRequest):
             )
             status = "inserted" if result.upserted_id is not None else ("updated" if result.modified_count else "unchanged")
             imported.append({"bug_id": bug.doc_id, "status": status})
-            logger.debug(f"Imported bug: {imported}")
         return {
             "imported_bugs": imported,
             "message": f"Successfully imported {len(imported)} bugs as RAG documents",
