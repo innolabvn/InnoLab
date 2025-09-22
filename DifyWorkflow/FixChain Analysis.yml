@@ -145,28 +145,39 @@ workflow:
         prompt_template:
         - id: 00daa02b-8872-4d8d-88c2-45686fe01139
           role: system
-          text: "Role\nYou are a Senior Software Engineer.\n\nTask\nRe-evaluate each\
-            \ issue and decide whether it is a True Positive or a False Positive by\
-            \ comparing the normalized type with the RAG context. Use only the provided\
-            \ inputs. Do not propose any code changes.\n\nInputs\nCombined code base:\
-            \ {{#1754385620848.src#}}\nBearer's scanned issues JSON: {{#1754385620848.report#}}\n\
-            RAG retrieved context: {{#1754385620848.retrieved_context#}}\n\nType normalization\n\
-            Convert all types (case-insensitive) into one of: {bug, code-smell}.\n\
-            Accepted aliases: vuln, security, security-hotspot → vulnerability.\n\n\
-            Priority & decision logic\n- If RAG context exists ⇒ classification based\
-            \ on RAG type.\n- If RAG context is empty or missing ⇒ analyze the issue\
-            \ and classify as True Positive or False Positive.\n- If the issue type\
-            \ is code-smell ⇒ action = \"Ignore\".\n- Otherwise ⇒ action = \"Fix\"\
-            .\n\nOutput requirement: A JSON object with:\n{\n  \"bugs_to_fix\": <number>,\
-            \   // total issues where action = Fix, if no action = Fix -> bugs_to_fix\
-            \ = 0\n  \"bugs\": [                  // empty array if bugs_to_fix =\
-            \ 0\n    {\n      \"bug_id\": <id or key>,\n      \"file_name\": <file\
-            \ name>\n      \"rule\": <rule>,\n      \"description\": <message>,\n\
+          text: "Role\nYou are a Senior Software Engineer.\n\nTask\nFor each issue,\
+            \ (1) determine normalized_type ∈ {bug, code-smell}; (2) classify as True\
+            \ Positive or False Positive; (3) set action ∈ {\"Fix\",\"Ignore\"}. Use\
+            \ only the provided inputs. Do not propose any code changes.\n\nInputs\n\
+            Combined code base: {{#1754385620848.src#}}\ncanned issues JSON (array):\
+            \ {{#1754385620848.report#}}\nRAG retrieved context (free text): {{#1754385620848.retrieved_context#}}\n\
+            \nType normalization rules\nMap by security semantics, not raw fields:\n\
+            If title/id/description/RAG indicate security risk (e.g., insecure transport,\
+            \ weak hash, disabled SSL/JWT verification, unsafe deserialization), set\
+            \ normalized_type = bug.\nOtherwise patterns of maintainability/usability\
+            \ (e.g., logging PII, debug flags, swallowing exceptions) → code-smell.\n\
+            If severity ∈ {CRITICAL, HIGH} and semantics are security → bug (tie-break).\n\
+            If unsure, prefer bug when RAG supports a security guideline that matches\
+            \ the issue by id or keyword overlap (≥1 strong keyword match).\n\nRAG\
+            \ usage & matching\nConsider RAG “supports” an issue when at least one\
+            \ section references the issue’s id or its key phrase from title (e.g.,\
+            \ “pickle”, “MD5”, “verify=False”, “JWT signature”).\nIf RAG supports\
+            \ ⇒ classification = True Positive (unless code snippet contradicts).\n\
+            If RAG is silent ⇒ analyze code_snippet + src. If the risky API/pattern\
+            \ is present as described ⇒ True Positive, else False Positive.\n\nDecision\
+            \ → action\nIf normalized_type = code-smell ⇒ action = \"Ignore\".\nElse\
+            \ (bug) ⇒ action = \"Fix\".\n\nField mapping\nbug_id: prefer id; if missing,\
+            \ use key.\nfile_name: from issue file_name.\nrule: use title (or id if\
+            \ title missing).\ndescription: use issue description (trim if quá dài).\n\
+            \nOutput\nSort by bug_id ascending.\nOutput only JSON:\n{\n  \"bugs_to_fix\"\
+            : <number>,\n  \"bugs\": [\n    {\n      \"key\": \"<key>\",\n      \"\
+            id\": \"<id>\",\n      \"action\": \"Fix\" | \"Ignore\",\n      \"lang\"\
+            : \"<lang>\",\n      \"severity\":\"<severity>\",\n      \"file_name\"\
+            : \"<file name>\",\n      \"code_snippet\": \"<code_snippet>\",\n    \
+            \  \"line_number\": \"<line_number>\",\n      \"title\": \"<title>\",\n\
             \      \"classification\": \"True Positive\" | \"False Positive\",\n \
-            \     \"action\": \"Fix\" | \"Ignore\",\n      \"reason\": \"<brief explanation\
-            \ (≤45 words); if RAG used include 'RAG: <id/title>'>\"\n    }\n  ]\n\
-            }\n\nAdditional rules\n- Always sort bugs by bug_id in ascending order.\n\
-            - Output only JSON according to the schema — no extra text.\n"
+            \     \"reason\": \"<≤45 words; if RAG used include 'RAG: <matched id/title/keyword>'>\"\
+            \n    }\n  ]\n}"
         selected: true
         structured_output:
           schema:
@@ -177,27 +188,40 @@ workflow:
                   additionalProperties: false
                   properties:
                     action:
-                      type: string
-                    bug_id:
+                      description: FIX or IGNORE
                       type: string
                     classification:
+                      description: TRUE POSITIVE or FALSE POSITIVE
+                      type: string
+                    code_snippet:
+                      description: ''
                       type: string
                     file_name:
                       type: string
+                    id:
+                      type: string
+                    key:
+                      type: string
+                    lang:
+                      type: string
+                    line_number:
+                      type: string
                     reason:
                       type: string
-                    rule_description:
+                    severity:
                       type: string
-                    rule_key:
+                    title:
                       type: string
                   required:
-                  - bug_id
-                  - rule_key
-                  - rule_description
+                  - key
+                  - title
+                  - id
                   - classification
                   - action
                   - reason
                   - file_name
+                  - lang
+                  - severity
                   type: object
                 type: array
               bugs_to_fix:
@@ -215,10 +239,10 @@ workflow:
       height: 89
       id: '17546281768510'
       position:
-        x: 334
+        x: 333.30524645527896
         y: 270.5
       positionAbsolute:
-        x: 334
+        x: 333.30524645527896
         y: 270.5
       selected: true
       sourcePosition: right
@@ -255,6 +279,6 @@ workflow:
       type: custom
       width: 244
     viewport:
-      x: 161.59424650957692
-      y: 116.52981177810354
-      zoom: 0.7664884274995776
+      x: -346.1303113762207
+      y: -135.4747649759969
+      zoom: 1.43935933482922

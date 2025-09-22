@@ -27,7 +27,6 @@ def run():
     parser.add_argument('--serena-mcp', action='store_true')
     args = parser.parse_args()
 
-    # .env (for GOOGLE_API_KEY used by adapters.llm.google_genai)
     root_env = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env")
     load_dotenv(root_env)
 
@@ -92,10 +91,8 @@ def run():
     thr_met = sum(1 for r in results if r.success and r.meets_threshold)
     avg_time = sum(r.processing_time for r in results)/max(len(results),1)
 
-    logger.info("="*70)
-    logger.info("FIX RESULT: SUCCESS")
-    logger.info(f"FIXED FILES: {success}")
-    logger.info(f"FAILED FILES: {errors}")
+    logger.info("="*50)
+    logger.info(f"FIX RESULT: {str(success).upper()}")
     logger.info(f"TOTAL INPUT TOKENS: {total_in}")
     logger.info(f"TOTAL OUTPUT TOKENS: {total_out}")
     logger.info(f"TOTAL TOKENS: {total_tok}")

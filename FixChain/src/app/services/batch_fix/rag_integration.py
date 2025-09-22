@@ -12,15 +12,18 @@ def build_query_and_filters_from_issues(issues_data: Optional[List[Dict]]) -> Tu
     Tạo query và filters từ issues để search Fixer RAG.
     Issue format:
     {
-        "key": str,
-        "label": "BUG" | "CODE_SMELL",
-        "id": str,
-        "classification": str,
-        "reason": str,
-        "rule_description": str,
-        "title": str,
-        "file_name": str
-    }
+      "key": str,
+      "label": "BUG" | "CODE_SMELL",
+      "id": str,
+      "classification": str,
+      "reason": str,
+      "title": str,
+      "lang": str,
+      "file_name": str,
+      "code_snippet": "str,
+      "line_number": str,
+      "severity": str
+    },
     Returns:
         query (str): chuỗi query ngắn gọn
         filters (dict): bộ lọc phù hợp (label, classification, file_name)
@@ -31,7 +34,7 @@ def build_query_and_filters_from_issues(issues_data: Optional[List[Dict]]) -> Tu
     filters: Dict[str, str] = {}
     
     for it in issues_data:
-        for k in ("title", "rule_description", "reason"):
+        for k in ("key", "id", "lang", "title", "severity", "code_snippet"):
             v = str(it.get(k, "")).strip()
             if v and v not in seen:
                 seen.add(v)
@@ -74,7 +77,6 @@ def _build_bug_items_payload(
                 "file_path": file_path,
                 "code_snippet": fixed_code,
                 "metadata": {
-                    "agent": "fixer",
                     "fix_context": {
                         "original_size": fix_result.original_size,
                         "fixed_size": fix_result.fixed_size,

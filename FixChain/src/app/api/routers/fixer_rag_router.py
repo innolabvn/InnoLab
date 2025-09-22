@@ -26,12 +26,16 @@ load_dotenv(root_env_path)
 FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")
 
 class BugItem(BaseModel):
-    doc_id: str
-    description: str
-    rule: str
-    type: Literal["BUG", "CODE_SMELL"]
-    file_path: Optional[str] = None
-    code_snippet: Optional[str] = None
+    key: str
+    label: Literal["BUG", "CODE_SMELL"]
+    id: str
+    reason: str
+    title: str
+    lang: str
+    severity: str
+    line_number: str
+    file_name: str
+    code_snippet: str
     metadata: Dict[str, Any]
 
 class BugImportRequest(BaseModel):
@@ -66,19 +70,21 @@ def generate_gemini_embedding(text: str) -> List[float]:
     else:
         return res_embeddings[0].values
 
-def format_bug_for_rag(bug: BugItem) -> str:
+def format_bug_content_for_rag(bug: BugItem) -> str:
     parts = [
-        f"Description: {bug.description}",
-        f"Type: {bug.type}",
-        f"Rule: {bug.rule}",
-        f"File_path: {bug.file_path}",
-        f"Code snippet: {bug.code_snippet}",
+        f"ID: {bug.id}",
+        f"\nTitle: {bug.title}",
+        f"\nLang: {bug.lang}",
+        f"\nReason: {bug.reason}"
     ]
     return "".join(parts)
 
 def create_bug_rag_metadata(bug: BugItem) -> Dict[str, Any]:
     md = {
-        "agent": "fixer",
+        "severity": {bug.severity},
+        "file_name": {bug.file_name},
+        "line_number": {bug.line_number},
+        "code_snippet": {bug.code_snippet}
     }
     md.update(bug.metadata or {})
     return md
@@ -111,7 +117,7 @@ async def import_bugs_as_rag(request: BugImportRequest):
 
         imported = []
         for bug in request.bugs:
-            content = format_bug_for_rag(bug)[:4000]
+            content = format_bug_content_for_rag(bug)
             embedding = generate_gemini_embedding(content)
             metadata = create_bug_rag_metadata(bug)
             doc = {
@@ -120,15 +126,14 @@ async def import_bugs_as_rag(request: BugImportRequest):
                 "embedding": embedding,
             }
             result = collection.update_one(
-                {"doc_id": bug.doc_id},
+                {"doc_id": bug.key},
                 {
                     "$set": doc,
-                    "$setOnInsert": {"created_at": datetime.utcnow()},
                 },
                 upsert=True,
             )
             status = "inserted" if result.upserted_id is not None else ("updated" if result.modified_count else "unchanged")
-            imported.append({"bug_id": bug.doc_id, "status": status})
+            imported.append({"bug_id": bug.key, "status": status})
         return {
             "imported_bugs": imported,
             "message": f"Successfully imported {len(imported)} bugs as RAG documents",

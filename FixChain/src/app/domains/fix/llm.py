@@ -114,8 +114,27 @@ class LLMFixer(Fixer):
         candidate = s[start:end+1]
         return json.loads(candidate)
 
-
     def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int = 0) -> Dict:
+        """
+        lisr_real_bugs format:
+        {
+        "bugs_to_fix": <number>,
+        "bugs": [
+            {
+            "key": "<key>",
+            "id": "<id>",
+            "lang": "<lang>", (python, javascript)
+            "severity":"<severity>",
+            "file_name": "<file name>",
+            "line_number": "<line_number>",
+            "title": "<title>",
+            "classification": "True Positive" | "False Positive",
+            "action": "Fix" | "Ignore",
+            "reason": "<≤45 words; if RAG used include 'RAG: <matched id/title/keyword>'>"
+            }
+        ]
+        }
+        """
         try:
             logger.info("Starting fix_bugs for %d bugs", bugs_count)
             ok_src, source_dir, err_src = self._resolve_source_dir()

@@ -157,9 +157,9 @@ class AnalysisService:
     
     @staticmethod
     def _get_label(action: str) -> str:
-        if "FIX" in action:
+        if "FIX" or "TRUE POSITIVE" in action:
             return "BUG"
-        elif "IGNORE" in action:
+        elif "IGNORE" or "FALSE POSITIVE" in action:
             return "CODE_SMELL"
         return "UNKNOWN"
 
@@ -169,6 +169,20 @@ class AnalysisService:
         Input: list_bugs is the direct output from Dify (list or {"bugs": [...]})
         This function DOES NOT expect bearer scan fields to be present.
         Returns: List[ScannerRAGSignal] when ScannerRAGSignal is available, otherwise a list of dicts (backwards compatible).
+        Dify response sample:
+        {
+            "action": "Fix",
+            "key": "65c9c2496677f21552e48b34c59791e4_0",
+            "classification": "True Positive",
+            "reason": "RAG: Usage of weak hashing library (MDx).  The code uses hashlib.md5, which is a weak hashing algorithm.",
+            "id": "python_lang_weak_hash_md5",
+            "title": "Usage of weak hashing library (MDx)",
+            "file_name": "app.py",
+            "lang": "python",
+            "code_snippet": "    pwd_hash = hashlib.md5(password.encode()).hexdigest()",
+            "line_number": "48",
+            "severity": "MEDIUM"
+          },
         """
         # items: List[ScannerRAGSignal] = []
         items: List[Dict[str, Any]] = []
@@ -185,26 +199,32 @@ class AnalysisService:
             if not isinstance(r, dict):
                 continue
 
-            logger.debug("Processing Dify bug item: %s", r.get("bug_id", ""))
+            logger.debug("Processing Dify bug item: %s", r.get("key", ""))
             try:
                 action = r.get("action", "")
-                bug_id = r.get("bug_id", "")
+                key = r.get("key", "")
                 classification = r.get("classification", "")
                 reason = r.get("reason", "")
-                rule_description = r.get("rule_description", "")
-                rule_key = r.get("rule_key", "")
-                label = self._get_label(action.upper())
-                key = bug_id or rule_key or ""
+                id = r.get("id", "")
+                title = r.get("title", "")
                 file_name = r.get("file_name", "")
+                lang = r.get("lang", "")
+                code_snippet = r.get("code_snippet", "")
+                line_number = r.get("line_number", "")
+                severity = r.get("severity", "")
+                label = self._get_label(action.upper())
                 scan_res = {
                     "key": key,
                     "label": label,
-                    "id": bug_id,
+                    "id": id,
                     "classification": classification,
                     "reason": reason,
-                    "rule_description": rule_description,
-                    "title": rule_key if rule_key else rule_description[:120],
-                    "file_name": file_name
+                    "title": title,
+                    "lang": lang,
+                    "file_name": file_name,
+                    "code_snippet": code_snippet,
+                    "line_number": line_number,
+                    "severity": severity
                 }
                 items.append(scan_res)
             except Exception as e:
