@@ -71,7 +71,7 @@ def run():
         file_issues = issues_by_file.get(rel, [])
         logger.debug(f"File issue to be fixed: {file_issues}")
         r = processor.fix_buggy_file(
-            file_path=p, template_type="fix",
+            file_path=p, template_type="fix_with_serena",
             issues_data=file_issues
         )
         logger.debug("Fixed file %s with result: %s", rel, r)

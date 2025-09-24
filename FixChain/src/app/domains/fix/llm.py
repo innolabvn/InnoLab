@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
-from src.app.adapters.serena_client import SerenaMCPClient
 from .base import Fixer
 
 
@@ -36,8 +35,6 @@ class LLMFixer(Fixer):
 
     def __init__(self, scan_directory: str):
         super().__init__(scan_directory)
-        self.serena_client = SerenaMCPClient()
-        self.serena_available = self.serena_client.available
 
     def _resolve_source_dir(self) -> Tuple[bool, Path, str]:
         """
@@ -172,10 +169,6 @@ class LLMFixer(Fixer):
                 "--issues-file",
                 str(issues_file_path),
             ]
-
-            if self.serena_available:
-                fix_cmd.extend(["--enable-serena", "--serena-mcp"])
-                logger.info("Serena enabled")
 
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)

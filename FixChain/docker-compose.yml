@@ -7,6 +7,19 @@ services:
     volumes:
       - mongo_data:/data/db
     networks: [fcnet]
+  serena:
+    build: 
+      context: .
+      dockerfile: Dockerfile.serena
+    working_dir: /app
+    volumes:
+      - ./:/app 
+      - ./serena_config.docker.yml:/root/.local/share/uv/tools/serena-agent/lib/python3.11/serena_config.docker.yml:ro
+      - ./.serena:/app/.serena
+    ports:
+      - "9121:9121"
+      - "24282:24282"
+    networks: [fcnet]
   api:
     build: .
     env_file: .env
@@ -20,11 +33,12 @@ services:
       SCANNER_RAG_COLLECTION: "scanner_rag_collection"
       LOG_LEVEL: "INFO"
       SERENA_ENABLED: "true"
-      SERENA_TIMEOUT_S: "45"
     volumes:
-      - ./.mcp.json:/app/.mcp.json
+      - ./:/app 
+      - ./.serena:/app/.serena
     depends_on:
       - mongodb
+      - serena
     restart: unless-stopped
     networks: [fcnet]
 
