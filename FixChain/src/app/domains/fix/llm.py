@@ -16,14 +16,14 @@ from .base import Fixer
 def _find_repo_root(start: Path) -> Path:
     """
     Tìm repo root theo heuristic:
-    - Ưu tiên thư mục chứa 'FixChain' (mono root)
+    - Ưu tiên thư mục chứa 'projects' (current FixChain root)
     - Nếu không có, dùng git top-level (nếu có .git)
     - Fallback: parent của `src/`
     """
     cur = start.resolve()
     for _ in range(7):
-        # Heuristic 1: có thư mục FixChain, utils, projects
-        if (cur / "FixChain").exists() and (cur / "projects").exists():
+        # Heuristic 1: có thư mục projects (FixChain root)
+        if (cur / "projects").exists():
             return cur
         if (cur / ".git").exists():
             return cur
@@ -60,17 +60,18 @@ class LLMFixer(Fixer):
     def _locate_batch_fix_dir(self) -> Tuple[bool, Path, str]:
         """
         Tìm thư mục chứa batch_fix. Heuristic:
-        - <repo_root>/FixChain/src/app/services/batch_fix
+        - <repo_root>/src/app/services/batch_fix (current structure)
         """
         repo_root = _find_repo_root(Path(__file__).parent)
         candidates = [
+            repo_root / "src" / "app" / "services" / "batch_fix",
             repo_root / "FixChain" / "src" / "app" / "services" / "batch_fix",
             repo_root / "services" / "batch_fix",
         ]
         for c in candidates:
             if (c / "cli.py").exists():
                 return True, c, ""
-        return False, repo_root, "Cannot locate batch_fix under FixChain/src/app/services or services"
+        return False, repo_root, "Cannot locate batch_fix under src/app/services or FixChain/src/app/services or services"
 
     def _parse_summary_from_stdout(self, output_lines: str):
         s = output_lines.rstrip()

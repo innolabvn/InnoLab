@@ -46,7 +46,7 @@ def run():
     processor.load_ignore_patterns(directory)
 
     # collect files
-    code_ext = (".py",".js",".ts",".jsx",".tsx",".java",".cpp",".c",".html",".css",".txt")
+    code_ext = (".py",".js",".ts",".jsx",".java",".cpp",".c",".html",".css",".txt")
     code_files = []
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if not processor.should_ignore_file(os.path.join(root,d), directory)]
@@ -64,6 +64,14 @@ def run():
     for i, p in enumerate(code_files[:10], 1):
         logger.info(f"  {i:2d}. {os.path.relpath(p, directory)}")
 
+    # Determine template type based on Serena availability and flags
+    template_type = "fix"  # Default template
+    if args.enable_serena or args.serena_mcp:
+        template_type = "fix_with_serena"
+        logger.info(f"🎯 Using Serena template: {template_type}")
+    else:
+        logger.info(f"📝 Using standard template: {template_type}")
+
     results = []
     for i, p in enumerate(code_files, 1):
         rel = os.path.relpath(p, directory)
@@ -71,7 +79,7 @@ def run():
         file_issues = issues_by_file.get(rel, [])
         logger.debug(f"File issue to be fixed: {file_issues}")
         r = processor.fix_buggy_file(
-            file_path=p, template_type="fix",
+            file_path=p, template_type=template_type,
             issues_data=file_issues
         )
         logger.debug("Fixed file %s with result: %s", rel, r)

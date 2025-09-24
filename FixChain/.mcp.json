@@ -1,11 +1,19 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "python",
-      "args": ["-m", "serena", "mcp"],
-      "autoStart": true,
+      "command": "uvx",
+      "args": [
+        "--from", 
+        "git+https://github.com/oraios/serena", 
+        "serena", 
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/Users/fahn040-174/Projects/Sprint 15/InnoLab/FixChain"
+      ],
       "transport": "stdio",
-      "env": { "SERENA_LOG_LEVEL": "info" }
+      "autoStart": true
     }
   }
 }

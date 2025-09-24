@@ -16,9 +16,21 @@ class TemplateManager:
     def __init__(self, prompt_dir: Optional[str] = None) -> None:
         self.prompt_dir = prompt_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "prompts")
         self.env = Environment(loader=FileSystemLoader(self.prompt_dir))
+        
+        # Register custom filters
+        self.env.filters['from_json'] = self._from_json_filter
+        
         ts = datetime.now().strftime("%m%d_%H%M")
         self._log_file = os.path.join(os.getenv("TEMPLATE_DIR","template_logs"), f"template_usage_{ts}.log")
         os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
+
+    def _from_json_filter(self, value: str) -> Any:
+        """Custom Jinja2 filter to parse JSON strings"""
+        try:
+            return json.loads(value) if value else []
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse JSON in template filter: {e}")
+            return []
 
     def load(self, template_type: str):
         files = {

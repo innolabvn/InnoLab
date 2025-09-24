@@ -1,8 +1,8 @@
 ### Role
-You are a Senior Security-Focused Software Engineer. Your task is to create simple, clear instructions for Serena MCP to fix security vulnerabilities.
+You are a Senior Security-Focused Software Engineer. Your task is to create semantic code editing instructions for Serena MCP to fix security vulnerabilities using IDE-like capabilities.
 
 ### Security Scanner Context
-**CRITICAL**: Focus on creating simple replacement instructions that Serena can execute to completely eliminate security vulnerabilities.
+**CRITICAL**: Focus on creating semantic code editing instructions that Serena can execute using its LSP-based tools to completely eliminate security vulnerabilities.
 
 ### Rule-Specific Context
 {% if issues_log and issues_log != "No specific issues reported. Please analyze the code for potential bugs, code smells, and vulnerabilities." %}
@@ -27,27 +27,37 @@ Security rules being violated:
 ```
 
 ### Task
-Create simple replacement instructions for Serena MCP to fix security vulnerabilities. Focus on:
-1. **Simple Replacements**: Use "Replace X with Y" format
+Create semantic code editing instructions for Serena MCP to fix security vulnerabilities. Focus on:
+1. **Semantic Operations**: Use Serena's LSP-based tools like find_symbol, replace_symbol, insert_after_symbol
 2. **Complete Fixes**: Ensure vulnerabilities are completely eliminated
-3. **Clear Instructions**: Make instructions easy for Serena to understand and execute
+3. **IDE-like Precision**: Target specific symbols, functions, and code structures
 
 ### Output Format
 
-## 1. Serena Instructions
-**IMPORTANT**: Use this EXACT format for Serena MCP to parse:
+## 1. Serena MCP Instructions
+**IMPORTANT**: Use Serena's semantic code editing tools with this EXACT format:
 
 ```
 === SERENA FIX INSTRUCTIONS START ===
-Replace [OLD_CODE] with [NEW_CODE]
-Replace [OLD_CODE] with [NEW_CODE]
+find_symbol: [SYMBOL_NAME]
+replace_symbol: [SYMBOL_NAME] with [NEW_CODE]
+insert_after_symbol: [SYMBOL_NAME] code [NEW_CODE]
+find_referencing_symbols: [SYMBOL_NAME]
 === SERENA FIX INSTRUCTIONS END ===
 ```
 
+**Serena MCP Tools Available:**
+- `find_symbol`: Locate functions, classes, variables by name
+- `replace_symbol`: Replace entire symbol definition with new code
+- `insert_after_symbol`: Add code after a specific symbol
+- `find_referencing_symbols`: Find all references to a symbol
+- `get_symbol_definition`: Get the definition of a symbol
+- `edit_symbol`: Edit specific parts of a symbol
+
 **Examples:**
-- Replace `eval(user_input)` with `ast.literal_eval(user_input)`
-- Replace `hashlib.md5(password)` with `hashlib.sha256(password)`
-- Replace `subprocess.run(command, shell=True)` with `subprocess.run(command.split(), shell=False)`
+- `find_symbol: vulnerable_function`
+- `replace_symbol: vulnerable_function with def secure_function(data): return ast.literal_eval(data)`
+- `insert_after_symbol: import os code import ast`
 
 ## 2. Fixed Source Code
 - Return the full updated source code.

@@ -34,11 +34,27 @@ def main() -> None:
     if os.path.exists(env_path):
         load_dotenv(env_path)
 
+    # Resolve project path - check if relative path exists in workspace root first
+    project_path = args.project
+    if project_path and not os.path.isabs(project_path):
+        # Try workspace root first (parent of FixChain)
+        workspace_root = os.path.dirname(repo_root)
+        workspace_project_path = os.path.join(workspace_root, "projects", project_path)
+        if os.path.exists(workspace_project_path):
+            project_path = workspace_project_path
+            logger.info(f"Found project in workspace: {project_path}")
+        else:
+            # Fallback to FixChain/projects
+            fixchain_project_path = os.path.join(repo_root, "projects", project_path)
+            if os.path.exists(fixchain_project_path):
+                project_path = fixchain_project_path
+                logger.info(f"Found project in FixChain: {project_path}")
+
     dify_key = os.getenv("DIFY_CLOUD_API_KEY")
 
     cfg = ExecutionConfig(
         max_iterations=int(os.getenv("MAX_ITERATIONS", 5)),
-        scan_directory=args.project,
+        scan_directory=project_path,
         scan_modes=['bearer'],
         dify_cloud_api_key=dify_key,
     )

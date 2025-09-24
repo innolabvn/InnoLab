@@ -1,0 +1,128 @@
+# Serena MCP Configuration for LSP-based Code Analysis
+# This config enables LSP support for multiple programming languages
+
+# Language Server Protocol (LSP) Configuration
+lsp:
+  # Python LSP Configuration
+  python:
+    enabled: true
+    server: "pylsp"  # Python LSP Server
+    command: ["pylsp"]
+    settings:
+      pylsp:
+        plugins:
+          pycodestyle:
+            enabled: true
+          pyflakes:
+            enabled: true
+          pylint:
+            enabled: true
+          rope_completion:
+            enabled: true
+          jedi_completion:
+            enabled: true
+            include_params: true
+  
+  # JavaScript/TypeScript LSP Configuration
+  javascript:
+    enabled: true
+    server: "typescript-language-server"
+    command: ["typescript-language-server", "--stdio"]
+    file_extensions: [".js", ".jsx", ".ts", ".tsx"]
+  
+  # Go LSP Configuration
+  go:
+    enabled: true
+    server: "gopls"
+    command: ["gopls"]
+    file_extensions: [".go"]
+  
+  # Rust LSP Configuration
+  rust:
+    enabled: true
+    server: "rust-analyzer"
+    command: ["rust-analyzer"]
+    file_extensions: [".rs"]
+
+# MCP Server Configuration
+mcp:
+  enabled: true
+  port: 9000  # Updated to match the running server
+  transport: "sse"  # Using SSE transport
+
+# Project Configuration
+project:
+  name: "FixChain"
+  root: "/Users/fahn040-174/Projects/Sprint 15/InnoLab/FixChain"
+  language: "python"
+  
+# File patterns to include/exclude
+files:
+  include:
+    - "src/**/*.py"
+    - "*.py"
+    - "projects/**/*.py"
+  exclude:
+    - "__pycache__/**"
+    - ".git/**"
+    - "venv/**"
+    - ".venv/**"
+  host: "localhost"
+  
+  # Tools configuration
+  tools:
+    find_symbol:
+      enabled: true
+      use_lsp: true
+    replace_symbol:
+      enabled: true
+      use_lsp: true
+      backup: true
+    insert_after_symbol:
+      enabled: true
+      use_lsp: true
+    find_referencing_symbols:
+      enabled: true
+      use_lsp: true
+
+# Code Analysis Configuration
+analysis:
+  # Enable semantic analysis using LSP
+  semantic_analysis: true
+  
+  # Enable syntax tree analysis
+  syntax_tree_analysis: true
+  
+  # Enable cross-reference analysis
+  cross_reference_analysis: true
+  
+  # File types to analyze
+  supported_extensions:
+    - ".py"
+    - ".js"
+    - ".jsx"
+    - ".ts"
+    - ".tsx"
+    - ".go"
+    - ".rs"
+    - ".java"
+    - ".cpp"
+    - ".c"
+    - ".h"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: ".serena/logs/serena.log"
+  
+# Cache Configuration
+cache:
+  enabled: true
+  directory: ".serena/cache"
+  ttl: 3600  # Cache TTL in seconds
+
+# Memory Configuration
+memory:
+  enabled: true
+  directory: ".serena/memories"
+  max_size: "100MB"

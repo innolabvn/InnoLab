@@ -44,17 +44,18 @@ class BearerScanner(Scanner):
             # Output file in <projects_root>/bearer_results/
             bearer_results_dir = (projects_root / "bearer_results").resolve()
             bearer_results_dir.mkdir(parents=True, exist_ok=True)
-            output_file = bearer_results_dir / f"bearer_results_{self.scan_directory}_{datetime.now().strftime('%m%d%H%M')}.json"
+            # Use basename to avoid path issues with absolute paths
+            project_name = Path(self.scan_directory).name if Path(self.scan_directory).is_absolute() else self.scan_directory
+            output_file = bearer_results_dir / f"bearer_results_{project_name}_{datetime.now().strftime('%m%d%H%M')}.json"
             try:
                 if output_file.exists():
                     output_file.unlink()
                     logger.info("Removed existing Bearer results file: %s", output_file)
             except Exception as e:
                 logger.warning("Failed to remove existing results file: %s", e)
-
             # Run dockerized bearer scan
             scan_cmd = [
-                "docker", "run", "--rm",
+                "docker", "run", "--platform", "linux/amd64", "--rm",
                 "-v", f"{str(project_dir)}:/scan",
                 "-v", f"{str(bearer_results_dir)}:/output",
                 "bearer/bearer:latest",

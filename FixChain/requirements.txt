@@ -5,5 +5,19 @@ pydantic
 requests
 python-dotenv
 pymongo>=4.6,<5
+# Add a check to ensure dependencies are up-to-date. This helps prevent using libraries with known vulnerabilities.
+# Consider using tools like Dependabot, Snyk, or regular dependency audits.
+import subprocess
+
+
+def check_dependencies():
+    try:
+        subprocess.run(['pip', 'check'], check=True, capture_output=True, text=True)
+        print("All dependencies are up to date.")
+    except subprocess.CalledProcessError as e:
+        print(f"Some dependencies have issues:\n{e.stderr}")
+
+
+check_dependencies()
 python-multipart
 google-genai

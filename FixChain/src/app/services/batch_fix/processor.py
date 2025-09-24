@@ -122,21 +122,50 @@ class SecureFixProcessor:
             # === google-genai call ===
             resp = client.models.generate_content(model=GENERATION_MODEL, contents=rendered)
             text = getattr(resp, "text", "") or ""
-            logger.debug(f"Gemini response: {text[:100]}")
+            
+            # Enhanced LLM response logging
+            logger.info(f"🤖 LLM Response received ({len(text)} chars)")
+            logger.info(f"📊 LLM Response preview: {text[:200]}{'...' if len(text) > 200 else ''}")
+            
+            # Log if Serena instructions are present
+            if "=== SERENA FIX INSTRUCTIONS START ===" in text:
+                logger.info("🎯 LLM Response contains Serena Fix Instructions")
+                start_marker = "=== SERENA FIX INSTRUCTIONS START ==="
+                end_marker = "=== SERENA FIX INSTRUCTIONS END ==="
+                start_idx = text.find(start_marker)
+                end_idx = text.find(end_marker)
+                if start_idx != -1 and end_idx != -1:
+                    instructions_section = text[start_idx:end_idx + len(end_marker)]
+                    logger.info(f"📋 Serena Instructions section ({len(instructions_section)} chars):")
+                    logger.info(f"   {instructions_section[:300]}{'...' if len(instructions_section) > 300 else ''}")
+            else:
+                logger.info("ℹ️ LLM Response does not contain Serena Fix Instructions")
+            
+            # Log if fixed code section is present
+            if "## 2. Fixed Source Code" in text:
+                logger.info("📝 LLM Response contains Fixed Source Code section")
+            
             fixed_candidate = strip_markdown_code(text)
             usage = getattr(resp, "usage_metadata", None)
             if usage:
                 input_tokens = getattr(usage, "prompt_token_count", 0)
                 output_tokens = getattr(usage, "candidates_token_count", 0)
                 total_tokens = getattr(usage, "total_token_count", 0)
+                logger.info(f"💰 Token usage - Input: {input_tokens}, Output: {output_tokens}, Total: {total_tokens}")
 
             self.tm.log_ai_response(file_path, text, fixed_candidate)
 
-            # Handle Serena MCP integration if enabled
-            if "=== SERENA FIX INSTRUCTIONS START ===" in text:
+            # Handle Serena MCP integration based on template type
+            if template_type == "fix_with_serena":
+                logger.info("🎯 Using Serena template - attempting to use Serena MCP for fixes...")
                 
-                # Extract Serena instructions from LLM response
-                serena_instructions = self._extract_serena_instructions(text)
+                # Initialize serena_instructions
+                serena_instructions = None
+                
+                # First try to extract Serena instructions from LLM response
+                if "=== SERENA FIX INSTRUCTIONS START ===" in text:
+                    # Extract Serena instructions from LLM response
+                    serena_instructions = self._extract_serena_instructions(text)
                 
                 if serena_instructions:
                     logger.info(f"📋 Extracted Serena instructions ({len(serena_instructions)} chars):")
@@ -154,31 +183,41 @@ class SecureFixProcessor:
                     serena_fixed_code = self._apply_serena_fixes(original, serena_instructions, file_path)
                     
                     if serena_fixed_code:
-                        candidate_fixed = serena_fixed_code
+                        fixed_candidate = serena_fixed_code
                         logger.info(f"✅ Serena MCP: Successfully applied fixes!")
                         logger.info(f"   📊 Original code: {len(original)} chars")
-                        logger.info(f"   📊 Fixed code: {len(candidate_fixed)} chars")
-                        logger.info(f"   📊 Size change: {len(candidate_fixed) - len(original):+d} chars")
+                        logger.info(f"   📊 Fixed code: {len(fixed_candidate)} chars")
+                        logger.info(f"   📊 Size change: {len(fixed_candidate) - len(original):+d} chars")
                     else:
                         # FALLBACK: Serena failed, extract fixed code from LLM response
                         logger.warning("⚠️ Serena MCP: Failed to apply fixes, initiating fallback...")
                         llm_fixed_code = self._extract_llm_fixed_code(text)
                         if llm_fixed_code:
-                            candidate_fixed = llm_fixed_code
-                            logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(candidate_fixed)} chars)")
+                            fixed_candidate = llm_fixed_code
+                            logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(fixed_candidate)} chars)")
                         else:
                             logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
+                            fixed_candidate = original
                 else:
                     # FALLBACK: No Serena instructions, extract fixed code from LLM response
                     logger.warning("⚠️ Serena MCP: Failed to extract valid instructions, initiating fallback...")
                     llm_fixed_code = self._extract_llm_fixed_code(text)
                     if llm_fixed_code:
-                        candidate_fixed = llm_fixed_code
-                        logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(candidate_fixed)} chars)")
+                        fixed_candidate = llm_fixed_code
+                        logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(fixed_candidate)} chars)")
                     else:
                         logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
+                        fixed_candidate = original
             else:
-                logger.info("No Serena Fix Instructions section found in LLM response")
+                # Using standard template - extract fixed code directly from LLM response
+                logger.info("📝 Using standard template - extracting fixed code from LLM response...")
+                llm_fixed_code = self._extract_llm_fixed_code(text)
+                if llm_fixed_code:
+                    fixed_candidate = llm_fixed_code
+                    logger.info(f"✅ Successfully extracted fixed code ({len(fixed_candidate)} chars)")
+                else:
+                    logger.warning("⚠️ No fixed code found in LLM response, keeping original")
+                    fixed_candidate = original
 
             # write back (overwrite original)
             Path(file_path).write_text(fixed_candidate, encoding="utf-8")

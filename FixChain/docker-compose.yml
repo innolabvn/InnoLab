@@ -23,6 +23,7 @@ services:
       SERENA_TIMEOUT_S: "45"
     volumes:
       - ./.mcp.json:/app/.mcp.json
+      - ./logs:/app/logs
     depends_on:
       - mongodb
     restart: unless-stopped
