@@ -1,2 +1,6 @@
 __pycache__/
 project/
+.aider*
+./FixChain/logs/
+./FixChain/target_project/
+./projects/

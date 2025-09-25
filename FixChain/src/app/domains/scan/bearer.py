@@ -1,20 +1,23 @@
 from __future__ import annotations
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
+from dotenv import load_dotenv
 from src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
 from .base import Scanner
 
+root_env_path = Path(__file__).resolve().parents[4] / '.env'
+load_dotenv(root_env_path)
+
 def _find_repo_root(start: Path) -> Path:
     cur = start.resolve()
     for _ in range(6):
-        if (cur / "projects").exists():
+        if (cur / "src").exists():
             return cur
-        if (cur / ".git").exists():
+        if (cur / "target_project").exists():
             return cur
         cur = cur.parent
     return start.resolve()
@@ -30,11 +33,11 @@ class BearerScanner(Scanner):
             logger.debug("Scan directory: %s", self.scan_directory)
 
             repo_root = _find_repo_root(Path(__file__).parent)
-            projects_root = Path(os.getenv("PROJECTS_ROOT", repo_root / "projects")).resolve()
+            project_root = Path(os.getenv("PROJECT_ROOT", repo_root / "target_project")).resolve()
 
             # Resolve project_dir
             sd = Path(self.scan_directory)
-            project_dir = sd if sd.is_absolute() else (projects_root / self.scan_directory).resolve()
+            project_dir = sd if sd.is_absolute() else (project_root / self.scan_directory).resolve()
 
             if not project_dir.exists():
                 msg = f"Project directory not found: {project_dir}"
@@ -42,7 +45,7 @@ class BearerScanner(Scanner):
                 return []
 
             # Output file in <projects_root>/bearer_results/
-            bearer_results_dir = (projects_root / "bearer_results").resolve()
+            bearer_results_dir = (project_root / "bearer_results").resolve()
             bearer_results_dir.mkdir(parents=True, exist_ok=True)
             output_file = bearer_results_dir / f"bearer_results_{self.scan_directory}.json"
             try:

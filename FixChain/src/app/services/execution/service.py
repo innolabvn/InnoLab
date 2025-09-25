@@ -45,8 +45,8 @@ class ExecutionServiceNoMongo:
         scan_dir = self.cfg.scan_directory
         if os.path.isabs(scan_dir):
             return scan_dir
-        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
-        project_root = os.getenv("PROJECT_ROOT") or os.path.abspath(os.path.join(repo_root, "projects"))
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+        project_root = os.getenv("PROJECT_ROOT") or os.path.abspath(os.path.join(repo_root, "target_project"))
         return os.path.abspath(os.path.join(project_root, scan_dir))
 
     def read_source_code(self) -> str:

@@ -7,10 +7,14 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+from dotenv import load_dotenv
 from src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
 from .base import Fixer
 
+root_env_path = Path(__file__).resolve().parents[4] / '.env'
+load_dotenv(root_env_path)
 
 def _find_repo_root(start: Path) -> Path:
     """
@@ -21,10 +25,7 @@ def _find_repo_root(start: Path) -> Path:
     """
     cur = start.resolve()
     for _ in range(7):
-        # Heuristic 1: có thư mục FixChain, utils, projects
-        if (cur / "FixChain").exists() and (cur / "projects").exists():
-            return cur
-        if (cur / ".git").exists():
+        if (cur / "src").exists() and (cur / "target_project").exists():
             return cur
         cur = cur.parent
     return start.resolve()
@@ -41,7 +42,7 @@ class LLMFixer(Fixer):
         Trả về (ok, source_dir, err_msg)
         - Nếu scan_directory là absolute path -> dùng trực tiếp.
         - Nếu relative -> ghép vào <repo_root>/projects/<scan_directory>.
-        - Cho phép override bằng env PROJECTS_ROOT.
+        - Cho phép override bằng env PROJECT_ROOT.
         """
         # Absolute path
         sd = Path(self.scan_directory)
@@ -50,7 +51,7 @@ class LLMFixer(Fixer):
 
         # Relative -> inside projects/
         repo_root = _find_repo_root(Path(__file__).parent)
-        projects_root = Path(os.getenv("PROJECTS_ROOT", repo_root / "projects")).resolve()
+        projects_root = Path(os.getenv("PROJECT_ROOT", repo_root / "target_project")).resolve()
         source_dir = (projects_root / self.scan_directory).resolve()
         return (source_dir.exists(), source_dir, f"Source directory does not exist: {source_dir}")
 
@@ -61,7 +62,7 @@ class LLMFixer(Fixer):
         """
         repo_root = _find_repo_root(Path(__file__).parent)
         candidates = [
-            repo_root / "FixChain" / "src" / "app" / "services" / "batch_fix",
+            repo_root / "src" / "app" / "services" / "batch_fix",
             repo_root / "services" / "batch_fix",
         ]
         for c in candidates:

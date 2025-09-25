@@ -17,12 +17,6 @@ from src.app.services.log_service import logger
 from src.app.services.execution.service import ExecutionConfig, ExecutionServiceNoMongo
 
 
-def _parse_list(arg: str, default: List[str]) -> List[str]:
-    if not arg:
-        return default
-    return [x.strip().lower() for x in arg.split(",") if x.strip()]
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="ExecutionService Demo - Bug fixing with Dify AI")
     parser.add_argument("--project", type=str, default="", help="Path to project directory to scan")
