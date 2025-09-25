@@ -54,7 +54,7 @@ class TemplateManager:
             "file_path": file_path,
             "raw_response_length": len(text),
             "cleaned_response_length": len(fixed_candidate),
-            "response_preview": fixed_candidate[:200]
+            "response_preview": fixed_candidate
         }
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:

@@ -44,7 +44,7 @@ class BearerScanner(Scanner):
             # Output file in <projects_root>/bearer_results/
             bearer_results_dir = (projects_root / "bearer_results").resolve()
             bearer_results_dir.mkdir(parents=True, exist_ok=True)
-            output_file = bearer_results_dir / f"bearer_results_{self.scan_directory}_{datetime.now().strftime('%m%d%H%M')}.json"
+            output_file = bearer_results_dir / f"bearer_results_{self.scan_directory}.json"
             try:
                 if output_file.exists():
                     output_file.unlink()
