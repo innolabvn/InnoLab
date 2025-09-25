@@ -159,8 +159,9 @@ class SecureFixProcessor:
             if template_type == "fix_with_serena":
                 logger.info("🎯 Using Serena template - attempting to use Serena MCP for fixes...")
                 
-                # Initialize serena_instructions
+                # Initialize serena_instructions and fix_method
                 serena_instructions = None
+                fix_method = "llm"  # Default to LLM
                 
                 # First try to extract Serena instructions from LLM response
                 if "=== SERENA FIX INSTRUCTIONS START ===" in text:
@@ -184,6 +185,7 @@ class SecureFixProcessor:
                     
                     if serena_fixed_code:
                         fixed_candidate = serena_fixed_code
+                        fix_method = "serena"  # Successfully used Serena
                         logger.info(f"✅ Serena MCP: Successfully applied fixes!")
                         logger.info(f"   📊 Original code: {len(original)} chars")
                         logger.info(f"   📊 Fixed code: {len(fixed_candidate)} chars")
@@ -194,23 +196,28 @@ class SecureFixProcessor:
                         llm_fixed_code = self._extract_llm_fixed_code(text)
                         if llm_fixed_code:
                             fixed_candidate = llm_fixed_code
+                            fix_method = "llm"  # Fallback to LLM
                             logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(fixed_candidate)} chars)")
                         else:
                             logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
                             fixed_candidate = original
+                            fix_method = "llm"  # Still LLM method even if failed
                 else:
                     # FALLBACK: No Serena instructions, extract fixed code from LLM response
                     logger.warning("⚠️ Serena MCP: Failed to extract valid instructions, initiating fallback...")
                     llm_fixed_code = self._extract_llm_fixed_code(text)
                     if llm_fixed_code:
                         fixed_candidate = llm_fixed_code
+                        fix_method = "llm"  # Using LLM fallback
                         logger.info(f"🔄 Fallback: Successfully extracted LLM fixed code ({len(fixed_candidate)} chars)")
                     else:
                         logger.warning("⚠️ Fallback: No fixed code found in LLM response, keeping original")
                         fixed_candidate = original
+                        fix_method = "llm"  # Still LLM method even if failed
             else:
                 # Using standard template - extract fixed code directly from LLM response
                 logger.info("📝 Using standard template - extracting fixed code from LLM response...")
+                fix_method = "llm"  # Standard template always uses LLM
                 llm_fixed_code = self._extract_llm_fixed_code(text)
                 if llm_fixed_code:
                     fixed_candidate = llm_fixed_code
@@ -237,7 +244,8 @@ class SecureFixProcessor:
                 input_tokens=input_tokens, 
                 output_tokens=output_tokens, 
                 total_tokens=total_tokens, 
-                meets_threshold=meet_similar
+                meets_threshold=meet_similar,
+                fix_method=fix_method  # Track which method was used
             )
 
             try:

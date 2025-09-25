@@ -40,7 +40,7 @@ Create semantic code editing instructions for Serena MCP to fix security vulnera
 ```
 === SERENA FIX INSTRUCTIONS START ===
 find_symbol: [SYMBOL_NAME]
-replace_symbol: [SYMBOL_NAME] with [NEW_CODE]
+replace_symbol: [OLD_CODE] -> [NEW_CODE]
 insert_after_symbol: [SYMBOL_NAME] code [NEW_CODE]
 find_referencing_symbols: [SYMBOL_NAME]
 === SERENA FIX INSTRUCTIONS END ===
@@ -48,16 +48,24 @@ find_referencing_symbols: [SYMBOL_NAME]
 
 **Serena MCP Tools Available:**
 - `find_symbol`: Locate functions, classes, variables by name
-- `replace_symbol`: Replace entire symbol definition with new code
+- `replace_symbol`: Replace entire symbol definition with new code (use -> format for precise matching)
 - `insert_after_symbol`: Add code after a specific symbol
 - `find_referencing_symbols`: Find all references to a symbol
 - `get_symbol_definition`: Get the definition of a symbol
 - `edit_symbol`: Edit specific parts of a symbol
 
-**Examples:**
+**Enhanced Examples:**
 - `find_symbol: vulnerable_function`
-- `replace_symbol: vulnerable_function with def secure_function(data): return ast.literal_eval(data)`
+- `replace_symbol: def vulnerable_function(data): return eval(data) -> def secure_function(data): return ast.literal_eval(data)`
+- `replace_symbol: AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE" -> AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")`
 - `insert_after_symbol: import os code import ast`
+
+**Best Practices for Instructions:**
+1. **Use complete code blocks** in replace_symbol for better matching
+2. **Include function signatures** when replacing functions
+3. **Preserve indentation** and code structure
+4. **Use -> format** for precise old_code -> new_code replacements
+5. **Target specific symbols** rather than generic text
 
 ## 2. Fixed Source Code
 - Return the full updated source code.
@@ -65,14 +73,15 @@ find_referencing_symbols: [SYMBOL_NAME]
 - Do not modify unrelated logic.
 
 ### Security Fix Patterns
-- **Code Injection**: Replace eval/exec with whitelist approaches
-- **Weak Crypto**: Replace MD5/SHA1 with SHA256+
-- **Command Injection**: Use shell=False and proper argument handling
-- **Hardcoded Secrets**: Replace with environment variables
-- **SQL Injection**: Use parameterized queries
+- **Code Injection**: Replace eval/exec with whitelist approaches (ast.literal_eval)
+- **Weak Crypto**: Replace MD5/SHA1 with SHA256+ (hashlib.sha256)
+- **Command Injection**: Use shell=False and proper argument handling (subprocess.run)
+- **Hardcoded Secrets**: Replace with environment variables (os.getenv)
+- **SQL Injection**: Use parameterized queries (cursor.execute with params)
 
 ### Constraints
 - Keep instructions simple and direct
 - Focus on complete vulnerability elimination
 - Provide fallback code for complex fixes
 - Use industry-standard secure patterns
+- Ensure instructions are executable by Serena MCP

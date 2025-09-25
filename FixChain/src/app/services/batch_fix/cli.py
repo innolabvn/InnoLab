@@ -99,8 +99,27 @@ def run():
     thr_met = sum(1 for r in results if r.success and r.meets_threshold)
     avg_time = sum(r.processing_time for r in results)/max(len(results),1)
 
+    # Count Serena vs LLM fixes
+    serena_fixes = 0
+    llm_fixes = 0
+    for r in results:
+        if r.success:
+            # Check if this was fixed by Serena or LLM fallback
+            # We can determine this by checking if the result has serena_used attribute
+            # or by checking the processing method used
+            if hasattr(r, 'fix_method'):
+                if r.fix_method == 'serena':
+                    serena_fixes += 1
+                else:
+                    llm_fixes += 1
+            else:
+                # For backward compatibility, assume LLM if no method specified
+                llm_fixes += 1
+
     logger.info("="*50)
     logger.info(f"FIX RESULT: {str(success).upper()}")
+    logger.info(f"SERENA FIXES: {serena_fixes}")
+    logger.info(f"LLM FIXES: {llm_fixes}")
     logger.info(f"TOTAL INPUT TOKENS: {total_in}")
     logger.info(f"TOTAL OUTPUT TOKENS: {total_out}")
     logger.info(f"TOTAL TOKENS: {total_tok}")
@@ -112,6 +131,8 @@ def run():
         "success": True,
         "fixed_count": success,
         "failed_count": errors,
+        "serena_fixes": serena_fixes,
+        "llm_fixes": llm_fixes,
         "total_input_tokens": total_in,
         "total_output_tokens": total_out,
         "total_tokens": total_tok,

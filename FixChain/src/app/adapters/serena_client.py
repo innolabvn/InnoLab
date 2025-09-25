@@ -280,9 +280,9 @@ class SerenaMCPClient:
                     if len(parts) == 2:
                         old_code = parts[0].strip()
                         new_code = self._decode_escape_sequences(parts[1].strip())
-                        # Extract symbol name from old_code (e.g., "AWS_ACCESS_KEY_ID = ..." -> "AWS_ACCESS_KEY_ID")
-                        symbol = old_code.split("=")[0].strip() if "=" in old_code else old_code
-                        commands.append({"action": "replace_symbol", "symbol": symbol, "new_code": new_code})
+                        # Improved symbol extraction from old_code
+                        symbol = self._extract_symbol_name(old_code)
+                        commands.append({"action": "replace_symbol", "symbol": symbol, "old_code": old_code, "new_code": new_code})
                 elif " with " in content:
                     parts = content.split(" with ", 1)
                     if len(parts) == 2:
@@ -304,9 +304,42 @@ class SerenaMCPClient:
                 if len(parts) == 2:
                     old_text = parts[0].strip().strip('"').strip("'")
                     new_text = self._decode_escape_sequences(parts[1].strip().strip('"').strip("'"))
-                    commands.append({"action": "replace_symbol", "symbol": old_text, "new_code": new_text})
+                    commands.append({"action": "replace_symbol", "symbol": old_text, "old_code": old_text, "new_code": new_text})
         
         return commands
+
+    def _extract_symbol_name(self, code_snippet: str) -> str:
+        """Extract symbol name from code snippet for better matching"""
+        code_snippet = code_snippet.strip()
+        
+        # Handle function definitions
+        if code_snippet.startswith("def "):
+            match = re.match(r'def\s+(\w+)', code_snippet)
+            if match:
+                return match.group(1)
+        
+        # Handle class definitions
+        if code_snippet.startswith("class "):
+            match = re.match(r'class\s+(\w+)', code_snippet)
+            if match:
+                return match.group(1)
+        
+        # Handle variable assignments
+        if "=" in code_snippet:
+            # Get the left side of assignment
+            left_side = code_snippet.split("=")[0].strip()
+            # Remove type hints if present
+            if ":" in left_side:
+                left_side = left_side.split(":")[0].strip()
+            return left_side
+        
+        # Handle import statements
+        if code_snippet.startswith("import ") or code_snippet.startswith("from "):
+            return code_snippet
+        
+        # Default: return the first word
+        words = code_snippet.split()
+        return words[0] if words else code_snippet
     
     def _execute_serena_command(self, file_path: str, command: Dict[str, Any]) -> bool:
         """Execute a single Serena MCP command via JSON-RPC"""
@@ -317,22 +350,116 @@ class SerenaMCPClient:
             if self._can_use_real_serena():
                 return self._execute_mcp_json_rpc(file_path, command)
             else:
-                # Fallback to simple replacement
+                # Improved fallback to semantic replacement
                 if action == "replace_symbol":
                     symbol = command.get("symbol")
+                    old_code = command.get("old_code", symbol)  # Use old_code if available
                     new_code = command.get("new_code")
+                    
                     if symbol and new_code:
                         with open(file_path, "r", encoding="utf-8") as f:
                             content = f.read()
-                        # Simple symbol replacement (this is a fallback)
-                        if symbol in content:
+                        
+                        # Try multiple replacement strategies
+                        success = False
+                        
+                        # Strategy 1: Exact old_code match (best for complex replacements)
+                        if old_code and old_code in content:
+                            content = content.replace(old_code, new_code)
+                            success = True
+                            logger.info(f"✅ Replaced using exact old_code match: {old_code[:50]}...")
+                        
+                        # Strategy 2: Symbol-based replacement with regex
+                        elif not success:
+                            success = self._replace_symbol_with_regex(content, symbol, new_code, file_path)
+                        
+                        # Strategy 3: Simple symbol replacement (fallback)
+                        if not success and symbol in content:
                             content = content.replace(symbol, new_code)
                             with open(file_path, "w", encoding="utf-8") as f:
                                 f.write(content)
-                            return True
+                            success = True
+                            logger.info(f"✅ Replaced using simple symbol match: {symbol}")
+                        
+                        if success and old_code not in content:
+                            # Only write if we haven't written yet
+                            with open(file_path, "w", encoding="utf-8") as f:
+                                f.write(content)
+                        
+                        return success
+                        
+                elif action == "insert_after_symbol":
+                    symbol = command.get("symbol")
+                    code = command.get("code")
+                    if symbol and code:
+                        return self._insert_after_symbol_fallback(file_path, symbol, code)
+                        
                 return False
         except Exception as e:
-            self.logger.error(f"Failed to execute Serena command: {e}")
+            logger.error(f"Failed to execute Serena command: {e}")
+            return False
+
+    def _replace_symbol_with_regex(self, content: str, symbol: str, new_code: str, file_path: str) -> bool:
+        """Advanced regex-based symbol replacement"""
+        try:
+            # Pattern for function definitions
+            func_pattern = rf'def\s+{re.escape(symbol)}\s*\([^)]*\):[^{{}}]*?(?=\n\S|\nclass|\ndef|\Z)'
+            if re.search(func_pattern, content, re.MULTILINE | re.DOTALL):
+                content = re.sub(func_pattern, new_code, content, flags=re.MULTILINE | re.DOTALL)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                logger.info(f"✅ Replaced function using regex: {symbol}")
+                return True
+            
+            # Pattern for class definitions
+            class_pattern = rf'class\s+{re.escape(symbol)}\s*(?:\([^)]*\))?:[^{{}}]*?(?=\nclass|\ndef|\Z)'
+            if re.search(class_pattern, content, re.MULTILINE | re.DOTALL):
+                content = re.sub(class_pattern, new_code, content, flags=re.MULTILINE | re.DOTALL)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                logger.info(f"✅ Replaced class using regex: {symbol}")
+                return True
+            
+            # Pattern for variable assignments
+            var_pattern = rf'^{re.escape(symbol)}\s*=.*?(?=\n\S|\Z)'
+            if re.search(var_pattern, content, re.MULTILINE | re.DOTALL):
+                content = re.sub(var_pattern, new_code, content, flags=re.MULTILINE | re.DOTALL)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                logger.info(f"✅ Replaced variable using regex: {symbol}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Regex replacement failed for {symbol}: {e}")
+            return False
+
+    def _insert_after_symbol_fallback(self, file_path: str, symbol: str, code: str) -> bool:
+        """Fallback method to insert code after a symbol"""
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # Find the symbol and insert after it
+            lines = content.split('\n')
+            for i, line in enumerate(lines):
+                if symbol in line:
+                    # Insert the new code after this line
+                    lines.insert(i + 1, code)
+                    break
+            else:
+                # Symbol not found, append at the end
+                lines.append(code)
+            
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write('\n'.join(lines))
+            
+            logger.info(f"✅ Inserted code after symbol: {symbol}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Insert after symbol failed: {e}")
             return False
     
     def _execute_mcp_json_rpc(self, commands: List[Dict[str, Any]], file_path: str, original_code: str) -> SerenaResponse:
@@ -436,7 +563,7 @@ class SerenaMCPClient:
             import json
             import uuid
             
-            # Get file content from params or read from file
+            # Get file content from params or read from file_path
             file_path = params.get("file_path", "")
             file_content = params.get("file_content", "")
             

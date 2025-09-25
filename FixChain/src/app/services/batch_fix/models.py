@@ -17,3 +17,4 @@ class FixResult:
     output_tokens: int = 0
     total_tokens: int = 0
     meets_threshold: bool = True
+    fix_method: str = "llm"  # "serena" or "llm" to track which method was used
