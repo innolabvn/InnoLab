@@ -16,8 +16,8 @@ class TemplateManager:
     def __init__(self, prompt_dir: Optional[str] = None) -> None:
         self.prompt_dir = prompt_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "prompts")
         self.env = Environment(loader=FileSystemLoader(self.prompt_dir))
-        ts = datetime.now().strftime("%m%d_%H%M")
-        self._log_file = os.path.join(os.getenv("TEMPLATE_DIR","template_logs"), f"template_usage_{ts}.log")
+        ts = datetime.now().strftime("%m%d_%H%M%S")
+        self._log_file = os.path.join(os.getenv("LOG_DIR","logs"), f"template_usage_{ts}.log")
         os.makedirs(os.path.dirname(self._log_file), exist_ok=True)
 
     def load(self, template_type: str):
@@ -39,7 +39,7 @@ class TemplateManager:
             "file_path": file_path,
             "template_type": template_type,
             "prompt_length": len(rendered_prompt),
-            "prompt_preview": rendered_prompt
+            "prompt_preview": rendered_prompt[:100]
         }
         logger.debug(f"Template data: {data}")
         try:
@@ -54,7 +54,7 @@ class TemplateManager:
             "file_path": file_path,
             "raw_response_length": len(text),
             "cleaned_response_length": len(fixed_candidate),
-            "response_preview": fixed_candidate
+            "response_preview": fixed_candidate[:200]
         }
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:

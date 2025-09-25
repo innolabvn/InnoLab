@@ -156,7 +156,7 @@ class LLMFixer(Fixer):
             with tempfile.NamedTemporaryFile(
                 mode="w", suffix=".json", prefix="list_real_bugs_", dir=source_dir, delete=False, encoding="utf-8"
             ) as tf:
-                json.dump(list_real_bugs, tf, indent=2, ensure_ascii=False)
+                json.dump(list_real_bugs, tf, indent=2, ensure_ascii=True)
                 issues_file_path = Path(tf.name)
 
             logger.debug("Created issues file: %s", issues_file_path)
@@ -168,12 +168,14 @@ class LLMFixer(Fixer):
                 str(source_dir),
                 "--issues-file",
                 str(issues_file_path),
+                "--enable-serena", 
+                "--serena-mcp",
             ]
 
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
             output_text = "".join(output_lines)
-            # logger.debug("Batch fix output:\n%s", output_text)
+            logger.debug("Batch fix output:\n%s", output_text)
 
             # Luôn cố gắng xoá file tạm
             try:
