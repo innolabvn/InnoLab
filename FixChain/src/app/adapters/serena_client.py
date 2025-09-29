@@ -62,53 +62,13 @@ Basic usage:
 """
 
 from __future__ import annotations
-
 import asyncio
-import json
-import os
-from pathlib import Path
-import sys
 from typing import Any, Dict, List, Optional
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
+from mcp import ClientSession
+from mcp.client.sse import sse_client
 
 class SerenaError(RuntimeError):
     pass
-
-
-def _read_mcp_json(mcp_json_path: Path) -> Optional[List[str]]:
-    """
-    Read .mcp.json and return ['command', *args] for 'serena' server if present.
-    """
-    try:
-        data = json.loads(mcp_json_path.read_text(encoding="utf-8"))
-        servers = data.get("mcpServers") or data.get("servers") or {}
-        serena = servers.get("serena")
-        if not serena:
-            return None
-        cmd = serena.get("command")
-        args = serena.get("args", [])
-        if not cmd:
-            return None
-        if isinstance(args, list):
-            return [cmd] + args
-        return [cmd, str(args)]
-    except FileNotFoundError:
-        return None
-    except Exception as e:
-        raise SerenaError(f"Cannot parse {mcp_json_path}: {e}") from e
-
-
-def _default_serena_cmd(project_path: str, enable_dashboard: bool = False) -> List[str]:
-    """
-    Fallback stdio server command if .mcp.json is not provided.
-    """
-    return [
-        "serena", "start-mcp-server",
-        "--project", project_path,
-        "--log-level", "INFO"
-    ]
 
 
 class SerenaClient:
@@ -117,51 +77,32 @@ class SerenaClient:
 
     - Spawns the server via stdio.
     - Initializes MCP session.
-    - Discovers tool schemas â†’ maps wrapper params to tool-specific keys.
+    - Discovers tool schemas → maps wrapper params to tool-specific keys.
     """
 
     def __init__(
         self,
         project_path: str,
-        serena_cmd: Optional[List[str]] = None,
-        mcp_json_path: Optional[str] = None,
-        enable_dashboard: bool = False,
-        init_timeout_s: int = 60,
-    ) -> None:
+        sse_url: str = "http://serena:9121/sse",
+        init_timeout_s: int = 120,
+    ):
         """
         Args:
             project_path: Absolute path to repo root. Serena will index this.
             serena_cmd: Explicit command to start the server (['serena', 'start-mcp-server', ...]).
             mcp_json_path: If provided (e.g. '/app/.mcp.json'), read 'serena' server command from it.
-            enable_dashboard: True only in dev; prod should keep False.
             init_timeout_s: Timeout for initial LSP indexing/handshake.
         """
-        self.project_path = str(Path(project_path).resolve())
+        self.sse_url = sse_url
         self.init_timeout_s = init_timeout_s
-        self._tools_index: Dict[str, Dict[str, Any]] = {}
-
-        resolved_cmd: Optional[List[str]] = None
-        if serena_cmd:
-            resolved_cmd = serena_cmd
-        elif mcp_json_path:
-            resolved_cmd = _read_mcp_json(Path(mcp_json_path))
-        if not resolved_cmd:
-            resolved_cmd = _default_serena_cmd(self.project_path, enable_dashboard)
-
-        if isinstance(resolved_cmd, (list, tuple)):
-            _cmd, _args = resolved_cmd[0], list(resolved_cmd[1:])
-        else:
-            _cmd, _args = str(resolved_cmd), []
-
-        self._server_params = StdioServerParameters(command=_cmd, args=_args)
-        self._session: Optional[ClientSession] = None
         self._client_ctx = None
+        self._session = None
+        self._tools_index = {}
 
     async def __aenter__(self) -> "SerenaClient":
-        self._client_ctx = stdio_client(self._server_params)
-        self._read, self._write = await asyncio.wait_for(
-            self._client_ctx.__aenter__(), timeout=self.init_timeout_s
-        )
+        # KHÔNG gọi stdio_client nữa
+        self._client_ctx = sse_client(self.sse_url)
+        self._read, self._write = await self._client_ctx.__aenter__()
         self._session = ClientSession(self._read, self._write)
         await asyncio.wait_for(self._session.initialize(), timeout=self.init_timeout_s)
         await self._refresh_tools_index()
@@ -170,15 +111,18 @@ class SerenaClient:
     async def __aexit__(self, exc_type, exc, tb) -> None:
         if self._session:
             try:
+                print("\nReach here.....")
                 await self._session.shutdown() # type: ignore
             except Exception:
                 pass
         if self._client_ctx:
             await self._client_ctx.__aexit__(exc_type, exc, tb)
+        print("\nAexit done")
 
     async def _refresh_tools_index(self) -> None:
         assert self._session is not None
         tools = await self._session.list_tools()
+        print("\n refresh_tools done")
         index: Dict[str, Dict[str, Any]] = {}
         for t in tools.tools:
             index[t.name] = {
@@ -194,21 +138,6 @@ class SerenaClient:
         if not self._tools_index:
             await self._refresh_tools_index()
         return sorted(self._tools_index.keys())
-
-    async def activate_project(self, path: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Ensure Serena activates/loads the project (good to call once on startup).
-        """
-        path = path or self.project_path
-        return await self._call_tool_flex(
-            "activate_project",
-            {
-                "path": path,
-                "project_path": path,
-                "root": path,
-            },
-            must_exist=False,
-        )
 
     async def apply_patch_by_symbol(
         self,
@@ -445,7 +374,7 @@ class SerenaClient:
         """
         Call a Serena tool, auto-mapping candidate_params to the tool's input schema.
 
-        - If tool missing and must_exist=True â†’ raise SerenaError with available tools.
+        - If tool missing and must_exist=True → raise SerenaError with available tools.
         - If schema unknown, we send params as-is (best effort).
         """
         assert self._session is not None
@@ -466,7 +395,7 @@ class SerenaClient:
         # Build param map respecting schema keys; allow synonyms
         params = self._map_params(properties, candidate_params)
 
-        # Check required keys â€” if missing, attach debug info
+        # Check required keys — if missing, attach debug info
         missing = [k for k in required if k not in params]
         if missing:
             raise SerenaError(
@@ -499,7 +428,7 @@ class SerenaClient:
     ) -> Dict[str, Any]:
         """
         Map friendly keys to the exact keys expected by the tool schema.
-        We keep only keys present in schema; if schema empty â†’ pass everything.
+        We keep only keys present in schema; if schema empty → pass everything.
         """
         if not schema_props:
             return {k: v for k, v in candidates.items() if v is not None}
@@ -564,13 +493,3 @@ class SerenaClient:
                 out[group] = value
 
         return out
-
-
-# Optional quick test
-if __name__ == "__main__":
-    async def _quick():
-        proj = os.environ.get("CODE_ROOT") or os.getcwd()
-        async with SerenaClient(project_path=proj) as sc:
-            print("Tools:", ", ".join(await sc.list_tools()))
-
-    asyncio.run(_quick())

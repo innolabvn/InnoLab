@@ -151,7 +151,12 @@ class SecureFixProcessor:
                     else:
                         logger.error("No fixed code in LLM response")
                         final_content = default_llm_file
+            elif fixed_code_block:
+                final_content = strip_markdown_code(fixed_code_block)
+                logger.debug(f"Fixed code block preview: {fixed_code_block[:100]}")
+                logger.info("No serena instruction returned; fallback to LLM full-file replacement")
             else:
+                logger.error("No serena instruction and fixed code in LLM response")
                 final_content = default_llm_file
 
             if final_content:
