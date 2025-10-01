@@ -1,10 +1,10 @@
 # src/app/domains/fixer/llm.py
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -135,12 +135,13 @@ class LLMFixer(Fixer):
         """
         try:
             logger.info("Starting fix_bugs for %d bugs", bugs_count)
-            ok_src, source_dir, err_src = self._resolve_source_dir()
-            logger.debug("Source_dir = %s", source_dir)
 
+            ok_src, source_dir, err_src = self._resolve_source_dir()
             if not ok_src:
                 logger.error(err_src)
                 return {"success": False, "fixed_count": 0, "error": err_src}
+            else: 
+                logger.debug("Source dir = %s", source_dir)
 
             ok_batch_fix, batch_fix_dir, err_batch_fix = self._locate_batch_fix_dir()
             if not ok_batch_fix:
@@ -153,12 +154,11 @@ class LLMFixer(Fixer):
                 logger.error(msg)
                 return {"success": False, "fixed_count": 0, "error": msg}
 
-            # Tạo file issues tạm thời ngay trong source_dir để batch_fix dễ access
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", prefix="list_real_bugs_", dir=source_dir, delete=False, encoding="utf-8"
-            ) as tf:
-                json.dump(list_real_bugs, tf, indent=2, ensure_ascii=True)
-                issues_file_path = Path(tf.name)
+            # Tạo file issues theo timestamp trong source_dir để batch_fix dễ access
+            timestamp = datetime.now().strftime("%m%d_%H%M%S")
+            issues_file_path = Path(source_dir) / f"list_real_bugs_{timestamp}.json"
+            with open(issues_file_path, "w", encoding="utf-8") as f:
+                json.dump(list_real_bugs, f, indent=2, ensure_ascii=True)
 
             logger.debug("Created issues file: %s", issues_file_path)
 
@@ -168,22 +168,13 @@ class LLMFixer(Fixer):
                 "-m", "src.app.services.batch_fix.cli",
                 str(source_dir),
                 "--issues-file",
-                str(issues_file_path),
-                "--enable-serena", 
-                "--serena-mcp",
+                str(issues_file_path)
             ]
 
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
             output_text = "".join(output_lines)
             logger.debug("Batch fix output:\n%s", output_text)
-
-            # Luôn cố gắng xoá file tạm
-            try:
-                issues_file_path.unlink(missing_ok=True)
-                logger.info("Cleaned up temporary issues file: %s", issues_file_path)
-            except Exception as e:
-                logger.warning("Could not cleanup issues file: %s", e)
 
             if not success:
                 logger.error("Batch fix failed")

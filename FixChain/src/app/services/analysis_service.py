@@ -86,7 +86,7 @@ class AnalysisService:
 
             logger.info("Sending %d bug(s) to Dify workflow.", len(bearer_report))
             response: DifyRunResponse = run_workflow_with_dify(api_key=api_key, inputs=inputs)
-            logger.debug("Dify raw response: %s", str(response.raw)[:100])
+            logger.debug("Dify raw response: %s", response.raw)
 
             # Defensive parsing trên cấu trúc Dify
             outputs = self._safe_get_outputs(response)
@@ -157,10 +157,10 @@ class AnalysisService:
     
     @staticmethod
     def _get_label(action: str) -> str:
-        if "FIX" or "TRUE POSITIVE" in action:
+        if "FIX" or "TRUE POSITIVE" or "Fix" in action:
             return "BUG"
-        elif "IGNORE" or "FALSE POSITIVE" in action:
-            return "CODE_SMELL"
+        elif "IGNORE" or "FALSE POSITIVE" or "Ignore" in action:
+            return "CODE SMELL"
         return "UNKNOWN"
 
     def _normalize_labeled_signals(self, list_bugs: Union[List[Any], Dict[str, Any], str]):
@@ -212,7 +212,7 @@ class AnalysisService:
                 code_snippet = r.get("code_snippet", "")
                 line_number = r.get("line_number", "")
                 severity = r.get("severity", "")
-                label = self._get_label(action.upper())
+                label = self._get_label(str(action).upper())
                 scan_res = {
                     "key": key,
                     "label": label,
@@ -230,7 +230,7 @@ class AnalysisService:
             except Exception as e:
                 logger.warning("Failed to normalize Dify item: %s ; item=%s", e, r)
                 
-        logger.debug("Normalized labeled signals from Dify: %s...", str(items)[:100])
+        logger.debug("Normalized labeled signals from Dify: %s...", items)
         return items
 
     @staticmethod

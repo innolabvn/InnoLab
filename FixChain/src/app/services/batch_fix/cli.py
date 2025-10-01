@@ -23,8 +23,6 @@ def run():
     parser = argparse.ArgumentParser(description="Secure Batch Fix (AI-powered)")
     parser.add_argument("destination", type=str, nargs="?", help="Directory to scan/fix")
     parser.add_argument("--issues-file", type=str)
-    parser.add_argument('--enable-serena', action='store_true')
-    parser.add_argument('--serena-mcp', action='store_true')
     args = parser.parse_args()
 
     root_env = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env")
@@ -61,7 +59,7 @@ def run():
     logger.debug(f"Directory: {directory}")
     logger.info(f"Found {len(code_files)} code files")
     logger.info("Files to process:")
-    for i, p in enumerate(code_files[:10], 1):
+    for i, p in enumerate(code_files, 1):
         logger.info(f"  {i:2d}. {os.path.relpath(p, directory)}")
 
     results = []
@@ -69,17 +67,21 @@ def run():
         rel = os.path.relpath(p, directory)
         logger.info(f"[{i}/{len(code_files)}] {'Fixing'}: {rel}")
         file_issues = issues_by_file.get(rel, [])
-        logger.debug(f"File issue to be fixed: {file_issues}")
-        r = processor.fix_buggy_file(
-            file_path=p, template_type="fix_with_serena",
-            issues_data=file_issues
-        )
-        logger.debug("Fixed file %s with result: %s", rel, r)
-        results.append(r)
-        if r.success:
-            logger.info(f"Success: {r.processing_time:.1f}s")
-        else:
-            logger.info(f"Failed: {r.message}, Validation errors: {r.validation_errors}")
+        if isinstance(file_issues, list) and file_issues:
+            logger.debug(f"File issue to be fixed: {file_issues}")
+            r = processor.fix_buggy_file(
+                file_path=p, template_type="fix",
+                issues_data=file_issues
+            )
+            logger.debug("Fixed file %s with result: %s", rel, r)
+            results.append(r)
+            if r.success:
+                logger.info(f"Success: {r.processing_time:.1f}s")
+            else:
+                logger.info(f"Failed: {r.message}, Validation errors: {r.validation_errors}")
+        else:    
+            logger.info("No bug found in this file")
+            pass
 
     # summary
     success = sum(1 for r in results if r.success)
@@ -97,7 +99,7 @@ def run():
     logger.info(f"TOTAL OUTPUT TOKENS: {total_out}")
     logger.info(f"TOTAL TOKENS: {total_tok}")
     logger.info(f"AVERAGE SIMILARITY: {avg_sim:.3f}")
-    logger.info(f"THRESHOLD MET COUNT: {thr_met}")
+    # logger.info(f"THRESHOLD MET COUNT: {thr_met}")
     logger.info(f"AVERAGE PROCESSING TIME: {avg_time:.1f}")
 
     summary = {

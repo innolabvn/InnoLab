@@ -67,7 +67,7 @@ class BearerScanner(Scanner):
                 "--hide-progress-bar",
                 "--skip-path", "node_modules,*.git,__pycache__,.venv,venv,dist,build"
             ]
-            logger.info(f"Running Bearer Docker scan: {scan_cmd}")
+            logger.debug(f"Running Bearer Docker scan: {scan_cmd}")
             success, output_lines = CLIService.run_command_stream(scan_cmd)
 
             # Bearer đôi khi trả exit code != 0 nhưng vẫn có file output

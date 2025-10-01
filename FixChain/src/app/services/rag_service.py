@@ -202,9 +202,8 @@ class RAGService:
 
  # ---------- Fixer ----------
     def import_fix_cases(self, bugs_payload: List[Dict[str, Any]]) -> RAGAddResult:
-        payload = {"bugs": bugs_payload}
         try:
-            resp = self._post_with_retry(self.fixer_import, payload)
+            resp = self._post_with_retry(self.fixer_import, bugs_payload)
             if not resp.ok:
                 logger.debug(f"Error_message: {resp.status_code}: {resp.text}")
                 return RAGAddResult(False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")

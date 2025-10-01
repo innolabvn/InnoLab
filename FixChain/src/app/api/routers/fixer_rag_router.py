@@ -106,7 +106,7 @@ async def health_check():
     return {"service": "fixer_rag_router", **result}
 
 @router.post("/import")
-async def import_bugs_as_rag(request: BugImportRequest):
+async def import_bugs_as_rag(request: Any):
     try:
         mongo_manager = get_mongo_manager()
         collection = mongo_manager.collection(FIXER_COLLECTION)
@@ -116,12 +116,12 @@ async def import_bugs_as_rag(request: BugImportRequest):
             pass
 
         imported = []
-        for bug in request.bugs:
-            content = format_bug_content_for_rag(bug)
-            embedding = generate_gemini_embedding(content)
+        for bug in request:
+            logger.debug(bug)
+            embedding = generate_gemini_embedding(bug)
             metadata = create_bug_rag_metadata(bug)
             doc = {
-                "content": content,
+                "content": bug,
                 "metadata": metadata,
                 "embedding": embedding,
             }
