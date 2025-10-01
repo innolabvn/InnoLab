@@ -108,7 +108,7 @@ class SecureFixProcessor:
             ok, errs = V.validate_by_ext(file_path, original)
             if not ok:
                 validation_errors += errs
-            
+            # Try using markdown table format for JSON payload
             rendered = tpl(
                 original_code=original,
                 validation_rules=V.get_rules_for(file_path),

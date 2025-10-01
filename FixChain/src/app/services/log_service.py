@@ -35,6 +35,7 @@ def setup_logger() -> logging.Logger:
     logger.addHandler(console_handler)
 
     # File handler (optional, xoay file theo ngày)
+    # Thêm folder cho mỗi lần chạy
     log_file = os.path.join(log_dir, f"fixchain_{datetime.now().strftime('%m%d')}.log")
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(log_format)

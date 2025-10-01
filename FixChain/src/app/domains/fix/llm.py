@@ -201,7 +201,7 @@ class LLMFixer(Fixer):
                 average_similarity,
                 threshold_met_count,
             )
-
+            # Return thêm thời gian chạy mỗi iteration
             return {
                 "success": success_flag,
                 "fixed_count": fixed_count,

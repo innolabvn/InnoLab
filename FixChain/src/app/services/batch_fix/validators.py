@@ -53,8 +53,8 @@ def similarity(a: str, b: str) -> float:
 
 def validate_safety(original: str, fixed: str) -> Tuple[bool, List[str]]:
     issues: List[str] = []
-    if similarity(original, fixed) < 0.3:
-        issues.append("Code changed too drastically (similarity < 0.3)")
+    if similarity(original, fixed) < 0.85:
+        issues.append("Code changed too drastically (similarity < 0.85)")
     suspicious = ['eval(', 'exec(', 'os.system', 'subprocess.call', '__import__', 'file://', 'http://', 'https://']
     lo, lf = original.lower(), fixed.lower()
     for p in suspicious:
