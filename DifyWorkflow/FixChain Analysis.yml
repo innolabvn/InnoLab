@@ -1,0 +1,284 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: FixChain Analysis
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.2.4@1dc8cd4a3198584fd7639023951f388fff023caa234a4bdb8bba69d6091c2e64
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: ''
+    id: 2bf35ace-c0f4-4b9c-b27b-214a69930c0b
+    name: base_url
+    selector:
+    - env
+    - base_url
+    value: http://192.168.160.1:8000/api/v1
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 17546281768510-source-1755058276255-target
+      selected: false
+      source: '17546281768510'
+      sourceHandle: source
+      target: '1755058276255'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1754385620848-source-17546281768510-target
+      source: '1754385620848'
+      sourceHandle: source
+      target: '17546281768510'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: report
+          max_length: 9999999999
+          options: []
+          required: true
+          type: paragraph
+          variable: report
+        - label: src
+          max_length: 9999999999
+          options: []
+          required: false
+          type: paragraph
+          variable: src
+        - default: '""'
+          label: retrieved_context
+          max_length: 9999999999
+          options: []
+          required: true
+          type: paragraph
+          variable: retrieved_context
+      height: 141
+      id: '1754385620848'
+      position:
+        x: 30
+        y: 270.5
+      positionAbsolute:
+        x: 30
+        y: 270.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            max_output_tokens: 3000
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.0-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 00daa02b-8872-4d8d-88c2-45686fe01139
+          role: system
+          text: "Role\nYou are a Senior Software Engineer.\n\nTask\nFor each issue,\
+            \ (1) determine normalized_type ∈ {bug, code-smell}; (2) classify as True\
+            \ Positive or False Positive; (3) set action ∈ {\"Fix\",\"Ignore\"}. Use\
+            \ only the provided inputs. Do not propose any code changes.\n\nInputs\n\
+            Combined code base: {{#1754385620848.src#}}\ncanned issues JSON (array):\
+            \ {{#1754385620848.report#}}\nRAG retrieved context (free text): {{#1754385620848.retrieved_context#}}\n\
+            \nType normalization rules\nMap by security semantics, not raw fields:\n\
+            If title/id/description/RAG indicate security risk (e.g., insecure transport,\
+            \ weak hash, disabled SSL/JWT verification, unsafe deserialization), set\
+            \ normalized_type = bug.\nOtherwise patterns of maintainability/usability\
+            \ (e.g., logging PII, debug flags, swallowing exceptions) → code-smell.\n\
+            If severity ∈ {CRITICAL, HIGH} and semantics are security → bug (tie-break).\n\
+            If unsure, prefer bug when RAG supports a security guideline that matches\
+            \ the issue by id or keyword overlap (≥1 strong keyword match).\n\nRAG\
+            \ usage & matching\nConsider RAG “supports” an issue when at least one\
+            \ section references the issue’s id or its key phrase from title (e.g.,\
+            \ “pickle”, “MD5”, “verify=False”, “JWT signature”).\nIf RAG supports\
+            \ ⇒ classification = True Positive (unless code snippet contradicts).\n\
+            If RAG is silent ⇒ analyze code_snippet + src. If the risky API/pattern\
+            \ is present as described ⇒ True Positive, else False Positive.\n\nDecision\
+            \ → action\nIf normalized_type = code-smell ⇒ action = \"Ignore\".\nElse\
+            \ (bug) ⇒ action = \"Fix\".\n\nField mapping\nbug_id: prefer id; if missing,\
+            \ use key.\nfile_name: from issue file_name.\nrule: use title (or id if\
+            \ title missing).\ndescription: use issue description (trim if quá dài).\n\
+            \nOutput\nSort by bug_id ascending.\nOutput only JSON:\n{\n  \"bugs_to_fix\"\
+            : <number>,\n  \"bugs\": [\n    {\n      \"key\": \"<key>\",\n      \"\
+            id\": \"<id>\",\n      \"action\": \"Fix\" | \"Ignore\",\n      \"lang\"\
+            : \"<lang>\",\n      \"severity\":\"<severity>\",\n      \"file_name\"\
+            : \"<file name>\",\n      \"code_snippet\": \"<code_snippet>\",\n    \
+            \  \"line_number\": \"<line_number>\",\n      \"title\": \"<title>\",\n\
+            \      \"classification\": \"True Positive\" | \"False Positive\",\n \
+            \     \"reason\": \"<≤45 words; if RAG used include 'RAG: <matched id/title/keyword>'>\"\
+            \n    }\n  ]\n}"
+        selected: true
+        structured_output:
+          schema:
+            additionalProperties: false
+            properties:
+              bugs:
+                items:
+                  additionalProperties: false
+                  properties:
+                    action:
+                      description: FIX or IGNORE
+                      type: string
+                    classification:
+                      description: TRUE POSITIVE or FALSE POSITIVE
+                      type: string
+                    code_snippet:
+                      description: ''
+                      type: string
+                    file_name:
+                      type: string
+                    id:
+                      type: string
+                    key:
+                      type: string
+                    lang:
+                      type: string
+                    line_number:
+                      type: string
+                    reason:
+                      type: string
+                    severity:
+                      type: string
+                    title:
+                      type: string
+                  required:
+                  - key
+                  - title
+                  - id
+                  - classification
+                  - action
+                  - reason
+                  - file_name
+                  - lang
+                  - severity
+                  type: object
+                type: array
+              bugs_to_fix:
+                type: number
+            required:
+            - bugs_to_fix
+            - bugs
+            type: object
+        structured_output_enabled: true
+        title: 'Analysis Bugs '
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '17546281768510'
+      position:
+        x: 333.30524645527896
+        y: 270.5
+      positionAbsolute:
+        x: 333.30524645527896
+        y: 270.5
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '17546281768510'
+          - structured_output
+          value_type: object
+          variable: list_bugs
+        - value_selector:
+          - '17546281768510'
+          - text
+          value_type: string
+          variable: bugs_to_fix
+        selected: false
+        title: END ANALYSIS
+        type: end
+      height: 116
+      id: '1755058276255'
+      position:
+        x: 638
+        y: 270.5
+      positionAbsolute:
+        x: 638
+        y: 270.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -346.1303113762207
+      y: -135.4747649759969
+      zoom: 1.43935933482922

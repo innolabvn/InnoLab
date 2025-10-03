@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y --no-install-recommends git curl && rm -rf /var/lib/apt/lists/*
+# Cài Serena + Pyright LS
+RUN pip install --no-cache-dir "git+https://github.com/oraios/serena@main" \
+    && pip install --no-cache-dir "pyright[nodejs]==1.1.405"
+WORKDIR /app
+# (tuỳ chọn) copy sẵn config default; hoặc bind-mount từ host ở compose
+# COPY serena_config.docker.yml /root/.local/share/uv/tools/serena-agent/lib/python3.11/serena_config.docker.yml
+CMD ["sh","-lc","serena start-mcp-server --transport sse --host 0.0.0.0 --port 9121 --project /app --log-level ERROR --enable-web-dashboard TRUE"]

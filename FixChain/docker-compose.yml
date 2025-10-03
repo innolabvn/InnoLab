@@ -1,64 +1,50 @@
-version: '3.8'
-
 services:
   mongodb:
-    image: mongo:7.0
-    container_name: rag_mongodb
+    image: mongo:7
     restart: unless-stopped
     ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: rag_db
+      - "27018:27017"
     volumes:
-      - mongodb_data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d
-    networks:
-      - rag_network
-    command: mongod --noauth
-
-  mongo-express:
-    image: mongo-express:1.0.0
-    container_name: rag_mongo_express
-    restart: unless-stopped
+      - mongo_data:/data/db
+    networks: [fcnet]
+  serena:
+    build: 
+      context: .
+      dockerfile: Dockerfile.serena
+    working_dir: /app
+    volumes:
+      - ./:/app 
+      - ./serena_config.docker.yml:/root/.local/share/uv/tools/serena-agent/lib/python3.11/serena_config.docker.yml:ro
+      - ./.serena:/app/.serena
     ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
-    depends_on:
-      - mongodb
-    networks:
-      - rag_network
-
-  rag-api:
+      - "9121:9121"
+      - "24282:24282"
+    networks: [fcnet]
+  api:
     build: .
-    container_name: rag_api_backend
-    restart: unless-stopped
+    env_file: .env
     ports:
       - "8000:8000"
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/rag_db
-      MONGODB_DATABASE: rag_db
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-    env_file:
-      - .env
+      MONGODB_URI: "mongodb://mongodb:27017"
+      MONGODB_DATABASE: "fixchain"
+      FIXER_RAG_COLLECTION: "fixer_rag_collection"
+      SCANNER_RAG_COLLECTION: "scanner_rag_collection"
+      LOG_LEVEL: "INFO"
+      SERENA_ENABLED: "true"
+    volumes:
+      - ./:/app 
+      - ./.serena:/app/.serena
     depends_on:
       - mongodb
-    networks:
-      - rag_network
-    volumes:
-      - ./logs:/app/logs
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - serena
+    restart: unless-stopped
+    networks: [fcnet]
 
 volumes:
-  mongodb_data:
-    driver: local
-
+  mongo_data:
+  
 networks:
-  rag_network:
+  fcnet:
     driver: bridge
