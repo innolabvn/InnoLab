@@ -7,15 +7,14 @@ Fixer RAG router
 - /fix
 - /suggest-fix
 """
+import json
 import os
-from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Literal, Optional
+from typing import List, Dict, Any
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from dotenv import load_dotenv
-from bson import ObjectId
-from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL, GENERATION_MODEL
+from src.app.adapters.llm.google_genai import client, EMBEDDING_MODEL
 from src.app.repositories.mongo import get_mongo_manager
 from src.app.repositories.mongo_utlis import ensure_collection
 from src.app.services.log_service import logger
@@ -24,28 +23,6 @@ root_env_path = Path(__file__).resolve().parents[4] / '.env'
 load_dotenv(root_env_path)
 
 FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")
-
-class BugItem(BaseModel):
-    key: str
-    label: Literal["BUG", "CODE_SMELL"]
-    id: str
-    reason: str
-    title: str
-    lang: str
-    severity: str
-    line_number: str
-    file_name: str
-    code_snippet: str
-    metadata: Dict[str, Any]
-
-class BugImportRequest(BaseModel):
-    bugs: List[BugItem]
-
-class BugFixRequest(BaseModel):
-    bug_id: str
-    fix_description: str
-    fixed_code: Optional[str] = None
-    fix_notes: Optional[str] = None
 
 class BugSearchRequest(BaseModel):
     query: str
@@ -56,11 +33,6 @@ class SearchResponse(BaseModel):
     query: str
     sources: List[Dict[str, Any]]
 
-class BugFixSuggestionRequest(BaseModel):
-    bug_id: str
-    collection_name: str = FIXER_COLLECTION
-    include_similar_fixes: bool = True
-
 def generate_gemini_embedding(text: str) -> List[float]:
     res = client.models.embed_content(model=EMBEDDING_MODEL, contents=text)
     res_embeddings = getattr(res, "embeddings", None)
@@ -69,25 +41,6 @@ def generate_gemini_embedding(text: str) -> List[float]:
         return [0.0] * 768
     else:
         return res_embeddings[0].values
-
-def format_bug_content_for_rag(bug: BugItem) -> str:
-    parts = [
-        f"ID: {bug.id}",
-        f"\nTitle: {bug.title}",
-        f"\nLang: {bug.lang}",
-        f"\nReason: {bug.reason}"
-    ]
-    return "".join(parts)
-
-def create_bug_rag_metadata(bug: BugItem) -> Dict[str, Any]:
-    md = {
-        "severity": {bug.severity},
-        "file_name": {bug.file_name},
-        "line_number": {bug.line_number},
-        "code_snippet": {bug.code_snippet}
-    }
-    md.update(bug.metadata or {})
-    return md
 
 router = APIRouter()
 @router.get("/health")
@@ -106,7 +59,7 @@ async def health_check():
     return {"service": "fixer_rag_router", **result}
 
 @router.post("/import")
-async def import_bugs_as_rag(request: Any):
+async def import_bugs_as_rag(bugs: List[Dict[str, Any]]):
     try:
         mongo_manager = get_mongo_manager()
         collection = mongo_manager.collection(FIXER_COLLECTION)
@@ -115,25 +68,35 @@ async def import_bugs_as_rag(request: Any):
         except Exception:
             pass
 
-        imported = []
-        for bug in request:
-            logger.debug(bug)
-            embedding = generate_gemini_embedding(bug)
-            metadata = create_bug_rag_metadata(bug)
+        imported: List[Dict[str, Any]] = []
+        for idx, bug in enumerate(bugs):
+            if not isinstance(bug, dict):
+                raise ValueError("Each bug item must be a JSON object")
+            doc_id = bug.get("doc_id")
+            if not doc_id:
+                raise ValueError("Missing 'doc_id' in bug item")
+            
+            logger.debug("Import #%d: doc_id=%s", idx, doc_id)
+            meta = bug.get("metadata") or {}
+            if not isinstance(meta, dict):
+                meta = {}
+            emb_text = json.dumps(bug, ensure_ascii=False)
+            try:
+                embedding = generate_gemini_embedding(emb_text)
+            except Exception as e:
+                logger.warning("Embedding failed for %s: %s; fallback empty embedding", doc_id, e)
+                embedding = []
+
             doc = {
                 "content": bug,
-                "metadata": metadata,
+                "metadata": meta,
                 "embedding": embedding,
             }
-            result = collection.update_one(
-                {"doc_id": bug.key},
-                {
-                    "$set": doc,
-                },
-                upsert=True,
-            )
+
+            result = collection.update_one({"doc_id": doc_id}, {"$set": doc}, upsert=True)
+
             status = "inserted" if result.upserted_id is not None else ("updated" if result.modified_count else "unchanged")
-            imported.append({"bug_id": bug.key, "status": status})
+            imported.append({"bug_id": doc_id, "status": status})
         return {
             "imported_bugs": imported,
             "message": f"Successfully imported {len(imported)} bugs as RAG documents",

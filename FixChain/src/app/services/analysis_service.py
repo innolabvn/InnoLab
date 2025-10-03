@@ -6,16 +6,16 @@ import json
 import os
 from typing import Dict, List, Any, TypedDict, Optional, Union, cast
 
+from src.app.domains.fix.models import RealBug
 from src.app.services.log_service import logger
 from src.app.adapters.dify_client import run_workflow_with_dify, DifyRunResponse
 from src.app.services.rag_service import RAGService, ScannerRAGSignal
-
 
 class AnalysisResult(TypedDict, total=False):
     success: bool
     message: str
     error: str
-    list_bugs: Union[List[Dict[str, Any]], Dict[str, Any], str]
+    list_bugs: List[RealBug]
     bugs_to_fix: int
 
 class AnalysisService:
@@ -49,7 +49,7 @@ class AnalysisService:
             api_key = self.dify_cloud_api_key
             if not api_key:
                 logger.error("Dify API key is missing.")
-                return {"success": False, "error": "Missing API key", "list_bugs": list_bugs, "bugs_to_fix": bugs_to_fix}
+                return {"success": False, "error": "Missing API key", "list_bugs": [], "bugs_to_fix": 0}
             
             # ---------------------------------------------------------
             # (0) Upsert raw scanner signals into Scanner RAG immediately
@@ -114,8 +114,8 @@ class AnalysisService:
             return {
                 "success": False,
                 "error": str(e),
-                "list_bugs": list_bugs,
-                "bugs_to_fix": bugs_to_fix,
+                "list_bugs": [],
+                "bugs_to_fix": 0,
             }
 
     # ---------------- Internal helpers ----------------
@@ -184,8 +184,7 @@ class AnalysisService:
             "severity": "MEDIUM"
           },
         """
-        # items: List[ScannerRAGSignal] = []
-        items: List[Dict[str, Any]] = []
+        items: List[RealBug] = []
 
         # Normalize records list shape
         if isinstance(list_bugs, dict) and isinstance(list_bugs.get("bugs"), list):
@@ -213,24 +212,24 @@ class AnalysisService:
                 line_number = r.get("line_number", "")
                 severity = r.get("severity", "")
                 label = self._get_label(str(action).upper())
-                scan_res = {
-                    "key": key,
-                    "label": label,
-                    "id": id,
-                    "classification": classification,
-                    "reason": reason,
-                    "title": title,
-                    "lang": lang,
-                    "file_name": file_name,
-                    "code_snippet": code_snippet,
-                    "line_number": line_number,
-                    "severity": severity
-                }
+                scan_res = RealBug(
+                    key = key,
+                    label = label,
+                    id = id,
+                    classification = classification,
+                    reason = reason,
+                    title = title,
+                    lang = lang,
+                    file_name = file_name,
+                    code_snippet = code_snippet,
+                    line_number = line_number,
+                    severity = severity
+                )
                 items.append(scan_res)
             except Exception as e:
                 logger.warning("Failed to normalize Dify item: %s ; item=%s", e, r)
-                
-        logger.debug("Normalized labeled signals from Dify: %s...", items)
+
+        logger.debug("Normalized labeled signals from Dify: %s", items.pop)
         return items
 
     @staticmethod
@@ -288,40 +287,64 @@ class AnalysisService:
                 raise Exception(f"Failed to import scanner signals: {res.error_message}")
             logger.info("Upserted %d initial scanner signals to RAG.", len(docs))
 
-    def _apply_dify_updates(self, labeled_signals: List[Dict], upsert_missing: bool = True) -> None:
-        """
-        Map each labeled_signal (ScannerRAGSignal or dict) to update operations on scanner_rag collection.
-        Matching priority:
-          1) key (preferred)
-          2) id (bug_id)
-        If matching record found -> update -> add dify_* fields + label
-        If not found and upsert_missing True -> insert/upsert new record
-        """
-        # Convert any ScannerRAGSignal objects to dict documents
-        docs: List[Dict[str, Any]] = []
-        for s in labeled_signals:
-            try:
-                if isinstance(s, ScannerRAGSignal):
-                    docs.append(s.to_document())
-                elif isinstance(s, dict):
-                    docs.append(s)
-                else:
-                    # best-effort cast
-                    docs.append(cast(Dict[str, Any], s))
-            except Exception as e:
-                logger.warning("Failed to convert labeled signal to doc: %s ; sig=%s", e, s)
+    def _safe_int(self, v: Any) -> Optional[int]:
+        try:
+            return int(v)
+        except Exception:
+            return None
 
-        # For each doc, try update via RAGService methods
-        for doc in docs:
+    def _norm_classification(self, s: Optional[str]) -> Optional[str]:
+        if not s:
+            return None
+        sl = s.strip().lower()
+        if sl in {"tp", "true positive"}:
+            return "True Positive"
+        if sl in {"fp", "false positive"}:
+            return "False Positive"
+        return s
+
+    def _rb_to_scanner_signal(self, rb: "RealBug") -> "ScannerRAGSignal":
+        # Build a minimal yet valid ScannerRAGSignal for upsert/insert
+        return ScannerRAGSignal(
+            key=rb.key or rb.id,  # ensure key is populated; prefer key
+            id=rb.id,
+            title=rb.title or (rb.id or rb.key),
+            description=rb.reason or rb.title or "",
+            code_snippet=rb.code_snippet or "",
+            file_name=rb.file_name or None,
+            line_number=self._safe_int(rb.line_number),
+            severity=rb.severity or None,
+            tags=[t for t in {rb.label, rb.severity} if t],  # store label/severity as tags
+            # Dify metadata
+            dify_bug_id=rb.id,
+            dify_classification=self._norm_classification(rb.classification),
+            dify_reason=rb.reason or None,
+        )
+
+    def _apply_dify_updates(self, labeled_signals: List["RealBug"], upsert_missing: bool = True) -> None:
+        """
+        Apply Dify-labeled results into Scanner RAG.
+        Matching priority:
+        1) key (preferred)
+        2) id (fallback if your RAG supports it)
+        If matching record is found -> update with dify_* fields (and optionally core fields).
+        If not found and upsert_missing=True -> insert/upsert a new ScannerRAGSignal.
+        """
+        if not labeled_signals:
+            return
+
+        for rb in labeled_signals:
             try:
-                key = doc.get("key", "")
-                update_fields = {
-                    "dify_bug_id": doc.get("id", ""),
-                    "dify_label": doc.get("label"),
-                    "dify_classification": doc.get("classification"),
-                    "dify_reason": doc.get("reason"),
+                key = getattr(rb, "key", None)
+                bug_id = getattr(rb, "id", None)
+
+                # Only Dify-* update fields here; don't invent unknown fields like "dify_label"
+                update_fields: Dict[str, Any] = {
+                    "dify_bug_id": bug_id,
+                    "dify_classification": self._norm_classification(getattr(rb, "classification", None)),
+                    "dify_reason": getattr(rb, "reason", None),
                 }
-                # remove None values
+                # prune Nones
                 update_fields = {k: v for k, v in update_fields.items() if v is not None}
 
                 updated = False
@@ -329,52 +352,43 @@ class AnalysisService:
                 # Prefer update by key
                 if key and hasattr(self.rag, "update_scanner_signal"):
                     try:
-                        updated = self.rag.update_scanner_signal(key, update_fields)
+                        updated = bool(self.rag.update_scanner_signal(key, update_fields))
                     except Exception as e:
-                        logger.debug("Scanner RAG update failed for key=%s: %s", key, e)
+                        logger.debug("Scanner RAG update by key failed (key=%s): %s", key, e)
                         updated = False
 
-                # If no update method or update did not apply, try higher-level APIs
-                if not updated:
+                # Upsert/Insert if still not updated
+                if not updated and upsert_missing:
+                    merged_sig = self._rb_to_scanner_signal(rb)
+
+                    # Prefer typed upsert API
                     if hasattr(self.rag, "upsert_scanner_signals"):
-                        # create merged doc for upsert
-                        merged = ScannerRAGSignal(**{**doc, **update_fields})
                         try:
-                            self.rag.upsert_scanner_signals([merged])
+                            self.rag.upsert_scanner_signals([merged_sig])
                             updated = True
                         except Exception as e:
-                            logger.debug("rag.upsert_scanner_signals failed for merged doc: %s", e)
+                            logger.debug("rag.upsert_scanner_signals failed: %s", e)
                             updated = False
-                    elif hasattr(self.rag, "add_scanner_signals"):
-                        # try a best-effort update: add_scanner_signals may upsert
+
+                    # Fallback to add API (dict payload)
+                    if not updated and hasattr(self.rag, "add_scanner_signals"):
                         try:
-                            self.rag.add_scanner_signals([ {**doc, **update_fields} ])
+                            self.rag.add_scanner_signals([asdict(merged_sig)])
                             updated = True
                         except Exception as e:
                             logger.debug("rag.add_scanner_signals failed: %s", e)
                             updated = False
 
-                # If still not updated and allowed, insert as new
-                if not updated and upsert_missing:
-                    try:
-                        # build insert doc
-                        if hasattr(self.rag, "add_scanner_signals"):
-                            self.rag.add_scanner_signals([{**doc, **update_fields}])
+                    # Last resort: try an update method that can upsert if supported
+                    if not updated and hasattr(self.rag, "update_scanner_signal"):
+                        try:
+                            # use the merged doc as update body
+                            self.rag.update_scanner_signal(merged_sig.key, asdict(merged_sig))
                             updated = True
-                        elif hasattr(self.rag, "upsert_scanner_signals"):
-                            self.rag.upsert_scanner_signals([ScannerRAGSignal(**{**doc, **update_fields})])
-                            updated = True
-                        else:
-                            # last resort: try update_scanner_signal with upsert param if supported
-                            if hasattr(self.rag, "update_scanner_signal"):
-                                try:
-                                    self.rag.update_scanner_signal(key, {**doc, **update_fields})
-                                    updated = True
-                                except Exception:
-                                    updated = False
-                    except Exception as e:
-                        logger.warning("Failed to insert missing Dify-updated doc into RAG: %s", e)
+                        except Exception:
+                            updated = False
 
                 logger.debug("Dify update applied for key=%s, updated=%s", key, updated)
+
             except Exception as e:
-                logger.warning("Exception while applying Dify update to doc: %s ; doc=%s", e, doc)
+                logger.warning("Exception while applying Dify update; bug=%s ; err=%s", rb, e)

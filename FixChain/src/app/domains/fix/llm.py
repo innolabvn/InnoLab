@@ -1,6 +1,7 @@
 # src/app/domains/fixer/llm.py
 from __future__ import annotations
 
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
 import json
 import os
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from dotenv import load_dotenv
+from src.app.domains.fix.models import RealBug
 from src.app.services.log_service import logger
 from src.app.services.cli_service import CLIService
 from .base import Fixer
@@ -29,7 +31,6 @@ def _find_repo_root(start: Path) -> Path:
             return cur
         cur = cur.parent
     return start.resolve()
-
 
 class LLMFixer(Fixer):
     """Fixer triển khai bằng cách gọi batch_fix.py qua CLIService."""
@@ -112,25 +113,23 @@ class LLMFixer(Fixer):
         candidate = s[start:end+1]
         return json.loads(candidate)
 
-    def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int = 0) -> Dict:
+    def fix_bugs(self, list_real_bugs: List[RealBug], bugs_count: int = 0) -> Dict:
         """
-        lisr_real_bugs format:
+        list_real_bugs format:
         {
-        "bugs_to_fix": <number>,
-        "bugs": [
             {
-            "key": "<key>",
-            "id": "<id>",
-            "lang": "<lang>", (python, javascript)
-            "severity":"<severity>",
-            "file_name": "<file name>",
-            "line_number": "<line_number>",
-            "title": "<title>",
-            "classification": "True Positive" | "False Positive",
-            "action": "Fix" | "Ignore",
-            "reason": "<≤45 words; if RAG used include 'RAG: <matched id/title/keyword>'>"
+                "key": key,
+                "label": label,
+                "id": id,
+                "classification": classification,
+                "reason": reason,
+                "title": title,
+                "lang": lang,
+                "file_name": file_name,
+                "code_snippet": code_snippet,
+                "line_number": line_number,
+                "severity": severity
             }
-        ]
         }
         """
         try:
@@ -157,8 +156,9 @@ class LLMFixer(Fixer):
             # Tạo file issues theo timestamp trong source_dir để batch_fix dễ access
             timestamp = datetime.now().strftime("%m%d_%H%M%S")
             issues_file_path = Path(source_dir) / f"list_real_bugs_{timestamp}.json"
+            payload = [asdict(b) if is_dataclass(b) else b for b in list_real_bugs]
             with open(issues_file_path, "w", encoding="utf-8") as f:
-                json.dump(list_real_bugs, f, indent=2, ensure_ascii=True)
+                json.dump(payload, f, indent=2, ensure_ascii=True)
 
             logger.debug("Created issues file: %s", issues_file_path)
 
@@ -174,7 +174,6 @@ class LLMFixer(Fixer):
             logger.debug("Running command: %s", " ".join(fix_cmd))
             success, output_lines = CLIService.run_command_stream(fix_cmd)
             output_text = "".join(output_lines)
-            logger.debug("Batch fix output:\n%s", output_text)
 
             if not success:
                 logger.error("Batch fix failed")

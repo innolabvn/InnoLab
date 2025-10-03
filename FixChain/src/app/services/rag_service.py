@@ -10,7 +10,6 @@ import time
 import requests
 from typing import Any, Dict, List, Optional
 from dataclasses import asdict, dataclass, field
-from pathlib import Path
 from src.app.services.log_service import logger
 
 FIXER_COLLECTION = os.getenv("FIXER_RAG_COLLECTION", "fixer_rag_collection")
@@ -22,7 +21,6 @@ class RAGSearchResult:
     query: str
     success: bool = True
     error_message: str = ""
-
 
 @dataclass
 class RAGAddResult:
@@ -105,8 +103,6 @@ class RAGService:
         self.fixer_health = f"{self.base_url}/fixer-rag/health"
         self.fixer_import = f"{self.base_url}/fixer-rag/import"
         self.fixer_search = f"{self.base_url}/fixer-rag/search"
-        self.fixer_fix    = f"{self.base_url}/fixer-rag/fix"
-        self.fixer_suggest= f"{self.base_url}/fixer-rag/suggest-fix"
 
         self.headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -115,7 +111,7 @@ class RAGService:
         last_exc: Optional[Exception] = None
         for i in range(retries + 1):
             try:
-                logger.debug("POST %s with payload: %s", url, str(payload)[:100])
+                logger.debug("POST %s with payload: %s", url, str(payload))
                 resp = requests.post(url, json=payload, headers=self.headers, timeout=self.timeout)
                 if resp.ok:
                     return resp
@@ -131,6 +127,7 @@ class RAGService:
                 raise
         # should not reach here
         raise last_exc or RuntimeError("Unknown POST error")
+    
     # ---------- Scanner ----------
     def add_scanner_signals(self, items: List[Dict]) -> RAGAddResult:
         """
@@ -155,7 +152,7 @@ class RAGService:
             if not resp.ok:
                 return RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
-            logger.debug("Scanner search success response: %s", str(data)[:100])
+            logger.debug("Scanner search response: %s", str(data))
             return RAGSearchResult(list(data.get("sources", [])), data.get("query", query), True)
         except Exception as e:
             return RAGSearchResult([], query, False, str(e))
@@ -171,6 +168,7 @@ class RAGService:
             if not resp.ok:
                 return RAGAddResult(False, "", f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
+            logger.debug("Scanner update response: %s", str(data))
             return RAGAddResult(True, data.get("document_id", ""), "")
         except Exception as e:
             return RAGAddResult(False, "", str(e))
@@ -195,7 +193,7 @@ class RAGService:
             if not resp.ok:
                 return RAGAddResult(False, "", f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
-            # tuỳ backend trả gì: inserted/upserted count, ids,...
+            logger.debug("Scanner upsert response: %s", str(data))
             return RAGAddResult(True, data.get("upserted_count", 0), "")
         except Exception as e:
             return RAGAddResult(False, "", str(e))
@@ -205,10 +203,9 @@ class RAGService:
         try:
             resp = self._post_with_retry(self.fixer_import, bugs_payload)
             if not resp.ok:
-                logger.debug(f"Error_message: {resp.status_code}: {resp.text}")
                 return RAGAddResult(False, error_message=f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
-            logger.debug("Fixer import response: %s", data)
+            logger.debug("Fixer import response: %s", str(data))
             first = (data.get("imported_bugs") or [{}])[0]
             return RAGAddResult(True, document_id=str(first.get("bug_id", "")))
         except Exception as e:
@@ -221,33 +218,10 @@ class RAGService:
             if not resp.ok:
                 return RAGSearchResult([], query, False, f"HTTP {resp.status_code}: {resp.text[:200]}")
             data = resp.json()
-            logger.debug("Fixer search success response: %s", data)
+            logger.debug("Fixer search response: %s", data)
             return RAGSearchResult(list(data.get("sources", [])), data.get("query", query), True)
         except Exception as e:
             return RAGSearchResult([], query, False, str(e))
-
-    def fix_bug(self, bug_id: str, fix_description: str, fixed_code: Optional[str] = None,
-                fix_notes: Optional[str] = None) -> Dict:
-        payload = {
-            "bug_id": bug_id,
-            "fix_description": fix_description,
-            "fixed_code": fixed_code,
-            "fix_notes": fix_notes,
-        }
-        resp = self._post_with_retry(self.fixer_fix, payload)
-        data = resp.json()
-        logger.debug("Fix bug response: %s", data)
-        return data
-
-    def suggest_fix(self, bug_id: str, include_similar_fixes: bool = True,
-                    collection_name: str = FIXER_COLLECTION) -> Dict:
-        payload = {"bug_id": bug_id, "include_similar_fixes": include_similar_fixes}
-        if collection_name:
-            payload["collection_name"] = collection_name
-        resp = self._post_with_retry(self.fixer_suggest, payload)
-        data = resp.json()
-        logger.debug("Suggest fix response: %s", data)
-        return data
 
     # ---------- Health ----------
     def health_check(self) -> bool:

@@ -70,7 +70,6 @@ class ExecutionServiceNoMongo:
                         except Exception as e:
                             logger.warning("Could not read %s: %s", fp, e)
             full_code = "".join(collected)
-            logger.debug(full_code[:50])
             return full_code
         except Exception as e:
             logger.error("Error reading source code: %s", e)
@@ -127,17 +126,12 @@ class ExecutionServiceNoMongo:
             logger.debug("Dify analysis result: %s", analysis)
             it_result["analysis_result"] = analysis
 
-            list_real_bugs = analysis.get("list_bugs")
+            list_real_bugs_raw = analysis.get("list_bugs", [])
             bugs_count = analysis.get("bugs_to_fix", 0)
             logger.info("Dify identified %s real bugs to fix", bugs_count)
 
-            if isinstance(list_real_bugs, dict):
-                list_real_bugs = [list_real_bugs]
-            elif not isinstance(list_real_bugs, list):
-                list_real_bugs = []
-
             # Không có bug thực sự để fix
-            if not list_real_bugs or bugs_count == 0:
+            if not list_real_bugs_raw or bugs_count == 0:
                 it_result["fix_result"] = {
                     "success": True,
                     "fixed_count": 0,
@@ -151,7 +145,8 @@ class ExecutionServiceNoMongo:
 
             # Fix
             fix_results: List[Dict[str, Any]] = []
-            raw = self.fixer.fix_bugs(list_real_bugs, bugs_count=bugs_count)
+            raw = self.fixer.fix_bugs(list_real_bugs_raw, bugs_count)
+            
             if isinstance(raw, str):
                 try:
                     fix_result = json.loads(raw.splitlines()[-1])

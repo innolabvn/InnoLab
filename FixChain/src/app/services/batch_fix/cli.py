@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections import defaultdict
 import argparse, json, os
 from pathlib import Path
+from typing import Any, List, Mapping, Sequence
 from dotenv import load_dotenv
+from src.app.domains.fix.llm import RealBug
 from src.app.services.log_service import logger
 from src.app.services.batch_fix.processor import SecureFixProcessor
 
@@ -11,13 +13,27 @@ def load_issues_group_by_file(path):
     issues_by_file = defaultdict(list)
 
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    logger.debug(f"Fixer received data: {str(data)[:100]}")
+    logger.debug(f"Fixer received data: {data}")
     for d in data:
         fn = d.get("file_name")
         key = os.path.normpath(fn) if fn else "UNKNOWN"
         issues_by_file[key].append(d)
 
     return issues_by_file
+
+def ensure_realbug_list(items: Sequence[Any]) -> List[RealBug]:
+    out: List[RealBug] = []
+    for x in items or []:
+        if isinstance(x, RealBug):
+            out.append(x)
+        elif isinstance(x, Mapping):
+            try:
+                out.append(RealBug(**x))  # dict -> RealBug
+            except Exception as e:
+                logger.warning("Bad RealBug payload %r: %s", x, e)
+        else:
+            logger.warning("Skip unexpected item in issues list: %r", type(x))
+    return out
 
 def run():
     parser = argparse.ArgumentParser(description="Secure Batch Fix (AI-powered)")
@@ -66,9 +82,10 @@ def run():
     for i, p in enumerate(code_files, 1):
         rel = os.path.relpath(p, directory)
         logger.info(f"[{i}/{len(code_files)}] {'Fixing'}: {rel}")
-        file_issues = issues_by_file.get(rel, [])
-        if isinstance(file_issues, list) and file_issues:
-            logger.debug(f"File issue to be fixed: {file_issues}")
+        file_issues_raw = issues_by_file.get(rel, [])
+        file_issues: List[RealBug] = ensure_realbug_list(file_issues_raw)
+        if file_issues:
+            logger.debug("File issue to be fixed: %s", file_issues)
             r = processor.fix_buggy_file(
                 file_path=p, template_type="fix",
                 issues_data=file_issues
@@ -78,7 +95,7 @@ def run():
             if r.success:
                 logger.info(f"Success: {r.processing_time:.1f}s")
             else:
-                logger.info(f"Failed: {r.message}, Validation errors: {r.validation_errors}")
+                logger.info(f"Failed: {r.message}")
         else:    
             logger.info("No bug found in this file")
             pass
@@ -99,7 +116,6 @@ def run():
     logger.info(f"TOTAL OUTPUT TOKENS: {total_out}")
     logger.info(f"TOTAL TOKENS: {total_tok}")
     logger.info(f"AVERAGE SIMILARITY: {avg_sim:.3f}")
-    # logger.info(f"THRESHOLD MET COUNT: {thr_met}")
     logger.info(f"AVERAGE PROCESSING TIME: {avg_time:.1f}")
 
     summary = {

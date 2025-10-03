@@ -2,6 +2,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Dict, List
+from src.app.domains.fix.models import RealBug
 
 
 class Fixer(ABC):
@@ -12,7 +13,7 @@ class Fixer(ABC):
         self.scan_directory = scan_directory
 
     @abstractmethod
-    def fix_bugs(self, list_real_bugs: List[Dict], bugs_count: int) -> Dict:
+    def fix_bugs(self, list_real_bugs: List[RealBug], bugs_count: int) -> Dict:
         """
         Apply fixes to bugs and return result summary.
 

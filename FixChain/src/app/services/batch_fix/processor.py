@@ -1,10 +1,12 @@
 # src/app/services/batch_fix/processor.py
 from __future__ import annotations
+from dataclasses import asdict, is_dataclass
 import os, json, fnmatch
 import re
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 from datetime import datetime
+from src.app.domains.fix.llm import RealBug
 from src.app.services.log_service import logger
 from src.app.services.batch_fix.models import FixResult
 from src.app.services.batch_fix import validators as V
@@ -54,11 +56,12 @@ class SecureFixProcessor:
             if fnmatch.fnmatch(rel, p) or fnmatch.fnmatch(os.path.basename(path), p): return True
         return False
 
-    def fix_buggy_file(self, file_path: str, template_type: str, issues_data: Optional[List[Dict]] = None) -> FixResult:
+    def fix_buggy_file(self, file_path: str, template_type: str, issues_data: List[RealBug]) -> FixResult:
         """
         issues_data generate: 
         -> labeled_signals = self._normalize_labeled_signals(list_bugs)
         -> list_real_bugs = analysis.get("list_bugs")
+        -> file_issues = issues_by_file.get(rel, [])
         issues_data format:
         {
         "app.py": [
@@ -97,7 +100,6 @@ class SecureFixProcessor:
         logger.debug(f"Fixer RAG retrieved context: {rag_context[:100]}")
         original = ""
         final_content = ""
-        validation_errors = []
         try:
             original = Path(file_path).read_text(encoding="utf-8") 
             # load template
@@ -105,15 +107,9 @@ class SecureFixProcessor:
             if tpl is None:
                 raise RuntimeError("Template not found. Put templates in src/app/prompts/")
             
-            ok, errs = V.validate_by_ext(file_path, original)
-            if not ok:
-                validation_errors += errs
-            # Try using markdown table format for JSON payload
             rendered = tpl(
                 original_code=original,
-                validation_rules=V.get_rules_for(file_path),
-                validation_errors=validation_errors,
-                issues_log=json.dumps(issues_data or [], ensure_ascii=False, indent=2),
+                issues_log=json.dumps([asdict(b) if is_dataclass(b) else b for b in (issues_data or [])], ensure_ascii=False, indent=2),
                 rag_suggestion=rag_context,
                 has_rag_suggestion=bool(rag_context),
                 **tpl_vars,
@@ -124,7 +120,7 @@ class SecureFixProcessor:
             # === google-genai call ===
             resp = client.models.generate_content(model=GENERATION_MODEL, contents=rendered)
             text = getattr(resp, "text", "") or ""
-            logger.debug(f"Gemini response: {text[:100]}")
+            logger.debug(f"Gemini response fix_buggy_file: {text[:100]}")
 
             default_llm_file  = strip_markdown_code(text)
 
@@ -156,16 +152,13 @@ class SecureFixProcessor:
                 logger.debug(f"Fixed code block preview: {fixed_code_block[:100]}")
                 logger.info("No serena instruction returned; fallback to LLM full-file replacement")
             else:
-                logger.error("No serena instruction and fixed code in LLM response")
+                logger.warning("No serena instruction and fixed code in LLM response")
                 final_content = default_llm_file
 
             if final_content:
                 logger.debug(f"Final content: {final_content[:100]}")
                 Path(file_path).write_text(final_content, encoding="utf-8")
 
-                safe, s_issues = V.validate_safety(original, final_content)
-                if not safe:
-                    validation_errors += s_issues
             else:
                 raise RuntimeError("No valid fixed content produced") 
             
@@ -187,7 +180,6 @@ class SecureFixProcessor:
                 original_size=len(original), 
                 fixed_size=len(final_content),
                 message=f"Size change: {len(final_content)-len(original)} bytes",
-                validation_errors=validation_errors,
                 processing_time=elapsed, 
                 similarity_ratio=similar,
                 input_tokens=input_tokens, 
@@ -197,7 +189,7 @@ class SecureFixProcessor:
             )
 
             try:
-                self.rag.add_fix(result, issues_data, final_content)
+                self.rag.add_fix(result, issues_data, final_content[:100])
             except Exception as e:
                 logger.warning("Failed to add fix to RAG: %s", e)
 
@@ -208,7 +200,6 @@ class SecureFixProcessor:
                 original_size=len(original), 
                 fixed_size=0,
                 message=f"{e}",
-                validation_errors=validation_errors,
                 processing_time=0, 
                 similarity_ratio=0,
                 input_tokens=0, 

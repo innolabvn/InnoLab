@@ -3,6 +3,3 @@ venv/
 __pycache__/
 *.pyc
 .env
-./FixChain/logs/
-./FixChain/target_project/
-./projects/
